@@ -35,7 +35,7 @@ def polling_thread():
             with regs_lock:
                 regs = list(reg_list)
         # 1s before next polling
-        time.sleep(1)
+        #time.sleep(1)
 
 
 # start polling thread
@@ -48,9 +48,10 @@ tp.start()
 while True:
     # print regs list (with thread lock synchronization)
     with regs_lock:
+        print(time.clock(),' ', end='')
         for r in regs:
             print(hex(r) + ' ', end='')
         print(' ')
         #print(regs)
     # 1s before next print
-    time.sleep(1)
+    time.sleep(0.01)
