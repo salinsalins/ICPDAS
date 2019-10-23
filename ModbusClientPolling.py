@@ -9,7 +9,7 @@ import time
 from threading import Thread, Lock
 from pyModbusTCP.client import ModbusClient
 
-SERVER_HOST = "localhost"
+SERVER_HOST = "192.168.0.47"
 SERVER_PORT = 502
 
 # set global
@@ -29,7 +29,7 @@ def polling_thread():
         if not c.is_open():
             c.open()
         # do modbus reading on socket
-        reg_list = c.read_holding_registers(0, 10)
+        reg_list = c.read_input_registers(0, 10)
         # if read is ok, store result in regs (with thread lock synchronization)
         if reg_list:
             with regs_lock:
@@ -48,6 +48,9 @@ tp.start()
 while True:
     # print regs list (with thread lock synchronization)
     with regs_lock:
-        print(regs)
+        for r in regs:
+            print(hex(r) + ' ', end='')
+        print(' ')
+        #print(regs)
     # 1s before next print
     time.sleep(1)
