@@ -76,11 +76,10 @@ class ICPDAS:
     def __init__(self, host, port):
         self._host = host
         self._port = port
-        self._client = ModbusClient(host=self._host, port=self._port,
-                                    auto_open=True, auto_close=True, timeout=0.15)
-    def read(self, addr, n):
-        b = self.client.read_input_registers(addr, n)
-        return b
+        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=0.15)
+
+    def read(self):
+        pass
 
     # Создаем три клиента по протоколу модбас - библиотека pyModbusTCP, смотри интернет как пользоваться
 
@@ -275,7 +274,7 @@ class MainWindow(QMainWindow):
         self.T2.setMaximum(7000)
         self.T2.setReadOnly(True)
         self.T2.setDecimals(0)
-        l = QLabel("Tpl", self)
+        l = QLabel("Temp Plastik", self)
         l.resize(120, 20)
         l.move(1040, 298)
 
@@ -319,7 +318,8 @@ class MainWindow(QMainWindow):
         volt = []
         # проходим по всем каналам которые мы добавили в самом верху
         for chan in chan1:
-            b = client1.read_input_registers(chan.addr, 1)  # функция считывания байтового значения из ацп по протоколу модбас
+            b = client1.read_input_registers(chan.addr,
+                                             1)  # функция считывания байтового значения из ацп по протоколу модбас
             if b is None:  # если вернула None то есть какая-то ошибка - скорее всего нет подключения - тогда задаем значение 666
                 volt.append(666)
                 print("chan error")
