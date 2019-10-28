@@ -9,7 +9,6 @@ import time
 import numpy as np
 import os
 
-
 # Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды а время в формате hh:mm), сделано по гайду из интернета
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -73,10 +72,33 @@ def toT(b):
 
 
 class ICPDAS:
-    def __init__(self, host, port):
+    # Класс канала, представляет канал АЦП
+    class Channel:
+        def __init__(self, addr, min, max):
+            self.addr = addr  # номер канала на АЦП
+            self.min = min  # минимальное значение в вольтах
+            self.max = max  # максимальное
+
+        # преобразования байтового значения которое выдает АЦП (по сути целочисленное) в значение напряжения
+        def toV(self, b):
+            # обрабатывается вусего 2 случая - минимум нулевой
+            if self.min == 0 and self.max > 0:
+                return self.max * b / 0xffff
+                # и минимум по модулю равен максимуму
+            if self.min == -self.max and self.max > 0:
+                one = 0xffff / 2
+                if b <= one:
+                    return self.max * b / one
+                else:
+                    return -self.max * (0xffff - b) / one
+            # в других случаях ошибка
+            return float('nan')
+
+    def __init__(self, host, port, timeout=0.15):
         self._host = host
         self._port = port
-        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=0.15)
+        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
+        self.channels = []
 
     def read(self):
         pass

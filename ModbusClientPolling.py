@@ -14,6 +14,7 @@ SERVER_PORT = 502
 
 # set global
 regs = []
+t = time.time()
 
 # init a thread lock
 regs_lock = Lock()
@@ -34,6 +35,7 @@ def polling_thread():
         if reg_list:
             with regs_lock:
                 regs = list(reg_list)
+            t = time.time()
         # 1s before next polling
         #time.sleep(1)
 
