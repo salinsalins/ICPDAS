@@ -71,7 +71,7 @@ def toT(b):
     return b / 10
 
 
-class ICP_DAS_ET7000:
+class ET7000:
     # Класс канала, представляет канал АЦП
     class Channel:
         def __init__(self, addr, min, max, convert=Channel.toV):
@@ -95,7 +95,7 @@ class ICP_DAS_ET7000:
             # в других случаях ошибка
             return float('nan')
 
-    def __init__(self, host, port, timeout=0.15):
+    def __init__(self, host, port=502, timeout=0.15):
         self._host = host
         self._port = port
         self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         self.t = QtCore.QTime()
         self.t.start()
 
-        # Для АЦП 1 создаем спинбоксы с значениями все напряжений
+        # Для АЦП 1 создаем спинбоксы с значениями всех напряжений
         self.vols = []  # массив всех значений(спинбоксов) с напряжениями чтобы потом их использовать
         for i in range(6):
             s = QDoubleSpinBox(self)  # число
@@ -238,9 +238,9 @@ class MainWindow(QMainWindow):
 
         # меняем названия (подписи) на те что надо
         self.labels[0].setText("Beam current")
-        self.labels[1].setText("Vacuum High")
-        self.labels[2].setText("Vacuum Tube")
-        self.labels[3].setText("Vacuum Low")
+        self.labels[1].setText("P chamber")
+        self.labels[2].setText("P tube")
+        self.labels[3].setText("P fore pump")
         self.labels[4].setText("Gas flow")
 
         # добавляем кнопку разворачивания основного окна чтобы показывались значения напряжений ацп
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         self.T1.setMaximum(7000)
         self.T1.setReadOnly(True)
         self.T1.setDecimals(0)
-        l = QLabel("Temp Yarmo", self)
+        l = QLabel("Temp Iron", self)
         l.resize(120, 20)
         l.move(920, 298)
 
