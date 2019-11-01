@@ -108,14 +108,14 @@ class ET7000:
             # в других случаях ошибка
             return float('nan')
 
-    def __init__(self, host, name=None, port=502, timeout=0.15):
+    def __init__(self, host, port=502, timeout=0.15):
         self._host = host
         self._port = port
         self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
-        self.module_name = self.read_module_name()
-        if name is not None:
-            if self.module_name != name:
-                print('ET7000 device is %s not %s'%(hex(self.module_name), hex(name)))
+        self._name = self.read_module_name()
+        if self._name not in ET7000.devices:
+            print('Device %s is not supported' % hex(self._name))
+            return
         self.n_AI = self.read_n_AI()
 
     def read_module_name(self):
