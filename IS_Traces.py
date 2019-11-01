@@ -100,6 +100,13 @@ class ET7000:
         self._port = port
         self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
         self.channels = []
+        self.module_name = self.read_module_name()
+
+    def read_module_name(self):
+        regs = self.client.read_holding_registers(559, 1)
+        if regs:
+            return regs[0]
+        return None
 
     def read(self):
         pass
