@@ -112,6 +112,7 @@ class ET7000:
         self._host = host
         self._port = port
         self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
+        self.client.open()
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
             print('Device %s is not supported' % hex(self._name))
