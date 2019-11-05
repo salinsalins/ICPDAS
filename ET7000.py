@@ -141,7 +141,8 @@ class ET7000:
         }
     }
     devices = {
-        0x7017: {}
+        0x7017: {},
+        0x7018: {}
     }
 
     # default conversion from quanta to real units
@@ -173,7 +174,7 @@ class ET7000:
         # module name
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
-            print('Device %s is not supported' % hex(self._name))
+            print('Device type %s is not supported' % hex(self._name))
         # AIs
         self.AI_n = self.read_AI_n()
         self.AI_ranges = self.read_AI_ranges()
