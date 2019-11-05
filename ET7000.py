@@ -140,9 +140,51 @@ class ET7000:
             'units': 'A'
         }
     }
+    AO_ranges = {
+        0x30: {
+            'min': 0.0,
+            'max': 20.0e-3,
+            'units': 'A'
+        },
+        0x31: {
+            'min': 4.0e-3,
+            'max': 20.0e-3,
+            'units': 'A'
+        },
+        0x32: {
+            'min': 0.0,
+            'max': 10.0,
+            'units': 'V'
+        },
+        0x33: {
+            'min': -10.0,
+            'max': 10.0,
+            'units': 'V'
+        },
+        0x34: {
+            'min': 0.0,
+            'max': 5.0,
+            'units': 'V'
+        },
+        0x35: {
+            'min': -5.0,
+            'max': 5.0,
+            'units': 'V'
+        }
+    }
     devices = {
-        0x7017: {},
-        0x7018: {}
+        0x7016: {
+            'AI':   True
+        },
+        0x7018: {
+            'AI': True
+        },
+        0x7026: {
+            'AI': True,
+            'AO': True,
+            'DI': True,
+            'DO': True
+        }
     }
 
     # default conversion from quanta to real units
@@ -176,9 +218,13 @@ class ET7000:
         if self._name not in ET7000.devices:
             print('Device type %s is not supported' % hex(self._name))
         # AIs
-        self.AI_n = self.read_AI_n()
-        self.AI_ranges = self.read_AI_ranges()
-        self.AI_masks = self.read_AI_masks()
+        if ET7000.devices[self._name]['AI']:
+            self.AI_n = self.read_AI_n()
+            self.AI_ranges = self.read_AI_ranges()
+            self.AI_masks = self.read_AI_masks()
+        if ET7000.devices[self._name]['AO']:
+            self.AO_n = self.read_AO_n()
+            self.AO_ranges = self.read_AO_ranges()
 
     def read_module_name(self):
         regs = self._client.read_holding_registers(559, 1)
@@ -222,7 +268,7 @@ class ET7000:
         return self.AI_values
 
     def read_AI(self):
-        self.read_AI_raw()
+        self.AI_raw = self.read_AI_raw()
         self.convert_AI()
         return self.AI_values
 
@@ -230,9 +276,53 @@ class ET7000:
         if not self.AI_masks[k]:
             return float('nan')
         regs = self._client.read_input_registers(0+k, 1)
-        self.AI_raw[k] = regs[0]
         rng = ET7000.AI_ranges[self.AI_ranges[k]]
         v = ET7000.convert(regs[0], rng['min'], rng['max'])
-        self.AI_values[k] = v
         return v
+
+    def read_DI_n(self):
+        regs = self._client.read_input_registers(300, 1)
+        if regs:
+            return regs[0]
+        return 0
+
+    def read_DO_n(self):
+        regs = self._client.read_input_registers(310, 1)
+        if regs:
+            return regs[0]
+        return 0
+
+    def read_AO_n(self):
+        regs = self._client.read_input_registers(330, 1)
+        if regs:
+            return regs[0]
+        return 0
+
+    def read_AO_ranges(self, n=None):
+        if n is None:
+            n = self.AO_n
+        regs = self._client.read_holding_registers(459, n)
+        return regs
+
+    def read_AO_raw(self):
+        regs = self._client.read_holding_registers(0, self.AO_n)
+        self.AO_raw = regs
+        self.AO_time = time.time()
+        return regs
+
+    def write_AO_raw(self, regs):
+        regs = self._client.write_multiple_registers(0, regs)
+        self.AO_time = time.time()
+        return regs
+
+    def convert_AO(self, raw=None):
+        if raw is None:
+            raw = self.AO_raw
+        self.AO_values = []
+        self.AO_units = []
+        for k in range(self.AO_n):
+            rng = ET7000.AO_ranges[self.AO_ranges[k]]
+            self.AO_values.append(ET7000.convert(raw[k], rng['min'], rng['max']))
+            self.AO_units.append(rng['units'])
+        return self.AO_values
 
