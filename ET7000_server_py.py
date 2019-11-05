@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Demo power supply tango device server"""
+"""
+ICP DAS ET7000 tango device server"""
 
 import time
 import numpy
@@ -10,13 +11,13 @@ from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
 
 
-class PowerSupply(Device):
+class ET7000_tango(Device):
 
-    voltage = attribute(label="Voltage", dtype=float,
+    ai00 = attribute(label="ai00", dtype=float,
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="V", format="8.4f",
-                        doc="the power supply voltage")
+                        doc="ai00 value")
 
     current = attribute(label="Current", dtype=float,
                         display_level=DispLevel.EXPERT,
