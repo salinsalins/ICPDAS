@@ -209,6 +209,21 @@ class ET7000:
         # в других случаях ошибка
         return float('nan')
 
+    @staticmethod
+    def convert_to_raw(f, min, max):
+        # обрабатывается 2 случая - минимум нулевой
+        if min == 0 and max > 0:
+            return int(f * 0xffff / max)
+        # и минимум по модулю равен максимуму
+        if min == -max and max > 0:
+            one = 0xffff / 2
+            if f > 0.0:
+                return int(f * one / max)
+            else:
+                return int(0xffff + (f * one / max))
+        # в других случаях ошибка
+        return float('nan')
+
     def __init__(self, host, port=502, timeout=0.15):
         self._host = host
         self._port = port
@@ -224,12 +239,13 @@ class ET7000:
         if self._name not in ET7000.devices:
             print('Device type %s is not supported' % hex(self._name))
         # AIs
-        if ET7000.devices[self._name]['AI']:
-            self.AI_n = self.read_AI_n()
+        self.AI_n = self.read_AI_n()
+        if self.AI_n > 0:
             self.AI_ranges = self.read_AI_ranges()
             self.AI_masks = self.read_AI_masks()
-        if ET7000.devices[self._name]['AO']:
-            self.AO_n = self.read_AO_n()
+        # AOs
+        self.AO_n = self.read_AO_n()
+        if self.AO_n > 0:
             self.AO_ranges = self.read_AO_ranges()
 
     def read_module_name(self):
@@ -317,9 +333,10 @@ class ET7000:
         return regs
 
     def write_AO_raw(self, regs):
-        regs = self._client.write_multiple_registers(0, regs)
+        self.AO_write_raw = regs
+        self.AO_write_result = self._client.write_multiple_registers(0, regs)
         self.AO_time = time.time()
-        return regs
+        return self.AO_write_result
 
     def convert_AO(self, raw=None):
         if raw is None:
@@ -331,4 +348,29 @@ class ET7000:
             self.AO_values.append(ET7000.convert(raw[k], rng['min'], rng['max']))
             self.AO_units.append(rng['units'])
         return self.AO_values
+
+    def convert_to_raw_AO(self, values=None):
+        if values is None:
+            values = self.AO_values
+        answer = []
+        for k in range(self.AO_n):
+            rng = ET7000.AO_ranges[self.AO_ranges[k]]
+            answer.append(ET7000.convert(values[k], rng['min'], rng['max']))
+        return answer
+
+    def read_AO(self):
+        self.AO_raw = self.read_AO_raw()
+        self.convert_AO()
+        return self.AO_values
+
+    def read_AO_channel(self, k):
+        regs = self._client.read_input_registers(0+k, 1)
+        rng = ET7000.AO_ranges[self.AI_ranges[k]]
+        v = ET7000.convert(regs[0], rng['min'], rng['max'])
+        return v
+
+    def write_AO(self, values):
+        regs = [ET7000.convert_to_raw_AO(v) for v in values]
+        result = self.write_AO_raw(regs)
+        return result
 
