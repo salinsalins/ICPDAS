@@ -174,10 +174,16 @@ class ET7000:
     }
     devices = {
         0x7016: {
-            'AI':   True
+            'AI': True,
+            'AO': True,
+            'DI': True,
+            'DO': True
         },
         0x7018: {
-            'AI': True
+            'AI': True,
+            'AO': False,
+            'DI': True,
+            'DO': False
         },
         0x7026: {
             'AI': True,
