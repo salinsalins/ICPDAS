@@ -1,4 +1,5 @@
 # Используемые библиотеки
+import time
 from pyModbusTCP.client import ModbusClient
 
 class ET7000:
@@ -53,6 +54,66 @@ class ET7000:
             'min': -5.,
             'max': 5.
         },
+        0x0A: {
+            'units': 'V',
+            'min': -1.,
+            'max': 1.
+        },
+        0x0B: {
+            'units': 'V',
+            'min': -.5,
+            'max': .5
+        },
+        0x0C: {
+            'units': 'V',
+            'min': -.15,
+            'max': .15
+        },
+        0x0D: {
+            'min': -20.0e-3,
+            'max': 20.0e-3,
+            'units': 'A'
+        },
+        0x0E: {
+            'units': 'degC',
+            'min': -210.0,
+            'max': 760.0
+        },
+        0x0F: {
+            'units': 'degC',
+            'min': -270.0,
+            'max': 1372.0
+        },
+        0x10: {
+            'units': 'degC',
+            'min': -270.0,
+            'max': 400.0
+        },
+        0x11: {
+            'units': 'degC',
+            'min': -270.0,
+            'max': 1000.0
+        },
+        0x12: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 1768.0
+        },
+        0x13: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 1768.0
+        },
+        0x14: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 1820.0
+        },
+        0x15: {
+            'units': 'degC',
+            'min': -270.0,
+            'max': 1300.0
+        },
         0x16: {
             'units': 'degC',
             'min': 0.0,
@@ -72,46 +133,32 @@ class ET7000:
             'units': 'degC',
             'min': -200.0,
             'max': 900.0
+        },
+        0x1A: {
+            'min': 0.0,
+            'max': 20.0e-3,
+            'units': 'A'
         }
     }
     devices = {
-        0x7017: {
-            'AI': {
-                'channels': 8,
-                }
-            },
-            'DO': 4
+        0x7017: {}
     }
 
-    class AI:
-        def __init__(self, _addr, _min=-10.0, _max=10.0, _units='V'):
-            self.addr = _addr  # номер канала АЦП
-            # if second argument is dictionary of type range
-            try:
-                self.min = _min['min']
-                self.max = _min['max']
-                self.units = _min['units']
-                return
-            except:
-                pass
-            self.min = _min  # минимальное значение
-            self.max = _max  # максимальное
-            self.units = _units
-
-        # default conversion from quanta to real units
-        def convert(self, b):
-            # обрабатывается 2 случая - минимум нулевой
-            if self.min == 0 and self.max > 0:
-                return self.max * b / 0xffff
-            # и минимум по модулю равен максимуму
-            if self.min == -self.max and self.max > 0:
-                one = 0xffff / 2
-                if b <= one:
-                    return self.max * b / one
-                else:
-                    return -self.max * (0xffff - b) / one
-            # в других случаях ошибка
-            return float('nan')
+    # default conversion from quanta to real units
+    @staticmethod
+    def convert(b, min, max):
+        # обрабатывается 2 случая - минимум нулевой
+        if min == 0 and max > 0:
+            return max * b / 0xffff
+        # и минимум по модулю равен максимуму
+        if min == -max and max > 0:
+            one = 0xffff / 2
+            if b <= one:
+                return max * b / one
+            else:
+                return -max * (0xffff - b) / one
+        # в других случаях ошибка
+        return float('nan')
 
     def __init__(self, host, port=502, timeout=0.15):
         self._host = host
@@ -123,15 +170,14 @@ class ET7000:
         self.AI_ranges = []
         self.AI_masks = []
         self.channels = []
-        self.init()
-
-    def init(self):
+        # module name
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
             print('Device %s is not supported' % hex(self._name))
+        # AIs
         self.AI_n = self.read_AI_n()
-        self.AI_ranges = self.read_AI_range()
-        self.AI_masks = self.read_AI_mask()
+        self.AI_ranges = self.read_AI_ranges()
+        self.AI_masks = self.read_AI_masks()
 
     def read_module_name(self):
         regs = self._client.read_holding_registers(559, 1)
@@ -145,19 +191,47 @@ class ET7000:
             return regs[0]
         return 0
 
-    def read_AI_range(self):
+    def read_AI_ranges(self):
         regs = self._client.read_holding_registers(427, self.AI_n)
         return regs
 
-    def read_AI_mask(self):
+    def read_AI_masks(self):
         coils = self._client.read_coils(595, self.AI_n)
         return coils
 
-    def read_AI(self):
+    def read_AI_raw(self):
         regs = self._client.read_input_registers(0, self.AI_n)
+        self.AI_raw = regs
+        self.AI_time = time.time()
         return regs
 
+    def convert_AI(self, raw=None):
+        if raw is None:
+            raw = self.AI_raw
+        self.AI_values = []
+        self.AI_units = []
+        for k in range(self.AI_n):
+            if self.AI_masks[k]:
+                rng = ET7000.AI_ranges[self.AI_ranges[k]]
+                self.AI_values.append(ET7000.convert(raw[k], rng['min'], rng['max']))
+                self.AI_units.append(rng['units'])
+            else:
+                self.AI_values.append(float('nan'))
+                self.AI_units.append('off')
+        return self.AI_values
 
+    def read_AI(self):
+        self.read_AI_raw()
+        self.convert_AI()
+        return self.AI_values
 
-    def read(self):
-        pass
+    def read_AI_channel(self, k):
+        if not self.AI_masks[k]:
+            return float('nan')
+        regs = self._client.read_input_registers(0+k, 1)
+        self.AI_raw[k] = regs[0]
+        rng = ET7000.AI_ranges[self.AI_ranges[k]]
+        v = ET7000.convert(regs[0], rng['min'], rng['max'])
+        self.AI_values[k] = v
+        return v
+
