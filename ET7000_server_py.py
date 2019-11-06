@@ -4,11 +4,14 @@
 """
 ICP DAS ET7000 tango device server"""
 
+import sys
 import time
 import numpy
 
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
+
+from ET7000 import ET7000
 
 
 class ET7000_tango(Device):
@@ -83,4 +86,15 @@ class ET7000_tango(Device):
 
 
 if __name__ == "__main__":
-    PowerSupply.run_server()
+    if len(sys.argv) < 3:
+        print("Usage: python ET7000_server.py device_name et7000_ip")
+        exit(-1)
+
+    device_name = sys.argv[1]
+    et7000_host = sys.argv[2]
+    et7000 = ET7000(et7000_host)
+    if et7000.AI_n <= 0 and et7000.AO_n <= 0 and et7000.DI_n <= 0 and et7000.DO_n <= 0:
+        print("No active IO found at %s" % et7000_host)
+        exit(-2)
+
+    ET7000_tango.run_server()
