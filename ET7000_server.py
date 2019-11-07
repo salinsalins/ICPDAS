@@ -31,6 +31,7 @@ class ET7000_Server(Device):
         self.et = ET7000('192.168.1.122')
         self.type = self.et.AI_n
         print(hex(self.et.AI_n))
+        print(self.get_name())
         db = tango.Database()
         di = db.get_device_info('et7000_server/test/1')
         print(di)
