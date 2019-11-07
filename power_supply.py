@@ -1,26 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-ICP DAS ET7000 tango device server"""
+"""Demo power supply tango device server"""
 
-import sys
 import time
 import numpy
 
+import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
 
-from ET7000 import ET7000
 
+class PowerSupply(Device):
 
-class ET7000_tango(Device):
-
-    ai00 = attribute(label="ai00", dtype=float,
+    voltage = attribute(label="Voltage", dtype=float,
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="V", format="8.4f",
-                        doc="ai00 value")
+                        doc="the power supply voltage")
 
     current = attribute(label="Current", dtype=float,
                         display_level=DispLevel.EXPERT,
@@ -44,6 +41,12 @@ class ET7000_tango(Device):
 
     def init_device(self):
         Device.init_device(self)
+        db = tango.Database()
+        try:
+            self.device_info = db.get_device_info('test/power_supply/1')
+            print(self.device_info)
+        except:
+            pass
         self.__current = 0.0
         self.set_state(DevState.STANDBY)
 
@@ -86,15 +89,4 @@ class ET7000_tango(Device):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python ET7000_server.py device_name et7000_ip")
-        exit(-1)
-
-    device_name = sys.argv[1]
-    et7000_host = sys.argv[2]
-    et7000 = ET7000(et7000_host)
-    if et7000.AI_n <= 0 and et7000.AO_n <= 0 and et7000.DI_n <= 0 and et7000.DO_n <= 0:
-        print("No active IO found at %s" % et7000_host)
-        exit(-2)
-
-    ET7000_tango.run_server()
+    PowerSupply.run_server()
