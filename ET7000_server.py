@@ -24,13 +24,13 @@ class ET7000_Server(Device):
                         doc="ET7000 device type")
 
     def read_type(self):
-        return self.name
+        return self.type
 
     def init_device(self):
         Device.init_device(self)
         self.et = ET7000('192.168.1.122')
-        self.name = self.et._name
-        print(hex(self.et._name))
+        self.type = self.et.AI_n
+        print(hex(self.et.AI_n))
         db = tango.Database()
         di = db.get_device_info('et7000_server/test/1')
         print(di)
