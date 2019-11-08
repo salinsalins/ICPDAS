@@ -8,6 +8,7 @@
 import time
 from threading import Thread, Lock
 from pyModbusTCP.client import ModbusClient
+from ET7000 import ET7000
 
 SERVER_HOST = "192.168.1.122"
 SERVER_PORT = 502
@@ -50,27 +51,31 @@ tp = Thread(target=polling_thread)
 tp.daemon = True
 #tp.start()
 
-c = ModbusClient(host=SERVER_HOST, port=SERVER_PORT)
-if not c.is_open():
-    c.open()
-a0 = 40000
-a1 = 559
-reg_list = c.read_holding_registers(a1, 40)
-if reg_list:
-    t = time.time()
-    regs = list(reg_list)
+# c = ModbusClient(host=SERVER_HOST, port=SERVER_PORT)
+# if not c.is_open():
+#     c.open()
+# a0 = 40000
+# a1 = 559
+# reg_list = c.read_holding_registers(a1, 40)
+# if reg_list:
+#     t = time.time()
+#     regs = list(reg_list)
+#
+# n = 0
+# for r in regs:
+#     if n % 8 == 0:
+#         print('%5d: ' % (a0+a1+n), end='')
+#     print(hex(r) + '(%5d) '%r, end='')
+#     n += 1
+#     if n % 8 == 0:
+#         print('')
 
-n = 0
-for r in regs:
-    if n % 8 == 0:
-        print('%5d: ' % (a0+a1+n), end='')
-    print(hex(r) + '(%5d) '%r, end='')
-    n += 1
-    if n % 8 == 0:
-        print('')
 
-
-
+et = ET7000("192.168.1.122")
+v = et.read_AI_channel(0)
+print(v)
+v = et.read_DO_channel(0)
+print(v)
 
 
 #

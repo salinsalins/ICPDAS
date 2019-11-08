@@ -183,32 +183,32 @@ class ET7000:
 
     # default conversion from quanta to real units
     @staticmethod
-    def convert(b, min, max):
+    def convert(b, amin, amax):
         # обрабатывается 2 случая - минимум нулевой
-        if min == 0 and max > 0:
-            return max * b / 0xffff
+        if amin == 0 and amax > 0:
+            return amax * b / 0xffff
         # и минимум по модулю равен максимуму
-        if min == -max and max > 0:
+        if min == -amax and amax > 0:
             one = 0xffff / 2
             if b <= one:
-                return max * b / one
+                return amax * b / one
             else:
-                return -max * (0xffff - b) / one
+                return -amax * (0xffff - b) / one
         # в других случаях ошибка
         return float('nan')
 
     @staticmethod
-    def convert_to_raw(f, min, max):
+    def convert_to_raw(f, amin, amax):
         # обрабатывается 2 случая - минимум нулевой
-        if min == 0 and max > 0:
-            return int(f * 0xffff / max)
+        if amin == 0 and amax > 0:
+            return int(f * 0xffff / amax)
         # и минимум по модулю равен максимуму
-        if min == -max and max > 0:
+        if min == -amax and amax > 0:
             one = 0xffff / 2
             if f > 0.0:
-                return int(f * one / max)
+                return int(f * one / amax)
             else:
-                return int(0xffff + (f * one / max))
+                return int(0xffff + (f * one / amax))
         # в других случаях ошибка
         return float('nan')
 
@@ -310,7 +310,7 @@ class ET7000:
                 rng = ET7000.AI_ranges[self.AI_ranges[k]]
                 self.AI_values[k] = ET7000.convert(raw[k], rng['min'], rng['max'])
             else:
-                self.AI_values[k](float('nan'))
+                self.AI_values[k] = float('nan')
         return self.AI_values
 
     def read_AI(self):
@@ -392,7 +392,7 @@ class ET7000:
     def write_AO_channel(self, k, value):
         rng = ET7000.AO_ranges[self.AO_ranges[k]]
         reg = ET7000.convert_to_raw(value, rng['min'], rng['max'])
-        self.AO_write_raw[k] = reg[0]
+        self.AO_write_raw[k] = reg
         result = self._client.write_single_register(0+k, reg)
         return result
 
@@ -404,13 +404,13 @@ class ET7000:
         return 0
 
     def read_DI(self):
-        regs = self._client.read_coils(0, self.DI_n)
+        regs = self._client.read_discrete_inputs(0, self.DI_n)
         self.DI_values = regs
         self._time = time.time()
         return self.DI_values
 
     def read_DI_channel(self, k):
-        reg = self._client.read_coils(0+k, 1)
+        reg = self._client.read_discrete_inputs(0+k, 1)
         self._time = time.time()
         return reg[0]
 
@@ -423,13 +423,13 @@ class ET7000:
         return 0
 
     def read_DO(self):
-        regs = self._client.read_discrete_inputs(0, self.DI_n)
+        regs = self._client.read_coils(0, self.DI_n)
         self.DI_values = regs
         self.DO_time = time.time()
         return self.DI_values
 
     def read_DO_channel(self, k):
-        reg = self._client.read_discrete_inputs(0+k, 1)
+        reg = self._client.read_coils(0+k, 1)
         self.DO_time = time.time()
         return reg[0]
 
