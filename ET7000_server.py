@@ -44,15 +44,19 @@ class ET7000_Server(Device):
             return
         attr.set_value(val)
 
-    def write_general(self, attr, value):
+    def write_general(self, attr):
         #self.info_stream("Writting attribute %s", attr.get_name())
+        print(attr)
+        value = True
         name = attr.get_name()
         chan = int(name[-2:])
         if name[:2] == 'ao':
             self.et.write_AO_channel(chan, value)
         elif name[:2] == 'do':
             self.et.write_DO_channel(chan, value)
+            print("Write to %s %s" % (name, str(value)))
         else:
+            print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
             return
         pass

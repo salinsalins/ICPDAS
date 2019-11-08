@@ -76,6 +76,8 @@ v = et.read_AI_channel(0)
 print(v)
 v = et.read_DO_channel(0)
 print(v)
+v = et.write_DO_channel(0, False)
+print(v)
 
 
 #
