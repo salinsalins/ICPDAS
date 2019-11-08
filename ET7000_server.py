@@ -100,7 +100,7 @@ class ET7000_Server(Device):
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
-                self.add_attribute(attr, self.read_general, self.write_general)
+                self.add_attribute(attr, self.read_general)
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
@@ -122,13 +122,14 @@ class ET7000_Server(Device):
             for k in range(self.et.DI_n):
                 attr_name = 'di%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean)
-                self.add_attribute(attr, self.read_general, self.write_general)
+                self.add_attribute(attr, self.read_general, w_meth=self.write_general)
             print('%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
                 attr_name = 'do%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean)
+                #a = tango.Attribute()
                 self.add_attribute(attr, self.read_general, self.write_general)
             print('%d digital outputs initialized' % self.et.DO_n)
 
