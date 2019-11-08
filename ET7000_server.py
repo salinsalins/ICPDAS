@@ -47,7 +47,7 @@ class ET7000_Server(Device):
     def write_general(self, attr):
         #self.info_stream("Writting attribute %s", attr.get_name())
         print(attr)
-        value = True
+        value = attr.value
         name = attr.get_name()
         chan = int(name[-2:])
         if name[:2] == 'ao':
@@ -59,7 +59,7 @@ class ET7000_Server(Device):
             print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
             return
-        pass
+
 
     def init_device(self):
         print(self)
@@ -100,7 +100,7 @@ class ET7000_Server(Device):
                 rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
-                attr.set_default_properties(prop)
+                attr.set_default_properties()
                 self.add_attribute(attr, self.read_general)
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
