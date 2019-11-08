@@ -16,6 +16,7 @@ from ET7000 import ET7000
 
 
 class ET7000_Server(Device):
+    devices = []
 
     type = attribute(label="type", dtype=int,
                         display_level=DispLevel.OPERATOR,
@@ -24,20 +25,111 @@ class ET7000_Server(Device):
                         doc="ET7000 device type")
 
     def read_type(self):
-        return self.type
+        return self.et._name
+
+    def read_general(self, attr):
+        #self.info_stream("Reading attribute %s", attr.get_name())
+        name = attr.get_name()
+        chan = int(name[-2:])
+        if name[:2] == 'ai':
+            val = self.et.read_AI_channel(chan)
+        elif name[:2] == 'di':
+            val = self.et.read_DI_channel(chan)
+        elif name[:2] == 'do':
+            val = self.et.read_DO_channel(chan)
+        elif name[:2] == 'ao':
+            val = self.et.read_AO_channel(chan)
+        else:
+            self.error_stream("Read for unknown attribute %s", name)
+            return
+        attr.set_value(val)
+
+    def write_general(self, attr, value):
+        #self.info_stream("Writting attribute %s", attr.get_name())
+        name = attr.get_name()
+        chan = int(name[-2:])
+        if name[:2] == 'ao':
+            self.et.write_AO_channel(chan, value)
+        elif name[:2] == 'do':
+            self.et.write_DO_channel(chan, value)
+        else:
+            self.error_stream("Write to unknown attribute %s", name)
+            return
+        pass
 
     def init_device(self):
         Device.init_device(self)
-        self.et = ET7000('192.168.1.122')
-        self.type = self.et.AI_n
-        print(hex(self.et.AI_n))
-        print(self.get_name())
-        db = tango.Database()
-        di = db.get_device_info('et7000_server/test/1')
-        print(di)
+        # build dev proxy
+        name = self.get_name()
+        dp = tango.DeviceProxy(name)
+        self.dev_proxy = dp
+        # determine ip address
+        pr = dp.get_property('ip')['ip']
+        ip = None
+        if len(pr) > 0:
+            ip = pr[0]
+        if ip is None or ip == '':
+            ip = '192.168.1.122'
+        # check if ip is in use
+        for d in ET7000_Server.devices:
+            if d.ip == ip:
+                print('IP address %s is in use' % ip)
+                self.set_state(DevState.DISABLE)
+                return
+        # create ICP DAS device
+        et = ET7000(ip)
+        self.et = et
+        self.ip = ip
+        print('ET%s at %s detected' % (hex(self.et._name)[-4:], ip))
+        # initialize ai, ao, di, do attributes
+        # ai
+        if self.et.AI_n > 0:
+            for k in range(self.et.AI_n):
+                attr_name = 'ai%02d'%k
+                attr = tango.Attr(attr_name, tango.DevDouble)
+                prop = tango.UserDefaultAttrProp()
+                prop.set_unit(self.et.AI_units[k])
+                prop.set_display_unit(self.et.AI_units[k])
+                prop.set_standard_unit(self.et.AI_units[k])
+                prop.set_format('%6.3f')
+                rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
+                prop.set_min_value(str(rng['min']))
+                prop.set_max_value(str(rng['max']))
+                attr.set_default_properties(prop)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d analog inputs initialized' % self.et.AI_n)
+        # ao
+        if self.et.AO_n > 0:
+            for k in range(self.et.AO_n):
+                attr_name = 'ao%02d'%k
+                attr = tango.Attr(attr_name, tango.DevDouble)
+                prop = tango.UserDefaultAttrProp()
+                prop.set_unit(self.et.AO_units[k])
+                prop.set_display_unit(self.et.AO_units[k])
+                prop.set_standard_unit(self.et.AO_units[k])
+                rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
+                prop.set_min_value(str(rng['min']))
+                prop.set_max_value(str(rng['max']))
+                attr.set_default_properties(prop)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d analog inputs initialized' % self.et.AO_n)
+        # di
+        if self.et.DI_n > 0:
+            for k in range(self.et.DI_n):
+                attr_name = 'di%02d'%k
+                attr = tango.Attr(attr_name, tango.DevBoolean)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d digital inputs initialized' % self.et.DI_n)
+        # do
+        if self.et.DO_n > 0:
+            for k in range(self.et.DO_n):
+                attr_name = 'do%02d'%k
+                attr = tango.Attr(attr_name, tango.DevBoolean)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d digital outputs initialized' % self.et.DO_n)
 
-        self.__current = 0.0
-        self.set_state(DevState.STANDBY)
+        ET7000_Server.devices.append(self)
+        self.set_state(DevState.RUNNING)
 
 
 if __name__ == "__main__":
