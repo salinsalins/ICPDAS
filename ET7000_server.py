@@ -62,6 +62,7 @@ class ET7000_Server(Device):
         pass
 
     def init_device(self):
+        print(self)
         Device.init_device(self)
         # build dev proxy
         name = self.get_name()
