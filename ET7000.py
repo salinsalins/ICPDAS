@@ -188,7 +188,7 @@ class ET7000:
         if amin == 0 and amax > 0:
             return amax * b / 0xffff
         # и минимум по модулю равен максимуму
-        if min == -amax and amax > 0:
+        if amin == -amax and amax > 0:
             one = 0xffff / 2
             if b <= one:
                 return amax * b / one
@@ -203,7 +203,7 @@ class ET7000:
         if amin == 0 and amax > 0:
             return int(f * 0xffff / amax)
         # и минимум по модулю равен максимуму
-        if min == -amax and amax > 0:
+        if amin == -amax and amax > 0:
             one = 0xffff / 2
             if f > 0.0:
                 return int(f * one / amax)
