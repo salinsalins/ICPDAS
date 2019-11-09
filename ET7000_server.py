@@ -81,6 +81,7 @@ class ET7000_Server(Device):
         self.et.write_AO_channel(chan, value)
 
     def init_device(self):
+        print(self)
         Device.init_device(self)
         # build dev proxy
         name = self.get_name()
