@@ -114,6 +114,7 @@ class ET7000_Server(Device):
             a = da.get_attr_by_ind(k)
             an = a.get_name()
             print(an)
+
             #if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
                 #attr = tango.Attr(an, tango.DevDouble, tango.AttrWriteType.READ)
                 #self.add_attribute(attr, self.read_general)
