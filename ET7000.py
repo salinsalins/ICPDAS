@@ -138,6 +138,11 @@ class ET7000:
             'min': 0.0,
             'max': 20.0e-3,
             'units': 'A'
+        },
+        0xff: {
+            'min': 0,
+            'max': 0xffff,
+            'units': ''
         }
     }
     AO_ranges = {
@@ -170,6 +175,11 @@ class ET7000:
             'min': -5.0,
             'max': 5.0,
             'units': 'V'
+        },
+        0xff: {
+            'min': 0,
+            'max': 0xffff,
+            'units': ''
         }
     }
     devices = {
@@ -229,17 +239,20 @@ class ET7000:
         # AIs
         self.AI_time = time.time()
         self.AI_n = 0
-        self.AI_ranges = []
         self.AI_masks = []
+        self.AI_ranges = []
         self.AI_raw = []
         self.AI_values = []
         self.AI_units = []
         self.AI_n = self.read_AI_n()
         if self.AI_n > 0:
-            self.AI_ranges = self.read_AI_ranges()
-            self.AI_masks = self.read_AI_masks()
-            self.AI_raw = [0 for r in self.AI_ranges]
-            self.AI_values = [float('nan') for r in self.AI_ranges]
+            self.AI_masks = [False] * self.AI_n
+            self.AI_ranges = [0xff] * self.AI_n
+            self.AI_raw = [0] * self.AI_n
+            self.AI_values = [float('nan')] * self.AI_n
+            self.AI_units = [''] * self.AI_n
+            self.read_AI_masks()
+            self.read_AI_ranges()
             self.AI_units = [ET7000.AI_ranges[r]['units'] for r in self.AI_ranges]
         # AOs
         self.AO_time = time.time()
@@ -253,12 +266,14 @@ class ET7000:
         self.AO_write_result = False
         self.AO_n = self.read_AO_n()
         if self.AO_n > 0:
-            self.AO_ranges = self.read_AO_ranges()
-            self.AO_values = [float('nan') for r in self.AO_ranges]
-            self.AO_raw = [0 for r in self.AO_ranges]
+            self.AO_ranges = [0xff] * self.AO_n
+            self.AO_raw = [0] * self.AO_n
+            self.AO_values = [float('nan')] * self.AO_n
+            self.AO_units = [''] * self.AO_n
+            self.AO_write = [0] * self.AO_n
+            self.AO_write_raw = [0] * self.AO_n
+            self.read_AO_ranges()
             self.AO_units = [ET7000.AO_ranges[r]['units'] for r in self.AO_ranges]
-            self.AO_write = [0 for r in self.AO_ranges]
-            self.AO_write_raw = [0 for r in self.AO_ranges]
         # DIs
         self.DI_n = 0
         self.DI_values = []
@@ -288,19 +303,22 @@ class ET7000:
             return regs[0]
         return 0
 
-    def read_AI_ranges(self):
-        regs = self._client.read_holding_registers(427, self.AI_n)
-        return regs
-
     def read_AI_masks(self):
         coils = self._client.read_coils(595, self.AI_n)
+        if coils and len(coils) == self.AI_n:
+            self.AI_masks = coils
         return coils
+
+    def read_AI_ranges(self):
+        regs = self._client.read_holding_registers(427, self.AI_n)
+        if regs and len(regs) == self.AI_n:
+            self.AI_ranges = regs
+        return regs
 
     def read_AI_raw(self):
         regs = self._client.read_input_registers(0, self.AI_n)
-        if regs:
+        if regs and len(regs) == self.AI_n:
             self.AI_raw = regs
-        self.AI_time = time.time()
         return regs
 
     def convert_AI(self, raw=None):
