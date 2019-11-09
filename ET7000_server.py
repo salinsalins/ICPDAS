@@ -120,6 +120,9 @@ class ET7000_Server(Device):
                 #print('removed ', an)
         cl = self.get_device_class()
         print(cl)
+        am = cl.dyn_att_added_methods
+        print(am)
+
 
         # initialize ai, ao, di, do attributes
         # ai
