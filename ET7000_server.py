@@ -7,6 +7,7 @@ ICP DAS ET7000 tango device server"""
 import sys
 import time
 import numpy
+import traceback
 
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
@@ -18,45 +19,53 @@ from ET7000 import ET7000
 class ET7000_Server(Device):
     devices = []
 
-    type = attribute(label="type", dtype=int,
+    type = attribute(label="type", dtype=str,
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
-                        unit="", format="%d",
+                        unit="", format="%s",
                         doc="ET7000 device type")
 
     def read_type(self):
-        return self.et._name
+        return hex(self.et._name)[-4:]
 
     def read_general(self, attr):
         #self.info_stream("Reading attribute %s", attr.get_name())
-        name = attr.get_name()
-        chan = int(name[-2:])
-        if name[:2] == 'ai':
-            val = self.et.read_AI_channel(chan)
-        elif name[:2] == 'di':
-            val = self.et.read_DI_channel(chan)
-        elif name[:2] == 'do':
-            val = self.et.read_DO_channel(chan)
-        elif name[:2] == 'ao':
-            val = self.et.read_AO_channel(chan)
-        else:
-            self.error_stream("Read for unknown attribute %s", name)
-            return
-        attr.set_value(val)
+        try:
+            if self.et is None:
+                return
+            name = attr.get_name()
+            chan = int(name[-2:])
+            if name[:2] == 'ai':
+                val = self.et.read_AI_channel(chan)
+            elif name[:2] == 'di':
+                val = self.et.read_DI_channel(chan)
+            elif name[:2] == 'do':
+                val = self.et.read_DO_channel(chan)
+            elif name[:2] == 'ao':
+                val = self.et.read_AO_channel(chan)
+            else:
+                self.error_stream("Read for unknown attribute %s", name)
+                return
+            attr.set_value(val)
+        except Exception as err:
+            #print(sys.exc_info())
+            #traceback.print_tb(err.__traceback__)
+            pass
 
-    def write_general(self, attr):
+    def write_general(self, attr, *args, **kwargs):
         #self.info_stream("Writting attribute %s", attr.get_name())
-        print(attr)
-        value = attr.value
+        value = attr.get_write_value()
+        if self.et is None:
+            return
         name = attr.get_name()
         chan = int(name[-2:])
         if name[:2] == 'ao':
             self.et.write_AO_channel(chan, value)
         elif name[:2] == 'do':
             self.et.write_DO_channel(chan, value)
-            print("Write to %s %s" % (name, str(value)))
+            #print("Write to %s %s" % (name, str(value)))
         else:
-            print("Write to unknown attribute %s" % name)
+            #print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
             return
 
@@ -79,6 +88,8 @@ class ET7000_Server(Device):
         for d in ET7000_Server.devices:
             if d.ip == ip:
                 print('IP address %s is in use' % ip)
+                self.et = None
+                self.ip = None
                 self.set_state(DevState.DISABLE)
                 return
         # create ICP DAS device
@@ -91,7 +102,7 @@ class ET7000_Server(Device):
         if self.et.AI_n > 0:
             for k in range(self.et.AI_n):
                 attr_name = 'ai%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble)
+                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
                 prop = tango.UserDefaultAttrProp()
                 prop.set_unit(self.et.AI_units[k])
                 prop.set_display_unit(self.et.AI_units[k])
@@ -107,7 +118,7 @@ class ET7000_Server(Device):
         if self.et.AO_n > 0:
             for k in range(self.et.AO_n):
                 attr_name = 'ao%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble)
+                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
                 prop = tango.UserDefaultAttrProp()
                 prop.set_unit(self.et.AO_units[k])
                 prop.set_display_unit(self.et.AO_units[k])
@@ -122,15 +133,14 @@ class ET7000_Server(Device):
         if self.et.DI_n > 0:
             for k in range(self.et.DI_n):
                 attr_name = 'di%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean)
+                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                 self.add_attribute(attr, self.read_general, w_meth=self.write_general)
             print('%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
                 attr_name = 'do%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean)
-                #a = tango.Attribute()
+                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
             print('%d digital outputs initialized' % self.et.DO_n)
 

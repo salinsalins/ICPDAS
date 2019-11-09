@@ -298,7 +298,8 @@ class ET7000:
 
     def read_AI_raw(self):
         regs = self._client.read_input_registers(0, self.AI_n)
-        self.AI_raw = regs
+        if regs:
+            self.AI_raw = regs
         self.AI_time = time.time()
         return regs
 
@@ -314,18 +315,18 @@ class ET7000:
         return self.AI_values
 
     def read_AI(self):
-        self.AI_raw = self.read_AI_raw()
+        self.read_AI_raw()
         self.convert_AI()
         return self.AI_values
 
     def read_AI_channel(self, k):
+        v = float('nan')
         if self.AI_masks[k]:
             regs = self._client.read_input_registers(0+k, 1)
-            self.AI_raw[k] = regs[0]
-            rng = ET7000.AI_ranges[self.AI_ranges[k]]
-            v = ET7000.convert(regs[0], rng['min'], rng['max'])
-        else:
-            v = float('nan')
+            if regs:
+                self.AI_raw[k] = regs[0]
+                rng = ET7000.AI_ranges[self.AI_ranges[k]]
+                v = ET7000.convert(regs[0], rng['min'], rng['max'])
         self.AI_values[k] = v
         return v
 
@@ -405,14 +406,17 @@ class ET7000:
 
     def read_DI(self):
         regs = self._client.read_discrete_inputs(0, self.DI_n)
-        self.DI_values = regs
+        if regs:
+            self.DI_values = regs
         self._time = time.time()
         return self.DI_values
 
     def read_DI_channel(self, k):
         reg = self._client.read_discrete_inputs(0+k, 1)
         self._time = time.time()
-        return reg[0]
+        if reg:
+            return reg[0]
+        return None
 
     # DO functions
     def read_DO_n(self):
@@ -424,14 +428,17 @@ class ET7000:
 
     def read_DO(self):
         regs = self._client.read_coils(0, self.DI_n)
-        self.DI_values = regs
+        if regs:
+            self.DI_values = regs
         self.DO_time = time.time()
         return self.DI_values
 
     def read_DO_channel(self, k):
         reg = self._client.read_coils(0+k, 1)
         self.DO_time = time.time()
-        return reg[0]
+        if reg:
+            return reg[0]
+        return None
 
     def write_DO(self, values):
         self.DO_write = values
