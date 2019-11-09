@@ -29,55 +29,62 @@ class ET7000_Server(Device):
         t = hex(self.et._name)[-4:]
         return t
 
-    def read_general(self, attr):
+    def read_general(self, attr: tango.Attribute):
         #self.info_stream("Reading attribute %s", attr.get_name())
-        try:
-            if self.et is None:
-                return
-            name = attr.get_name()
-            chan = int(name[-2:])
-            if name[:2] == 'ai':
-                val = self.et.read_AI_channel(chan)
-            elif name[:2] == 'di':
-                val = self.et.read_DI_channel(chan)
-            elif name[:2] == 'do':
-                val = self.et.read_DO_channel(chan)
-            elif name[:2] == 'ao':
-                val = self.et.read_AO_channel(chan)
-            else:
-                self.error_stream("Read for unknown attribute %s", name)
-                return
-            attr.set_value(val)
-        except Exception as err:
-            #print(sys.exc_info())
-            #traceback.print_tb(err.__traceback__)
-            pass
-
-    def write_general(self, attr, *args, **kwargs):
-        #self.info_stream("Writting attribute %s", attr.get_name())
-        value = attr.get_write_value()
         if self.et is None:
             return
         name = attr.get_name()
         chan = int(name[-2:])
-        if name[:2] == 'ao':
+        ad = name[:2]
+        if ad == 'ai':
+            val = self.et.read_AI_channel(chan)
+        elif ad == 'di':
+            val = self.et.read_DI_channel(chan)
+        elif ad == 'do':
+            val = self.et.read_DO_channel(chan)
+        elif ad == 'ao':
+            val = self.et.read_AO_channel(chan)
+        else:
+            self.error_stream("Read for unknown attribute %s", name)
+            return
+        attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+        if val:
+            attr.set_value(val)
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+
+    def write_general(self, attr: tango.WAttribute):
+        #self.info_stream("Writting attribute %s", attr.get_name())
+        if self.et is None:
+            return
+        attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
+        value = attr.get_write_value()
+        name = attr.get_name()
+        chan = int(name[-2:])
+        ad = name[:2]
+        if ad  == 'ao':
             self.et.write_AO_channel(chan, value)
-        elif name[:2] == 'do':
+        elif ad == 'do':
             self.et.write_DO_channel(chan, value)
-            #print("Write to %s %s" % (name, str(value)))
         else:
             #print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
+        attr.set_quality(tango.AttrQuality.ATTR_VALID)
 
+    def write_ao(self, attr):
+        if self.et is None:
+            return
+        value = attr.get_write_value()
+        name = attr.get_name()
+        chan = int(name[-2:])
+        self.et.write_AO_channel(chan, value)
 
     def init_device(self):
-        print(self)
         Device.init_device(self)
         # build dev proxy
         name = self.get_name()
         dp = tango.DeviceProxy(name)
-        self.dev_proxy = dp
         # determine ip address
         pr = dp.get_property('ip')['ip']
         ip = None
@@ -89,6 +96,7 @@ class ET7000_Server(Device):
         for d in ET7000_Server.devices:
             if d.ip == ip:
                 print('IP address %s is in use' % ip)
+                self.error_stream('IP address %s is in use' % ip)
                 self.et = None
                 self.ip = None
                 self.set_state(DevState.DISABLE)
