@@ -100,7 +100,7 @@ class ET7000_Server(Device):
                 rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
-                attr.set_default_properties()
+                attr.set_default_properties(prop)
                 self.add_attribute(attr, self.read_general)
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
