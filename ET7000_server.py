@@ -106,20 +106,20 @@ class ET7000_Server(Device):
         self.et = et
         self.ip = ip
         print('ET%s at %s detected' % (hex(self.et._name)[-4:], ip))
-        #da = self.get_device_attr()
-        #print(da)
-        #n = da.get_attr_nb()
-        #print(n)
-        #for k in range(n):
-        #    a = da.get_attr_by_ind(k)
-        #    an = a.get_name()
-        #    print(an)
+        da = self.get_device_attr()
+        print(da)
+        n = da.get_attr_nb()
+        print(n)
+        for k in range(n):
+            a = da.get_attr_by_ind(k)
+            an = a.get_name()
+            print(an)
             #if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
-                #attr = tango.Attr(an, tango.DevDouble, tango.AttrWriteType.READ)
-                #self.add_attribute(attr, self.read_general)
-                #print('added ', an)
                 #self.remove_attribute(an)
                 #print('removed ', an)
+        cl = self.get_device_class()
+        print(cl)
+
         # initialize ai, ao, di, do attributes
         # ai
         if self.et.AI_n > 0:
