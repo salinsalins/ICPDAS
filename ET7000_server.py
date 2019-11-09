@@ -19,14 +19,15 @@ from ET7000 import ET7000
 class ET7000_Server(Device):
     devices = []
 
-    type = attribute(label="type", dtype=str,
+    devicetype = attribute(label="type", dtype=str,
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="", format="%s",
                         doc="ET7000 device type")
 
-    def read_type(self):
-        return hex(self.et._name)[-4:]
+    def read_devicetype(self):
+        t = hex(self.et._name)[-4:]
+        return t
 
     def read_general(self, attr):
         #self.info_stream("Reading attribute %s", attr.get_name())
