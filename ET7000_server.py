@@ -80,6 +80,31 @@ class ET7000_Server(Device):
         chan = int(name[-2:])
         self.et.write_AO_channel(chan, value)
 
+    @command
+    def TurnOff(self):
+        # turn off the actual power supply here
+        #self.set_state(DevState.OFF)
+        print(self, ' off')
+        if self.et is None:
+            return
+        # initialize ai, ao, di, do attributes
+        # ai
+        if self.et.AI_n > 0:
+            for k in range(self.et.AI_n):
+                attr_name = 'ai%02d'%k
+                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
+                prop = tango.UserDefaultAttrProp()
+                prop.set_unit(self.et.AI_units[k])
+                prop.set_display_unit(self.et.AI_units[k])
+                prop.set_standard_unit(self.et.AI_units[k])
+                prop.set_format('%6.3f')
+                rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
+                prop.set_min_value(str(rng['min']))
+                prop.set_max_value(str(rng['max']))
+                attr.set_default_properties(prop)
+                #self.add_attribute(attr, self.read_general)
+            print('%d analog inputs initialized' % self.et.AI_n)
+
     def init_device(self):
         print(self)
         Device.init_device(self)
@@ -107,21 +132,26 @@ class ET7000_Server(Device):
         self.et = et
         self.ip = ip
         print('ET%s at %s detected' % (hex(self.et._name)[-4:], ip))
-        da = self.get_device_attr()
-        print(da)
-        n = da.get_attr_nb()
-        print(n)
-        for k in range(n):
-            a = da.get_attr_by_ind(k)
-            an = a.get_name()
-            print(an)
-            if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
-                print('removing ', an)
-                self.remove_attribute(an)
-        cl = self.get_device_class()
-        print(cl)
-        am = cl.dyn_att_added_methods
-        print(am)
+        # da = self.get_device_attr()
+        # print(da)
+        # n = da.get_attr_nb()
+        # print(n)
+        # for k in range(n):
+        #     a = da.get_attr_by_ind(k)
+        #     an = a.get_name()
+        #     print(an)
+        #     if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
+        #         print('removing ', an)
+        #         try:
+        #             self.remove_attribute(an)
+        #         except Exception as exc:
+        #             print(str(exc))
+        #             self.__class__.remove_attribute(self.__class__, an)
+        #             print('ok')
+        # cl = self.get_device_class()
+        # print(cl)
+        # am = cl.dyn_att_added_methods
+        # print(am)
 
 
         # initialize ai, ao, di, do attributes
@@ -139,7 +169,7 @@ class ET7000_Server(Device):
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
-                self.add_attribute(attr, self.read_general)
+                #self.add_attribute(attr, self.read_general)
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
