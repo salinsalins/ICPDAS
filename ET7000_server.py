@@ -81,10 +81,9 @@ class ET7000_Server(Device):
         self.et.write_AO_channel(chan, value)
 
     @command
-    def TurnOff(self):
-        # turn off the actual power supply here
+    def Init(self):
         #self.set_state(DevState.OFF)
-        print(self, ' off')
+        print(self, ' Initialization')
         if self.et is None:
             return
         # initialize ai, ao, di, do attributes
@@ -102,11 +101,43 @@ class ET7000_Server(Device):
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
-                #self.add_attribute(attr, self.read_general)
+                self.add_attribute(attr, self.read_general)
             print('%d analog inputs initialized' % self.et.AI_n)
+        # ao
+        if self.et.AO_n > 0:
+            for k in range(self.et.AO_n):
+                attr_name = 'ao%02d'%k
+                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
+                prop = tango.UserDefaultAttrProp()
+                prop.set_unit(self.et.AO_units[k])
+                prop.set_display_unit(self.et.AO_units[k])
+                prop.set_standard_unit(self.et.AO_units[k])
+                rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
+                prop.set_min_value(str(rng['min']))
+                prop.set_max_value(str(rng['max']))
+                attr.set_default_properties(prop)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d analog inputs initialized' % self.et.AO_n)
+        # di
+        if self.et.DI_n > 0:
+            for k in range(self.et.DI_n):
+                attr_name = 'di%02d'%k
+                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
+                self.add_attribute(attr, self.read_general, w_meth=self.write_general)
+            print('%d digital inputs initialized' % self.et.DI_n)
+        # do
+        if self.et.DO_n > 0:
+            for k in range(self.et.DO_n):
+                attr_name = 'do%02d'%k
+                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
+                self.add_attribute(attr, self.read_general, self.write_general)
+            print('%d digital outputs initialized' % self.et.DO_n)
 
     def init_device(self):
-        print(self)
+        print(self, 'init_device')
+        if hasattr(self, 'et') and self.et is not None:
+            print('skip')
+            return
         Device.init_device(self)
         # build dev proxy
         name = self.get_name()
@@ -155,51 +186,6 @@ class ET7000_Server(Device):
 
 
         # initialize ai, ao, di, do attributes
-        # ai
-        if self.et.AI_n > 0:
-            for k in range(self.et.AI_n):
-                attr_name = 'ai%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
-                prop = tango.UserDefaultAttrProp()
-                prop.set_unit(self.et.AI_units[k])
-                prop.set_display_unit(self.et.AI_units[k])
-                prop.set_standard_unit(self.et.AI_units[k])
-                prop.set_format('%6.3f')
-                rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
-                prop.set_min_value(str(rng['min']))
-                prop.set_max_value(str(rng['max']))
-                attr.set_default_properties(prop)
-                #self.add_attribute(attr, self.read_general)
-            print('%d analog inputs initialized' % self.et.AI_n)
-        # ao
-        if self.et.AO_n > 0:
-            for k in range(self.et.AO_n):
-                attr_name = 'ao%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
-                prop = tango.UserDefaultAttrProp()
-                prop.set_unit(self.et.AO_units[k])
-                prop.set_display_unit(self.et.AO_units[k])
-                prop.set_standard_unit(self.et.AO_units[k])
-                rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
-                prop.set_min_value(str(rng['min']))
-                prop.set_max_value(str(rng['max']))
-                attr.set_default_properties(prop)
-                self.add_attribute(attr, self.read_general, self.write_general)
-            print('%d analog inputs initialized' % self.et.AO_n)
-        # di
-        if self.et.DI_n > 0:
-            for k in range(self.et.DI_n):
-                attr_name = 'di%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
-                self.add_attribute(attr, self.read_general, w_meth=self.write_general)
-            print('%d digital inputs initialized' % self.et.DI_n)
-        # do
-        if self.et.DO_n > 0:
-            for k in range(self.et.DO_n):
-                attr_name = 'do%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
-                self.add_attribute(attr, self.read_general, self.write_general)
-            print('%d digital outputs initialized' % self.et.DO_n)
 
         ET7000_Server.devices.append(self)
         self.set_state(DevState.RUNNING)
