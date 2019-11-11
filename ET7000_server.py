@@ -98,24 +98,14 @@ class ET7000_Server(Device):
             for k in range(self.et.AI_n):
                 attr_name = 'ai%02d'%k
                 attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
-                # determine ip address
-                prop = tango.UserDefaultAttrProp()
-                prop.set_unit(self.et.AI_units[k])
-                #prop.set_display_unit(self.et.AI_units[k])
-                #prop.set_standard_unit(self.et.AI_units[k])
-                prop.set_format('%6.3f')
-                rng = self.et.range(k)
-                prop.set_min_value(str(rng['min']))
-                prop.set_max_value(str(rng['max']))
-                attr.set_default_properties(prop)
                 self.add_attribute(attr, self.read_general)
-
+                # configure attribute properties
+                rng = self.et.range(k)
                 ac = dp.get_attribute_config(attr_name)
-                ac.units = self.et.AI_units[k]
+                ac.units = str(rng['units'])
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
-                dp.set_attribute_config((attr_name, ac))
-
+                dp.set_attribute_config(ac)
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
