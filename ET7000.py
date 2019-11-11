@@ -139,6 +139,51 @@ class ET7000:
             'max': 20.0e-3,
             'units': 'A'
         },
+        0x20: {
+            'units': 'degC',
+            'min': -100.0,
+            'max': 100.0
+        },
+        0x21: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 100.0
+        },
+        0x22: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 200.0
+        },
+        0x23: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 600.0
+        },
+        0x24: {
+            'units': 'degC',
+            'min': -100.0,
+            'max': 100.0
+        },
+        0x25: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 100.0
+        },
+        0x26: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 200.0
+        },
+        0x27: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 600.0
+        },
+        0x2A: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 600.0
+        },
         0xff: {
             'min': 0,
             'max': 0xffff,
@@ -183,6 +228,8 @@ class ET7000:
         }
     }
     devices = {
+        0x7015: {
+        },
         0x7016: {
         },
         0x7018: {
@@ -192,6 +239,14 @@ class ET7000:
         0x7026: {
         }
     }
+
+    @staticmethod
+    def range(r):
+        if r in ET7000.AI_ranges:
+            return (ET7000.AI_ranges[r])
+        if r in ET7000.AO_ranges:
+            return (ET7000.AO_ranges[r])
+        return {'min': 0, 'max': 0xffff, 'units': '?'}
 
     # default conversion from quanta to real units
     @staticmethod
@@ -255,7 +310,11 @@ class ET7000:
             self.AI_units = [''] * self.AI_n
             self.read_AI_masks()
             self.read_AI_ranges()
-            self.AI_units = [ET7000.AI_ranges[r]['units'] for r in self.AI_ranges]
+            for r in self.AI_ranges:
+                try:
+                    self.AI_units.append(ET7000.AI_ranges[r]['units'])
+                except:
+                    self.AI_units.append('?')
         # AOs
         self.AO_time = time.time()
         self.AO_n = 0
@@ -275,7 +334,11 @@ class ET7000:
             self.AO_write = [0] * self.AO_n
             self.AO_write_raw = [0] * self.AO_n
             self.read_AO_ranges()
-            self.AO_units = [ET7000.AO_ranges[r]['units'] for r in self.AO_ranges]
+            for r in self.AO_ranges:
+                try:
+                    self.AO_units.append(ET7000.AO_ranges[r]['units'])
+                except:
+                    self.AO_units.append('?')
         # DIs
         self.DI_n = 0
         self.DI_values = []

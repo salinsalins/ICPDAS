@@ -82,6 +82,9 @@ class ET7000_Server(Device):
 
     @command
     def Start(self):
+        self.add_io()
+
+    def add_io(self):
         #self.set_state(DevState.OFF)
         print(self, ' Initialization')
         if self.et is None:
@@ -97,7 +100,7 @@ class ET7000_Server(Device):
                 prop.set_display_unit(self.et.AI_units[k])
                 prop.set_standard_unit(self.et.AI_units[k])
                 prop.set_format('%6.3f')
-                rng = ET7000.AI_ranges[self.et.AI_ranges[k]]
+                rng = self.et.range(k)
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
@@ -112,7 +115,8 @@ class ET7000_Server(Device):
                 prop.set_unit(self.et.AO_units[k])
                 prop.set_display_unit(self.et.AO_units[k])
                 prop.set_standard_unit(self.et.AO_units[k])
-                rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
+                rng = self.et.range(k)
+                #rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
@@ -132,6 +136,29 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
             print('%d digital outputs initialized' % self.et.DO_n)
+
+    def remove_io(self):
+        # da = self.get_device_attr()
+        # print(da)
+        # n = da.get_attr_nb()
+        # print(n)
+        # for k in range(n):
+        #     a = da.get_attr_by_ind(k)
+        #     an = a.get_name()
+        #     print(an)
+        #     if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
+        #         print('removing ', an)
+        #         try:
+        #             self.remove_attribute(an)
+        #         except Exception as exc:
+        #             print(str(exc))
+        #             self.__class__.remove_attribute(self.__class__, an)
+        #             print('ok')
+        # cl = self.get_device_class()
+        # print(cl)
+        # am = cl.dyn_att_added_methods
+        # print(am)
+        pass
 
     def init_device(self):
         print(self, 'init_device')
@@ -163,37 +190,25 @@ class ET7000_Server(Device):
         self.et = et
         self.ip = ip
         print('ET%s at %s detected' % (hex(self.et._name)[-4:], ip))
-        # da = self.get_device_attr()
-        # print(da)
-        # n = da.get_attr_nb()
-        # print(n)
-        # for k in range(n):
-        #     a = da.get_attr_by_ind(k)
-        #     an = a.get_name()
-        #     print(an)
-        #     if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
-        #         print('removing ', an)
-        #         try:
-        #             self.remove_attribute(an)
-        #         except Exception as exc:
-        #             print(str(exc))
-        #             self.__class__.remove_attribute(self.__class__, an)
-        #             print('ok')
-        # cl = self.get_device_class()
-        # print(cl)
-        # am = cl.dyn_att_added_methods
-        # print(am)
-
-
-        # initialize ai, ao, di, do attributes
 
         ET7000_Server.devices.append(self)
         self.set_state(DevState.RUNNING)
 
+def post_init_callback():
+    print('post_init')
+    util = tango.Util.instance()
+    devices = util.get_device_list('*')
+    for dev in devices:
+        print(dev)
+        if hasattr(dev, 'add_io'):
+            dev.add_io()
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
         #print("Usage: python ET7000_server.py device_name ip_address")
         #exit(-1)
-
-    ET7000_Server.run_server()
+    #util = tango.Util.init(sys.argv)
+    #util.add_classes(ET7000_Server)
+    #util.server_init()
+    #util.server_run()
+    ET7000_Server.run_server(post_init_callback=post_init_callback)
