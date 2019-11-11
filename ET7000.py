@@ -277,7 +277,7 @@ class ET7000:
             else:
                 return int(0xffff + (f * one / amax))
         # в других случаях ошибка
-        return float('nan')
+        return 0xffff
 
     def __init__(self, host, port=502, timeout=0.15):
         self._host = host
@@ -293,7 +293,7 @@ class ET7000:
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
             print('ET7000 device type %s is not supported' % hex(self._name))
-        # AIs
+        # ai
         self.AI_time = time.time()
         self.AI_n = 0
         self.AI_masks = []
@@ -310,12 +310,8 @@ class ET7000:
             self.AI_units = [''] * self.AI_n
             self.read_AI_masks()
             self.read_AI_ranges()
-            for r in self.AI_ranges:
-                try:
-                    self.AI_units.append(ET7000.AI_ranges[r]['units'])
-                except:
-                    self.AI_units.append('?')
-        # AOs
+            self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
+        # ao
         self.AO_time = time.time()
         self.AO_n = 0
         self.AO_ranges = []
@@ -334,18 +330,14 @@ class ET7000:
             self.AO_write = [0] * self.AO_n
             self.AO_write_raw = [0] * self.AO_n
             self.read_AO_ranges()
-            for r in self.AO_ranges:
-                try:
-                    self.AO_units.append(ET7000.AO_ranges[r]['units'])
-                except:
-                    self.AO_units.append('?')
-        # DIs
+            self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
+        # di
         self.DI_n = 0
         self.DI_values = []
         self.DI_n = self.read_DI_n()
         self.DI_time = time.time()
         self.DI_values = [False] * self.DI_n
-        # DOs
+        # do
         self.DO_time = time.time()
         self.DO_n = 0
         self.DO_values = []
@@ -380,10 +372,12 @@ class ET7000:
             self.AI_ranges = regs
         return regs
 
-    def read_AI_raw(self):
-        regs = self._client.read_input_registers(0, self.AI_n)
-        if regs and len(regs) == self.AI_n:
-            self.AI_raw = regs
+    def read_AI_raw(self, n=None):
+        if n is None:
+            n = self.AI_n
+        regs = self._client.read_input_registers(0, n)
+        if regs and len(regs) == n:
+            self.AI_raw[:n] = regs
         return regs
 
     def convert_AI(self, raw=None):
@@ -402,14 +396,14 @@ class ET7000:
         self.convert_AI()
         return self.AI_values
 
-    def read_AI_channel(self, k):
+    def read_AI_channel(self, k:int):
         v = float('nan')
         if self.AI_masks[k]:
             regs = self._client.read_input_registers(0+k, 1)
             if regs:
                 self.AI_raw[k] = regs[0]
                 rng = ET7000.AI_ranges[self.AI_ranges[k]]
-                v = ET7000.convert(regs[0], rng['min'], rng['max'])
+                v = self.convert(regs[0], rng['min'], rng['max'])
         self.AI_values[k] = v
         return v
 
@@ -460,7 +454,7 @@ class ET7000:
         self.convert_AO()
         return self.AO_values
 
-    def read_AO_channel(self, k):
+    def read_AO_channel(self, k:int):
         regs = self._client.read_holding_registers(0+k, 1)
         rng = ET7000.AO_ranges[self.AO_ranges[k]]
         v = ET7000.convert(regs[0], rng['min'], rng['max'])
@@ -473,7 +467,7 @@ class ET7000:
         result = self.write_AO_raw(regs)
         return result
 
-    def write_AO_channel(self, k, value):
+    def write_AO_channel(self, k:int, value):
         rng = ET7000.AO_ranges[self.AO_ranges[k]]
         reg = ET7000.convert_to_raw(value, rng['min'], rng['max'])
         self.AO_write_raw[k] = reg
@@ -494,7 +488,7 @@ class ET7000:
         self._time = time.time()
         return self.DI_values
 
-    def read_DI_channel(self, k):
+    def read_DI_channel(self, k:int):
         reg = self._client.read_discrete_inputs(0+k, 1)
         self._time = time.time()
         if reg:
@@ -516,7 +510,7 @@ class ET7000:
         self.DO_time = time.time()
         return self.DI_values
 
-    def read_DO_channel(self, k):
+    def read_DO_channel(self, k:int):
         reg = self._client.read_coils(0+k, 1)
         self.DO_time = time.time()
         if reg:
@@ -529,8 +523,28 @@ class ET7000:
         self.DO_time = time.time()
         return self.DO_write_result
 
-    def write_DO_channel(self, k, value):
+    def write_DO_channel(self, k, value:bool):
         result = self._client.write_single_coil(0+k, value)
         self.DO_time = time.time()
         return result
 
+if __name__ == "__main__":
+    ip = '192.168.1.122'
+    et = ET7000(ip)
+    print('PET%s at %s' % (hex(et._name)[-4:], ip))
+    print('%d ai' % et.AI_n)
+    et.read_AI()
+    for k in range(et.AI_n):
+        print(k, hex(et.AI_raw[k]), et.AI_values[k], hex(et.AI_ranges[k]))
+    print('%d ao' % et.AO_n)
+    et.read_AO()
+    for k in range(et.AO_n):
+        print(k, hex(et.AO_raw[k]), et.AO_values[k], hex(et.AO_ranges[k]))
+    print('%d di' % et.DI_n)
+    et.read_DI()
+    for k in range(et.DI_n):
+        print(k, et.DI_values[k])
+    print('%d do' % et.DO_n)
+    et.read_DO()
+    for k in range(et.DO_n):
+        print(k, et.DO_values[k])
