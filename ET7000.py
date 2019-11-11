@@ -262,7 +262,7 @@ class ET7000:
             else:
                 return -amax * (0xffff - b) / one
         # в других случаях ошибка
-        return float('nan')
+        return amin + (amax-amin)*b/0xffff
 
     @staticmethod
     def convert_to_raw(f, amin, amax):

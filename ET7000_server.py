@@ -81,30 +81,41 @@ class ET7000_Server(Device):
         self.et.write_AO_channel(chan, value)
 
     @command
-    def Start(self):
-        self.add_io()
+    def Reconnect(self):
+        self.et._client.close()
+        self.et.__init__(self.ip)
 
     def add_io(self):
         #self.set_state(DevState.OFF)
         print(self, ' Initialization')
         if self.et is None:
             return
+        name = self.get_name()
+        dp = tango.DeviceProxy(name)
         # initialize ai, ao, di, do attributes
         # ai
         if self.et.AI_n > 0:
             for k in range(self.et.AI_n):
                 attr_name = 'ai%02d'%k
                 attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
+                # determine ip address
                 prop = tango.UserDefaultAttrProp()
                 prop.set_unit(self.et.AI_units[k])
-                prop.set_display_unit(self.et.AI_units[k])
-                prop.set_standard_unit(self.et.AI_units[k])
+                #prop.set_display_unit(self.et.AI_units[k])
+                #prop.set_standard_unit(self.et.AI_units[k])
                 prop.set_format('%6.3f')
                 rng = self.et.range(k)
                 prop.set_min_value(str(rng['min']))
                 prop.set_max_value(str(rng['max']))
                 attr.set_default_properties(prop)
                 self.add_attribute(attr, self.read_general)
+
+                ac = dp.get_attribute_config(attr_name)
+                ac.units = self.et.AI_units[k]
+                ac.min_value = str(rng['min'])
+                ac.max_value = str(rng['max'])
+                dp.set_attribute_config((attr_name, ac))
+
             print('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
@@ -113,8 +124,8 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
                 prop = tango.UserDefaultAttrProp()
                 prop.set_unit(self.et.AO_units[k])
-                prop.set_display_unit(self.et.AO_units[k])
-                prop.set_standard_unit(self.et.AO_units[k])
+                #prop.set_display_unit(self.et.AO_units[k])
+                #prop.set_standard_unit(self.et.AO_units[k])
                 rng = self.et.range(k)
                 #rng = ET7000.AI_ranges[self.et.AO_ranges[k]]
                 prop.set_min_value(str(rng['min']))
@@ -163,7 +174,6 @@ class ET7000_Server(Device):
     def init_device(self):
         print(self, 'init_device')
         if hasattr(self, 'et') and self.et is not None:
-            print('skip')
             return
         Device.init_device(self)
         # build dev proxy
