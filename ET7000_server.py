@@ -81,7 +81,7 @@ class ET7000_Server(Device):
         self.et.write_AO_channel(chan, value)
 
     @command
-    def Init(self):
+    def Start(self):
         #self.set_state(DevState.OFF)
         print(self, ' Initialization')
         if self.et is None:
