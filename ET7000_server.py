@@ -57,7 +57,8 @@ class ET7000_Server(Device):
         if self.et is None:
             return
         attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
-        value = attr.get_write_value()
+        lst = []
+        value = attr.get_write_value(lst)
         name = attr.get_name()
         chan = int(name[-2:])
         ad = name[:2]
@@ -183,23 +184,24 @@ class ET7000_Server(Device):
                 self.error_stream('IP address %s is in use' % ip)
                 self.et = None
                 self.ip = None
-                self.set_state(DevState.DISABLE)
+                self.set_state(DevState.FAULT)
                 return
         # create ICP DAS device
         et = ET7000(ip)
         self.et = et
         self.ip = ip
-        print('ET%s at %s detected' % (hex(self.et._name)[-4:], ip))
+        print('ET%s at %s' % (hex(self.et._name)[-4:], ip))
+        self.debug_stream('ET%s at %s' % (hex(self.et._name)[-4:], ip))
 
         ET7000_Server.devices.append(self)
         self.set_state(DevState.RUNNING)
 
 def post_init_callback():
-    print('post_init')
+    #print('post_init')
     util = tango.Util.instance()
     devices = util.get_device_list('*')
     for dev in devices:
-        print(dev)
+        #print(dev)
         if hasattr(dev, 'add_io'):
             dev.add_io()
 
