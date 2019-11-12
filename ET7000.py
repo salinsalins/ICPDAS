@@ -403,7 +403,7 @@ class ET7000:
             raw = self.AI_raw
         for k in range(self.AI_n):
             if self.AI_masks[k]:
-                rng = ET7000.AI_ranges[self.AI_ranges[k]]
+                rng = self.range(self.AI_ranges[k])
                 self.AI_values[k] = ET7000.convert(raw[k], rng['min'], rng['max'])
             else:
                 self.AI_values[k] = float('nan')
@@ -422,7 +422,7 @@ class ET7000:
             regs = self._client.read_input_registers(0+k, 1)
             if regs:
                 self.AI_raw[k] = regs[0]
-                rng = ET7000.AI_ranges[self.AI_ranges[k]]
+                rng = self.range(self.AI_ranges[k])
                 v = self.convert(regs[0], rng['min'], rng['max'])
         self.AI_values[k] = v
         return v
@@ -459,7 +459,7 @@ class ET7000:
         if raw is None:
             raw = self.AO_raw
         for k in range(self.AO_n):
-            rng = ET7000.AO_ranges[self.AO_ranges[k]]
+            rng = self.range(self.AO_ranges[k])
             self.AO_values[k] = ET7000.convert(raw[k], rng['min'], rng['max'])
         return self.AO_values
 
@@ -468,7 +468,7 @@ class ET7000:
             values = self.AO_values
         answer = []
         for k in range(len(values)):
-            rng = ET7000.AO_ranges[self.AO_ranges[k]]
+            rng = self.range(self.AO_ranges[k])
             answer.append(ET7000.convert_to_raw(values[k], rng['min'], rng['max']))
         return answer
 
@@ -479,7 +479,7 @@ class ET7000:
 
     def read_AO_channel(self, k:int):
         regs = self._client.read_holding_registers(0+k, 1)
-        rng = ET7000.AO_ranges[self.AO_ranges[k]]
+        rng = self.range(self.AO_ranges[k])
         v = ET7000.convert(regs[0], rng['min'], rng['max'])
         self.AO_values[k] = v
         return v
@@ -491,7 +491,7 @@ class ET7000:
         return result
 
     def write_AO_channel(self, k:int, value):
-        rng = ET7000.AO_ranges[self.AO_ranges[k]]
+        rng = self.range(self.AO_ranges[k])
         reg = ET7000.convert_to_raw(value, rng['min'], rng['max'])
         self.AO_write_raw[k] = reg
         result = self._client.write_single_register(0+k, reg)
