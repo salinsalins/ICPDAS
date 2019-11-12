@@ -91,6 +91,7 @@ class ET7000_Server(Device):
         #print(self, ' Initialization')
         if self.et is None:
             return
+        self.set_state(DevState.INIT)
         name = self.get_name()
         dp = tango.DeviceProxy(name)
         # initialize ai, ao, di, do attributes
@@ -136,6 +137,7 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
             print(self, '%d digital outputs initialized' % self.et.DO_n)
+        self.set_state(DevState.RUNNING)
 
     def remove_io(self):
         # da = self.get_device_attr()
@@ -161,9 +163,10 @@ class ET7000_Server(Device):
         pass
 
     def init_device(self):
-        print(self, 'init_device')
+        #print(self, 'init_device')
         if hasattr(self, 'et') and self.et is not None:
             return
+        self.set_state(DevState.INIT)
         Device.init_device(self)
         # build dev proxy
         name = self.get_name()
@@ -188,10 +191,12 @@ class ET7000_Server(Device):
         et = ET7000(ip)
         self.et = et
         self.ip = ip
-        print('ET%s at %s' % (hex(self.et._name)[-4:], ip))
-        self.debug_stream('ET%s at %s' % (hex(self.et._name)[-4:], ip))
-
+        # add device
         ET7000_Server.devices.append(self)
+        msg = 'ET%s at %s has been created' % (hex(self.et._name)[-4:], ip)
+        print(msg)
+        self.info_stream(msg)
+        # set state to running
         self.set_state(DevState.RUNNING)
 
 def post_init_callback():
