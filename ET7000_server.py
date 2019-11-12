@@ -83,8 +83,10 @@ class ET7000_Server(Device):
 
     @command
     def Reconnect(self):
+        self.set_state(DevState.DISABLE)
         self.et._client.close()
         self.et.__init__(self.ip)
+        self.set_state(DevState.RUNNING)
 
     def add_io(self):
         #self.set_state(DevState.OFF)
