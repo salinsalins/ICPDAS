@@ -385,12 +385,17 @@ class ET7000:
             self.AI_ranges = regs
         return regs
 
-    def read_AI_raw(self, n=None):
-        if n is None:
+    def read_AI_raw(self, channel=None):
+        if channel is None:
             n = self.AI_n
-        regs = self._client.read_input_registers(0, n)
+            channel = 0
+        else:
+            n = 1
+        regs = self._client.read_input_registers(0+channel, n)
         if regs and len(regs) == n:
-            self.AI_raw[:n] = regs
+            self.AI_raw[channel:channel+n] = regs
+        if n == 1:
+            return regs[0]
         return regs
 
     def convert_AI(self, raw=None):
@@ -404,10 +409,12 @@ class ET7000:
                 self.AI_values[k] = float('nan')
         return self.AI_values
 
-    def read_AI(self):
-        self.read_AI_raw()
-        self.convert_AI()
-        return self.AI_values
+    def read_AI(self, channel=None):
+        if channel is None:
+            self.read_AI_raw()
+            self.convert_AI()
+            return self.AI_values
+        return self.read_AI_channel(channel)
 
     def read_AI_channel(self, k:int):
         v = float('nan')
@@ -553,7 +560,7 @@ class ET7000:
 if __name__ == "__main__":
     ip = '192.168.1.122'
     et = ET7000(ip)
-    print('PET%s at %s' % (hex(et._name)[-4:], ip))
+    print('ET7000 %s at %s' % (hex(et._name), ip))
     print('%d ai' % et.AI_n)
     et.read_AI()
     for k in range(et.AI_n):
