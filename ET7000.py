@@ -234,6 +234,8 @@ class ET7000:
         },
         0x7018: {
         },
+        0x7060: {
+        },
         0x7251: {
         },
         0x7026: {
@@ -282,25 +284,40 @@ class ET7000:
     def __init__(self, host, port=502, timeout=0.15):
         self._host = host
         self._port = port
-        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
-        self._client.open()
         self._name = 0
         self.AI_n = 0
         self.AI_ranges = []
         self.AI_masks = []
         self.channels = []
-        # module name
-        self._name = self.read_module_name()
-        if self._name not in ET7000.devices:
-            print('ET7000 device type %s is not supported' % hex(self._name))
-        # ai
-        self.AI_time = time.time()
         self.AI_n = 0
         self.AI_masks = []
         self.AI_ranges = []
         self.AI_raw = []
         self.AI_values = []
         self.AI_units = []
+        self.AO_n = 0
+        self.AO_ranges = []
+        self.AO_raw = []
+        self.AO_values = []
+        self.AO_units = []
+        self.AO_write_raw = []
+        self.AO_write = []
+        self.AO_write_result = False
+        self.DI_n = 0
+        self.DI_values = []
+        self.DO_n = 0
+        self.DO_values = []
+        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
+        stat = self._client.open()
+        if not stat:
+            print('ET7000 device is offline')
+            return
+        # module name
+        self._name = self.read_module_name()
+        if self._name not in ET7000.devices:
+            print('ET7000 device type %s probably not supported' % hex(self._name))
+        # ai
+        self.AI_time = time.time()
         self.AI_n = self.read_AI_n()
         if self.AI_n > 0:
             self.AI_masks = [False] * self.AI_n
@@ -313,14 +330,6 @@ class ET7000:
             self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
         # ao
         self.AO_time = time.time()
-        self.AO_n = 0
-        self.AO_ranges = []
-        self.AO_raw = []
-        self.AO_values = []
-        self.AO_units = []
-        self.AO_write_raw = []
-        self.AO_write = []
-        self.AO_write_result = False
         self.AO_n = self.read_AO_n()
         if self.AO_n > 0:
             self.AO_ranges = [0xff] * self.AO_n
@@ -332,8 +341,6 @@ class ET7000:
             self.read_AO_ranges()
             self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
         # di
-        self.DI_n = 0
-        self.DI_values = []
         self.DI_n = self.read_DI_n()
         self.DI_time = time.time()
         self.DI_values = [False] * self.DI_n
@@ -348,14 +355,20 @@ class ET7000:
 
     def read_module_name(self):
         regs = self._client.read_holding_registers(559, 1)
+        if regs and regs[0] != 0:
+            return regs[0]
+        regs = self._client.read_holding_registers(260, 1)
         if regs:
             return regs[0]
         return None
 
     # AI functions
     def read_AI_n(self):
-        regs = self._client.read_input_registers(320, 1)
         self.AI_time = time.time()
+        regs = self._client.read_input_registers(320, 1)
+        if regs and regs[0] != 0:
+            return regs[0]
+        regs = self._client.read_input_registers(120, 1)
         if regs:
             return regs[0]
         return 0
@@ -410,6 +423,9 @@ class ET7000:
     # AO functions
     def read_AO_n(self):
         regs = self._client.read_input_registers(330, 1)
+        if regs and regs[0] != 0:
+            return regs[0]
+        regs = self._client.read_input_registers(130, 1)
         if regs:
             return regs[0]
         return 0
@@ -477,6 +493,9 @@ class ET7000:
     # DI functions
     def read_DI_n(self):
         regs = self._client.read_input_registers(300, 1)
+        if regs and regs[0] != 0:
+            return regs[0]
+        regs = self._client.read_input_registers(100, 1)
         if regs:
             return regs[0]
         return 0
@@ -497,8 +516,11 @@ class ET7000:
 
     # DO functions
     def read_DO_n(self):
-        regs = self._client.read_input_registers(310, 1)
         self.DO_time = time.time()
+        regs = self._client.read_input_registers(310, 1)
+        if regs and regs[0] != 0:
+            return regs[0]
+        regs = self._client.read_input_registers(110, 1)
         if regs:
             return regs[0]
         return 0

@@ -110,7 +110,7 @@ class ET7000_Server(Device):
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
-            print(self, '%d analog inputs initialized' % self.et.AI_n)
+            print(self, hex(self.et._name),'%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
             for k in range(self.et.AO_n):
@@ -124,21 +124,21 @@ class ET7000_Server(Device):
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
-            print(self, '%d analog inputs initialized' % self.et.AO_n)
+            print(self, hex(self.et._name), '%d analog outputs initialized' % self.et.AO_n)
         # di
         if self.et.DI_n > 0:
             for k in range(self.et.DI_n):
                 attr_name = 'di%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                 self.add_attribute(attr, self.read_general, w_meth=self.write_general)
-            print(self, '%d digital inputs initialized' % self.et.DI_n)
+            print(self, hex(self.et._name), '%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
                 attr_name = 'do%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
-            print(self, '%d digital outputs initialized' % self.et.DO_n)
+            print(self, hex(self.et._name), '%d digital outputs initialized' % self.et.DO_n)
         self.set_state(DevState.RUNNING)
 
     def remove_io(self):
@@ -195,7 +195,7 @@ class ET7000_Server(Device):
         self.ip = ip
         # add device
         ET7000_Server.devices.append(self)
-        msg = 'ET%s at %s has been created' % (hex(self.et._name)[-4:], ip)
+        msg = 'ET7000 device type %s at %s has been created' % (hex(self.et._name), ip)
         print(msg)
         self.info_stream(msg)
         # set state to running
