@@ -86,6 +86,7 @@ class ET7000_Server(Device):
         self.set_state(DevState.DISABLE)
         self.et._client.close()
         self.et.__init__(self.ip)
+        self.init_device()
         self.set_state(DevState.RUNNING)
 
     def add_io(self):

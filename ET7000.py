@@ -310,7 +310,7 @@ class ET7000:
         self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
         stat = self._client.open()
         if not stat:
-            print('ET7000 device is offline')
+            print('ET7000 device at %s is offline' % self._host)
             return
         # module name
         self._name = self.read_module_name()
