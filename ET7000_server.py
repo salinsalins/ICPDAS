@@ -85,15 +85,22 @@ class ET7000_Server(Device):
     def Reconnect(self):
         self.set_state(DevState.DISABLE)
         self.et._client.close()
-        self.et.__init__(self.ip)
-        self.init_device()
+        if self.et is None:
+            self.init_device()
+            self.add_io()
+        else:
+            if self.et._name == 0:
+                self.et.__init__(self.ip)
+                self.add_io()
+            else:
+                self.et.__init__(self.ip)
         self.set_state(DevState.RUNNING)
 
     def add_io(self):
-        #self.set_state(DevState.OFF)
         #print(self, ' Initialization')
         if self.et is None:
             return
+        print(self, hex(self.et._name), 'at %s initialization' % self.ip)
         self.set_state(DevState.INIT)
         name = self.get_name()
         dp = tango.DeviceProxy(name)
@@ -111,7 +118,7 @@ class ET7000_Server(Device):
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
-            print(self, hex(self.et._name),'%d analog inputs initialized' % self.et.AI_n)
+            print('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
             for k in range(self.et.AO_n):
@@ -125,21 +132,22 @@ class ET7000_Server(Device):
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
-            print(self, hex(self.et._name), '%d analog outputs initialized' % self.et.AO_n)
+            print('%d analog outputs initialized' % self.et.AO_n)
         # di
         if self.et.DI_n > 0:
             for k in range(self.et.DI_n):
                 attr_name = 'di%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                 self.add_attribute(attr, self.read_general, w_meth=self.write_general)
-            print(self, hex(self.et._name), '%d digital inputs initialized' % self.et.DI_n)
+            print('%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
                 attr_name = 'do%02d'%k
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
-            print(self, hex(self.et._name), '%d digital outputs initialized' % self.et.DO_n)
+            print('%d digital outputs initialized' % self.et.DO_n)
+        print(' ')
         self.set_state(DevState.RUNNING)
 
     def remove_io(self):
