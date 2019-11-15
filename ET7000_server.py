@@ -117,7 +117,8 @@ class ET7000_Server(Device):
                 # configure attribute properties
                 rng = self.et.range(self.et.AI_ranges[k])
                 ac = dp.get_attribute_config(attr_name)
-                ac.unit = str(rng['units'])
+                if ac.unit is None or '' == ac.unit:
+                    ac.unit = str(rng['units'])
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
@@ -131,7 +132,8 @@ class ET7000_Server(Device):
                 # configure attribute properties
                 rng = self.et.range(self.et.AO_ranges[k])
                 ac = dp.get_attribute_config(attr_name)
-                ac.unit = str(rng['units'])
+                if ac.unit is None or '' == ac.unit:
+                    ac.unit = str(rng['units'])
                 ac.min_value = str(rng['min'])
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
