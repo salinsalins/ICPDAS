@@ -52,6 +52,8 @@ class ET7000_Server(Device):
         if val is not None:
             attr.set_value(val)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
+        else:
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
 
     def write_general(self, attr: tango.WAttribute):
         #print("Writing attribute %s %s" % (self.ip, attr.get_name()))

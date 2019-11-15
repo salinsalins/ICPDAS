@@ -443,11 +443,19 @@ class ET7000:
         regs = self._client.read_holding_registers(459, n)
         return regs
 
-    def read_AO_raw(self):
-        regs = self._client.read_holding_registers(0, self.AO_n)
-        self.AO_raw = regs
-        self.AO_time = time.time()
+    def read_AO_raw(self, channel=None):
+        if channel is None:
+            n = self.AO_n
+            channel = 0
+        else:
+            n = 1
+        regs = self._client.read_holding_registers(0+channel, n)
+        if regs and len(regs) == n:
+            self.AO_raw[channel:channel+n] = regs
+        if n == 1:
+            return regs[0]
         return regs
+
 
     def write_AO_raw(self, regs):
         self.AO_write_raw = regs
@@ -478,9 +486,11 @@ class ET7000:
         return self.AO_values
 
     def read_AO_channel(self, k:int):
+        v = float('nan')
         regs = self._client.read_holding_registers(0+k, 1)
-        rng = self.range(self.AO_ranges[k])
-        v = ET7000.convert(regs[0], rng['min'], rng['max'])
+        if regs:
+            rng = self.range(self.AO_ranges[k])
+            v = ET7000.convert(regs[0], rng['min'], rng['max'])
         self.AO_values[k] = v
         return v
 
@@ -490,7 +500,7 @@ class ET7000:
         result = self.write_AO_raw(regs)
         return result
 
-    def write_AO_channel(self, k:int, value):
+    def write_AO_channel(self, k:  int, value):
         rng = self.range(self.AO_ranges[k])
         reg = ET7000.convert_to_raw(value, rng['min'], rng['max'])
         self.AO_write_raw[k] = reg
