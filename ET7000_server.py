@@ -30,6 +30,7 @@ class ET7000_Server(Device):
         return t
 
     def read_general(self, attr: tango.Attribute):
+        #print("Reading attribute %s %s" % (self.ip, attr.get_name()))
         #self.info_stream("Reading attribute %s", attr.get_name())
         if self.et is None:
             return
@@ -53,12 +54,14 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
 
     def write_general(self, attr: tango.WAttribute):
-        #self.info_stream("Writting attribute %s", attr.get_name())
+        print("Writing attribute %s %s" % (self.ip, attr.get_name()))
+        #self.info_stream("Writing attribute %s", attr.get_name())
         if self.et is None:
             return
-        attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
+        #attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
         lst = []
-        value = attr.get_write_value(lst)
+        value = attr.get_write_value()
+        print(value, lst)
         name = attr.get_name()
         chan = int(name[-2:])
         ad = name[:2]
@@ -67,7 +70,7 @@ class ET7000_Server(Device):
         elif ad == 'do':
             self.et.write_DO_channel(chan, value)
         else:
-            #print("Write to unknown attribute %s" % name)
+            print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
