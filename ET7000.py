@@ -553,9 +553,8 @@ class ET7000:
         return self.DO_write_result
 
     def write_DO_channel(self, k, value: bool):
-        print('wdoc')
         result = self._client.write_single_coil(0+k, value)
-        print(k, value, result)
+        #print(k, value, result)
         self.DO_time = time.time()
         return result
 
