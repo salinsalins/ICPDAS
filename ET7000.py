@@ -612,19 +612,23 @@ class ET7000:
 if __name__ == "__main__":
     ip = '192.168.1.122'
     et = ET7000(ip)
-    print('ET7000 %s at %s' % (hex(et._name), ip))
+    print('ET7000 series %s at %s' % (hex(et._name), ip))
+    print('----------------------------------------')
     print('%d ai' % et.AI_n)
     et.read_AI()
     for k in range(et.AI_n):
-        print(k, hex(et.AI_raw[k]), et.AI_values[k], hex(et.AI_ranges[k]))
+        print(k, hex(et.AI_raw[k]), et.AI_values[k], et.AI_units[k], ' range:', hex(et.AI_ranges[k]))
+    print('----------------------------------------')
     print('%d ao' % et.AO_n)
     et.read_AO()
     for k in range(et.AO_n):
-        print(k, hex(et.AO_raw[k]), et.AO_values[k], hex(et.AO_ranges[k]))
+        print(k, hex(et.AO_raw[k]), et.AO_values[k], et.AO_units[k], ' range:', hex(et.AO_ranges[k]))
+    print('----------------------------------------')
     print('%d di' % et.DI_n)
     et.read_DI()
     for k in range(et.DI_n):
         print(k, et.DI_values[k])
+    print('----------------------------------------')
     print('%d do' % et.DO_n)
     et.read_DO()
     for k in range(et.DO_n):
