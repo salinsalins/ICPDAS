@@ -179,6 +179,16 @@ class ET7000:
             'min': 0.0,
             'max': 600.0
         },
+        0x28: {
+            'units': 'degC',
+            'min': -80.0,
+            'max': 100.0
+        },
+        0x29: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 100.0
+        },
         0x2A: {
             'units': 'degC',
             'min': -200.0,
