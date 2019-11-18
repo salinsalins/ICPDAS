@@ -367,41 +367,32 @@ class ET7000:
         if self._name not in ET7000.devices:
             print('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
-        self.AI_time = time.time()
         self.AI_n = self.read_AI_n()
-        if self.AI_n > 0:
-            self.AI_masks = [False] * self.AI_n
-            self.AI_ranges = [0xff] * self.AI_n
-            self.AI_raw = [0] * self.AI_n
-            self.AI_values = [float('nan')] * self.AI_n
-            self.AI_units = [''] * self.AI_n
-            self.read_AI_masks()
-            self.read_AI_ranges()
-            self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
+        self.AI_masks = [False] * self.AI_n
+        self.AI_ranges = [0xff] * self.AI_n
+        self.AI_raw = [0] * self.AI_n
+        self.AI_values = [float('nan')] * self.AI_n
+        self.AI_units = [''] * self.AI_n
+        self.read_AI_masks()
+        self.read_AI_ranges()
+        self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
         # ao
-        self.AO_time = time.time()
         self.AO_n = self.read_AO_n()
-        if self.AO_n > 0:
-            self.AO_ranges = [0xff] * self.AO_n
-            self.AO_raw = [0] * self.AO_n
-            self.AO_values = [float('nan')] * self.AO_n
-            self.AO_units = [''] * self.AO_n
-            self.AO_write = [0] * self.AO_n
-            self.AO_write_raw = [0] * self.AO_n
-            self.read_AO_ranges()
-            self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
+        self.AO_ranges = [0xff] * self.AO_n
+        self.AO_raw = [0] * self.AO_n
+        self.AO_values = [float('nan')] * self.AO_n
+        self.AO_units = [''] * self.AO_n
+        self.AO_write = [0] * self.AO_n
+        self.AO_write_raw = [0] * self.AO_n
+        self.read_AO_ranges()
+        self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
         # di
         self.DI_n = self.read_DI_n()
-        self.DI_time = time.time()
         self.DI_values = [False] * self.DI_n
         # do
-        self.DO_time = time.time()
-        self.DO_n = 0
-        self.DO_values = []
-        self.DO_write = []
         self.DO_n = self.read_DO_n()
-        self.DO_values = [False] * self.DI_n
-        self.DO_write = [False] * self.DI_n
+        self.DO_values = [False] * self.DO_n
+        self.DO_write = [False] * self.DO_n
 
     def read_module_name(self):
         regs = self._client.read_holding_registers(559, 1)
