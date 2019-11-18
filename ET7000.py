@@ -275,11 +275,6 @@ class ET7000:
             'min': -5.0,
             'max': 5.0,
             'units': 'V'
-        },
-        0xff: {
-            'min': 0,
-            'max': 0xffff,
-            'units': ''
         }
     }
     devices = {
