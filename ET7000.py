@@ -184,6 +184,51 @@ class ET7000:
             'min': -200.0,
             'max': 600.0
         },
+        0x2B: {
+            'units': 'degC',
+            'min': -20.0,
+            'max': 150.0
+        },
+        0x2C: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 200.0
+        },
+        0x2D: {
+            'units': 'degC',
+            'min': -20.0,
+            'max': 150.0
+        },
+        0x2E: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 200.0
+        },
+        0x2F: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 200.0
+        },
+        0x80: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 600.0
+        },
+        0x81: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 600.0
+        },
+        0x82: {
+            'units': 'degC',
+            'min': -50.0,
+            'max': 150.0
+        },
+        0x83: {
+            'units': 'degC',
+            'min': -60.0,
+            'max': 180.0
+        },
         0xff: {
             'min': 0,
             'max': 0xffff,
