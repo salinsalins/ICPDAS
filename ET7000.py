@@ -292,6 +292,51 @@ class ET7000:
             'min': -20.0,
             'max': 150.0
         },
+        0x2B: {
+            'units': 'degC',
+            'min': -20.0,
+            'max': 150.0
+        },
+        0x2C: {
+            'units': 'degC',
+            'min': 0.0,
+            'max': 200.0
+        },
+        0x2D: {
+            'units': 'degC',
+            'min': -20.0,
+            'max': 150.0
+        },
+        0x2E: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 200.0
+        },
+        0x2F: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 200.0
+        },
+        0x80: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 600.0
+        },
+        0x81: {
+            'units': 'degC',
+            'min': -200.0,
+            'max': 600.0
+        },
+        0x82: {
+            'units': 'degC',
+            'min': -50.0,
+            'max': 150.0
+        },
+        0x83: {
+            'units': 'degC',
+            'min': -60.0,
+            'max': 180.0
+        },
         0xff: {
             'min': 0,
             'max': 0xffff,
@@ -328,11 +373,6 @@ class ET7000:
             'min': -5.0,
             'max': 5.0,
             'units': 'V'
-        },
-        0xff: {
-            'min': 0,
-            'max': 0xffff,
-            'units': ''
         }
     }
     devices = {
@@ -343,8 +383,6 @@ class ET7000:
         0x7018: {
         },
         0x7060: {
-        },
-        0x7251: {
         },
         0x7026: {
         }
@@ -361,18 +399,19 @@ class ET7000:
     # default conversion from quanta to real units
     @staticmethod
     def convert(b, amin, amax):
-        # обрабатывается 2 случая - минимум нулевой
-        if amin == 0 and amax > 0:
-            return amax * b / 0xffff
-        # и минимум по модулю равен максимуму
-        if amin == -amax and amax > 0:
-            one = 0xffff / 2
-            if b <= one:
-                return amax * b / one
+        b = float(b)
+        # обрабатывается 2 случая - минимум нулевой или больше 0
+        if amin >= 0 and amax > 0:
+            return amin + (amax - amin) * b / 0xffff
+        # и минимум  и максимум разного знака
+        if amin < 0 and amax > 0:
+            range = max(-amin, amax)
+            if b <= 0x7fff:
+                return range * b / 0x7fff
             else:
-                return -amax * (0xffff - b) / one
+                return range * (0x8000 - b) / 0x8000
         # в других случаях ошибка
-        return amin + (amax-amin)*b/0xffff
+        return float('nan')
 
     @staticmethod
     def convert1(b, r):
@@ -395,19 +434,20 @@ class ET7000:
         return v_min / c_min * b
 
     @staticmethod
-    def convert_to_raw(f, amin, amax):
-        # обрабатывается 2 случая - минимум нулевой
-        if amin == 0 and amax > 0:
-            return int(f * 0xffff / amax)
-        # и минимум по модулю равен максимуму
-        if amin == -amax and amax > 0:
-            one = 0xffff / 2
-            if f > 0.0:
-                return int(f * one / amax)
+    def convert_to_raw(v, amin, amax):
+        v = float(v)
+        # обрабатывается 2 случая - минимум нулевой или больше 0
+        if amin >= 0 and amax > 0:
+            return int((v - amin) / (amax - amin) * 0xffff)
+        # и минимум  и максимум разного знака
+        if amin < 0 and amax > 0:
+            if v >= 0.0:
+                return int(v * 0x7fff / amax)
             else:
-                return int(0xffff + (f * one / amax))
+                return int(0x8000 - v / amax * 0x7fff)
         # в других случаях ошибка
-        return 0xffff
+        return 0
+
 
     def __init__(self, host, port=502, timeout=0.15, logger=None):
         # logger confid
@@ -453,39 +493,31 @@ class ET7000:
             print('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
         self.AI_n = self.read_AI_n()
-        if self.AI_n > 0:
-            self.AI_masks = [False] * self.AI_n
-            self.AI_ranges = [0xff] * self.AI_n
-            self.AI_raw = [0] * self.AI_n
-            self.AI_values = [float('nan')] * self.AI_n
-            self.AI_units = [''] * self.AI_n
-            self.read_AI_masks()
-            self.read_AI_ranges()
-            self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
+        self.AI_masks = [False] * self.AI_n
+        self.AI_ranges = [0xff] * self.AI_n
+        self.AI_raw = [0] * self.AI_n
+        self.AI_values = [float('nan')] * self.AI_n
+        self.AI_units = [''] * self.AI_n
+        self.read_AI_masks()
+        self.read_AI_ranges()
+        self.AI_units = [self.range(r)['units'] for r in self.AI_ranges]
         # ao
-        self.AO_time = time.time()
         self.AO_n = self.read_AO_n()
-        if self.AO_n > 0:
-            self.AO_ranges = [0xff] * self.AO_n
-            self.AO_raw = [0] * self.AO_n
-            self.AO_values = [float('nan')] * self.AO_n
-            self.AO_units = [''] * self.AO_n
-            self.AO_write_values = [0] * self.AO_n
-            self.AO_write_raw = [0] * self.AO_n
-            self.read_AO_ranges()
-            self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
+        self.AO_ranges = [0xff] * self.AO_n
+        self.AO_raw = [0] * self.AO_n
+        self.AO_values = [float('nan')] * self.AO_n
+        self.AO_units = [''] * self.AO_n
+        self.AO_write = [0] * self.AO_n
+        self.AO_write_raw = [0] * self.AO_n
+        self.read_AO_ranges()
+        self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
         # di
         self.DI_n = self.read_DI_n()
-        self.DI_time = time.time()
         self.DI_values = [False] * self.DI_n
         # do
-        self.DO_time = time.time()
-        self.DO_n = 0
-        self.DO_values = []
-        self.DO_write = []
         self.DO_n = self.read_DO_n()
-        self.DO_values = [False] * self.DI_n
-        self.DO_write = [False] * self.DI_n
+        self.DO_values = [False] * self.DO_n
+        self.DO_write = [False] * self.DO_n
 
     def read_module_name(self):
         regs = self._client.read_holding_registers(559, 1)
@@ -705,19 +737,23 @@ class ET7000:
 if __name__ == "__main__":
     ip = '192.168.1.122'
     et = ET7000(ip)
-    print('ET7000 %s at %s' % (hex(et._name), ip))
+    print('ET7000 series %s at %s' % (hex(et._name), ip))
+    print('----------------------------------------')
     print('%d ai' % et.AI_n)
     et.read_AI()
     for k in range(et.AI_n):
-        print(k, hex(et.AI_raw[k]), et.AI_values[k], hex(et.AI_ranges[k]))
+        print(k, hex(et.AI_raw[k]), et.AI_values[k], et.AI_units[k], ' range:', hex(et.AI_ranges[k]))
+    print('----------------------------------------')
     print('%d ao' % et.AO_n)
     et.read_AO()
     for k in range(et.AO_n):
-        print(k, hex(et.AO_raw[k]), et.AO_values[k], hex(et.AO_ranges[k]))
+        print(k, hex(et.AO_raw[k]), et.AO_values[k], et.AO_units[k], ' range:', hex(et.AO_ranges[k]))
+    print('----------------------------------------')
     print('%d di' % et.DI_n)
     et.read_DI()
     for k in range(et.DI_n):
         print(k, et.DI_values[k])
+    print('----------------------------------------')
     print('%d do' % et.DO_n)
     et.read_DO()
     for k in range(et.DO_n):
