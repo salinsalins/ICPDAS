@@ -1,5 +1,6 @@
 # Используемые библиотеки
 import time
+import logging
 from pyModbusTCP.client import ModbusClient
 
 class ET7000:
@@ -7,182 +8,289 @@ class ET7000:
         0x00: {
             'min': -0.015,
             'max': 0.015,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x01: {
             'min': -0.05,
             'max': 0.05,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x02: {
             'min': -0.1,
             'max': 0.1,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x03: {
             'min': -0.5,
             'max': 0.5,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x04: {
             'min': -1.,
             'max': 1.,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x05: {
             'min': -2.5,
             'max': 2.5,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x06: {
             'min': -20.0e-3,
             'max': 20.0e-3,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'A'
         },
         0x07: {
             'units': 'A',
             'min': 4.0e-3,
+            'min_code': 0x0000,
+            'max_code': 0xffff,
             'max': 20.0e-3
         },
         0x08: {
             'units': 'V',
             'min': -10.,
-            'max': 10.
+            'max': 10.,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
         },
         0x09: {
             'units': 'V',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -5.,
             'max': 5.
         },
         0x0A: {
             'units': 'V',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -1.,
             'max': 1.
         },
         0x0B: {
             'units': 'V',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -.5,
             'max': .5
         },
         0x0C: {
             'units': 'V',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -.15,
             'max': .15
         },
         0x0D: {
             'min': -20.0e-3,
             'max': 20.0e-3,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'A'
         },
         0x0E: {
             'units': 'degC',
+            'min_code': 0xdca2,
+            'max_code': 0x7fff,
             'min': -210.0,
             'max': 760.0
         },
         0x0F: {
             'units': 'degC',
+            'min_code': 0xe6d0,
+            'max_code': 0x7fff,
             'min': -270.0,
             'max': 1372.0
         },
         0x10: {
             'units': 'degC',
+            'min_code': 0xa99a,
+            'max_code': 0x7fff,
             'min': -270.0,
             'max': 400.0
         },
         0x11: {
             'units': 'degC',
+            'min_code': 0xdd71,
+            'max_code': 0x7fff,
             'min': -270.0,
             'max': 1000.0
         },
         0x12: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 1768.0
         },
         0x13: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 1768.0
         },
         0x14: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 1820.0
         },
         0x15: {
             'units': 'degC',
+            'min_code': 0xe56b,
+            'max_code': 0x7fff,
             'min': -270.0,
             'max': 1300.0
         },
         0x16: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 2320.0
         },
         0x17: {
             'units': 'degC',
+            'min_code': 0xe000,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 800.0
         },
         0x18: {
             'units': 'degC',
+            'min_code': 0x8000,
+            'max_code': 0x4000,
             'min': -200.0,
             'max': 100.0
         },
         0x19: {
             'units': 'degC',
+            'min_code': 0xe383,
+            'max_code': 0xffff,
             'min': -200.0,
             'max': 900.0
         },
         0x1A: {
             'min': 0.0,
             'max': 20.0e-3,
+            'min_code': 0x0000,
+            'max_code': 0xffff,
             'units': 'A'
         },
         0x20: {
             'units': 'degC',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -100.0,
             'max': 100.0
         },
         0x21: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 100.0
         },
         0x22: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 200.0
         },
         0x23: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 600.0
         },
         0x24: {
             'units': 'degC',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -100.0,
             'max': 100.0
         },
         0x25: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 100.0
         },
         0x26: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 200.0
         },
         0x27: {
             'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 600.0
         },
+        0x28: {
+            'units': 'degC',
+            'min_code': 0x999a,
+            'max_code': 0x7fff,
+            'min': -80.0,
+            'max': 100.0
+        },
+        0x29: {
+            'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
+            'min': 0.0,
+            'max': 100.0
+        },
         0x2A: {
             'units': 'degC',
+            'min_code': 0xd446,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 600.0
+        },
+        0x2B: {
+            'units': 'degC',
+            'min_code': 0xeeef,
+            'max_code': 0x7fff,
+            'min': -20.0,
+            'max': 150.0
+        },
+        0x2C: {
+            'units': 'degC',
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
+            'min': 0.0,
+            'max': 200.0
+        },
+        0x2D: {
+            'units': 'degC',
+            'min_code': 0xeeef,
+            'max_code': 0x7fff,
+            'min': -20.0,
+            'max': 150.0
         },
         0xff: {
             'min': 0,
@@ -267,6 +375,26 @@ class ET7000:
         return amin + (amax-amin)*b/0xffff
 
     @staticmethod
+    def convert1(b, r):
+        v_min = 0
+        v_max = 0xffff
+        c_min = 0
+        c_max = 0xffff
+        try:
+            v_min = ET7000.range[r]['min']
+            v_max = ET7000.range[r]['max']
+            c_min = ET7000.range[r]['code_min']
+            c_max = ET7000.range[r]['code_max']
+        except:
+            pass
+        if c_min < 0x8000:
+            return (v_max - v_min) / (c_max - c_min) * (b - c_min) + v_min
+        if b < 0x8000:
+            return v_max / c_max * b
+        b = 0x10000 - b
+        return v_min / c_min * b
+
+    @staticmethod
     def convert_to_raw(f, amin, amax):
         # обрабатывается 2 случая - минимум нулевой
         if amin == 0 and amax > 0:
@@ -281,43 +409,49 @@ class ET7000:
         # в других случаях ошибка
         return 0xffff
 
-    def __init__(self, host, port=502, timeout=0.15):
-        self._host = host
-        self._port = port
+    def __init__(self, host, port=502, timeout=0.15, logger=None):
+        # logger confid
+        if logger is None:
+            logger = logging.getLogger(__name__)
+        # default
         self._name = 0
-        self.AI_n = 0
-        self.AI_ranges = []
-        self.AI_masks = []
-        self.channels = []
+        # default ai
         self.AI_n = 0
         self.AI_masks = []
         self.AI_ranges = []
+        self.AI_min = []
+        self.AI_max = []
+        self.AI_units = []
         self.AI_raw = []
         self.AI_values = []
-        self.AI_units = []
+        # default ao
         self.AO_n = 0
         self.AO_ranges = []
+        self.AO_min = []
+        self.AO_max = []
+        self.AO_units = []
         self.AO_raw = []
         self.AO_values = []
-        self.AO_units = []
         self.AO_write_raw = []
-        self.AO_write = []
+        self.AO_write_values = []
         self.AO_write_result = False
+        # default di
         self.DI_n = 0
         self.DI_values = []
+        # default do
         self.DO_n = 0
         self.DO_values = []
-        self._client = ModbusClient(host=self._host, port=self._port, auto_open=True, auto_close=True, timeout=timeout)
-        stat = self._client.open()
-        if not stat:
-            print('ET7000 device at %s is offline' % self._host)
+        # modbus client
+        self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
+        status = self._client.open()
+        if not status:
+            print('ET7000 device at %s is offline' % self._client.__hostname)
             return
-        # module name
+        # read module name
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
             print('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
-        self.AI_time = time.time()
         self.AI_n = self.read_AI_n()
         if self.AI_n > 0:
             self.AI_masks = [False] * self.AI_n
@@ -336,7 +470,7 @@ class ET7000:
             self.AO_raw = [0] * self.AO_n
             self.AO_values = [float('nan')] * self.AO_n
             self.AO_units = [''] * self.AO_n
-            self.AO_write = [0] * self.AO_n
+            self.AO_write_values = [0] * self.AO_n
             self.AO_write_raw = [0] * self.AO_n
             self.read_AO_ranges()
             self.AO_units = [self.range(r)['units'] for r in self.AO_ranges]
@@ -495,7 +629,7 @@ class ET7000:
         return v
 
     def write_AO(self, values):
-        self.AO_write = values
+        self.AO_write_values = values
         regs = ET7000.convert_to_raw_AO(values)
         result = self.write_AO_raw(regs)
         return result
