@@ -4,7 +4,7 @@ import logging
 from pyModbusTCP.client import ModbusClient
 
 class ET7000:
-    AI_ranges = {
+    ranges = {
         0x00: {
             'min': -0.015,
             'max': 0.015,
@@ -182,7 +182,7 @@ class ET7000:
         },
         0x19: {
             'units': 'degC',
-            'min_code': 0xe383,
+            'min_code': 0xe38e,
             'max_code': 0xffff,
             'min': -200.0,
             'max': 900.0
@@ -266,7 +266,7 @@ class ET7000:
         },
         0x2A: {
             'units': 'degC',
-            'min_code': 0xd446,
+            'min_code': 0xd556,
             'max_code': 0x7fff,
             'min': -200.0,
             'max': 600.0
@@ -292,69 +292,65 @@ class ET7000:
             'min': -20.0,
             'max': 150.0
         },
-        0x2B: {
-            'units': 'degC',
-            'min': -20.0,
-            'max': 150.0
-        },
-        0x2C: {
-            'units': 'degC',
-            'min': 0.0,
-            'max': 200.0
-        },
-        0x2D: {
-            'units': 'degC',
-            'min': -20.0,
-            'max': 150.0
-        },
         0x2E: {
             'units': 'degC',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 200.0
         },
         0x2F: {
             'units': 'degC',
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 200.0
         },
         0x80: {
             'units': 'degC',
+            'min_code': 0xd556,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 600.0
         },
         0x81: {
             'units': 'degC',
+            'min_code': 0xd556,
+            'max_code': 0x7fff,
             'min': -200.0,
             'max': 600.0
         },
         0x82: {
             'units': 'degC',
+            'min_code': 0xd556,
+            'max_code': 0x7fff,
             'min': -50.0,
             'max': 150.0
         },
         0x83: {
+            'min_code': 0xd556,
+            'max_code': 0x7fff,
             'units': 'degC',
             'min': -60.0,
             'max': 180.0
         },
-        0xff: {
-            'min': 0,
-            'max': 0xffff,
-            'units': ''
-        }
-    }
-    AO_ranges = {
         0x30: {
+            'min_code': 0x0000,
+            'max_code': 0xffff,
             'min': 0.0,
             'max': 20.0e-3,
             'units': 'A'
         },
         0x31: {
+            'min_code': 0x0000,
+            'max_code': 0xffff,
             'min': 4.0e-3,
             'max': 20.0e-3,
             'units': 'A'
         },
         0x32: {
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'min': 0.0,
             'max': 10.0,
             'units': 'V'
@@ -362,17 +358,30 @@ class ET7000:
         0x33: {
             'min': -10.0,
             'max': 10.0,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x34: {
             'min': 0.0,
             'max': 5.0,
+            'min_code': 0x0000,
+            'max_code': 0x7fff,
             'units': 'V'
         },
         0x35: {
             'min': -5.0,
             'max': 5.0,
+            'min_code': 0x8000,
+            'max_code': 0x7fff,
             'units': 'V'
+        },
+        0xff: {
+            'min': 0,
+            'max': 0xffff,
+            'min_code': 0x0000,
+            'max_code': 0xffff,
+            'units': '?'
         }
     }
     devices = {
@@ -390,11 +399,9 @@ class ET7000:
 
     @staticmethod
     def range(r):
-        if r in ET7000.AI_ranges:
-            return (ET7000.AI_ranges[r])
-        if r in ET7000.AO_ranges:
-            return (ET7000.AO_ranges[r])
-        return {'min': 0, 'max': 0xffff, 'units': '?'}
+        if r in ET7000.ranges:
+            return (ET7000.ranges[r])
+        return ET7000.ranges[0xff]
 
     # default conversion from quanta to real units
     @staticmethod
@@ -414,24 +421,29 @@ class ET7000:
         return float('nan')
 
     @staticmethod
-    def convert1(b, r):
+    def convert_function(r):
         v_min = 0
         v_max = 0xffff
         c_min = 0
         c_max = 0xffff
         try:
-            v_min = ET7000.range[r]['min']
-            v_max = ET7000.range[r]['max']
-            c_min = ET7000.range[r]['code_min']
-            c_max = ET7000.range[r]['code_max']
+            v_min = ET7000.ranges[r]['min']
+            v_max = ET7000.ranges[r]['max']
+            c_min = ET7000.ranges[r]['min_code']
+            c_max = ET7000.ranges[r]['max_code']
         except:
             pass
-        if c_min < 0x8000:
-            return (v_max - v_min) / (c_max - c_min) * (b - c_min) + v_min
-        if b < 0x8000:
-            return v_max / c_max * b
-        b = 0x10000 - b
-        return v_min / c_min * b
+        #print(hex(r), v_min, v_max, c_min, c_max)
+        if c_min < c_max:
+            k = (v_max - v_min) / (c_max - c_min)
+            b = v_min - k * c_min
+            #print(hex(r), k * c_min + b, ' +')
+            return  lambda x: k * x + b
+        k_max = v_max / c_max
+        k_min = v_min / (0x10000 - c_min)
+        v = (c_min < 0x8000) * k_max * c_min + (c_min >= 0x8000) *  k_min * (0x10000 - c_min)
+        #print(hex(r), v, ' -')
+        return lambda x: (x < 0x8000) * k_max * x + (x >= 0x8000) *  k_min * (0x10000 - x)
 
     @staticmethod
     def convert_to_raw(v, amin, amax):
@@ -622,7 +634,6 @@ class ET7000:
             return regs[0]
         return regs
 
-
     def write_AO_raw(self, regs):
         self.AO_write_raw = regs
         self.AO_write_result = self._client.write_multiple_registers(0, regs)
@@ -735,6 +746,11 @@ class ET7000:
         return result
 
 if __name__ == "__main__":
+    for r in ET7000.ranges:
+        f = ET7000.convert_function(r)
+        if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
+            #print(hex(r), f(0), f(0x7fff), f(0x8000), f(0xffff))
+            print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']),  ET7000.ranges[r]['max'])
     ip = '192.168.1.122'
     et = ET7000(ip)
     print('ET7000 series %s at %s' % (hex(et._name), ip))
