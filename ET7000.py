@@ -497,7 +497,7 @@ class ET7000:
         self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
         status = self._client.open()
         if not status:
-            print('ET7000 device at %s is offline' % self._client.__hostname)
+            print('ET7000 device at %s is offline' % host)
             return
         # read module name
         self._name = self.read_module_name()
@@ -753,24 +753,27 @@ if __name__ == "__main__":
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']),  ET7000.ranges[r]['max'])
     ip = '192.168.1.122'
     et = ET7000(ip)
-    print('ET7000 series %s at %s' % (hex(et._name), ip))
-    print('----------------------------------------')
-    print('%d ai' % et.AI_n)
-    et.read_AI()
-    for k in range(et.AI_n):
-        print(k, hex(et.AI_raw[k]), et.AI_values[k], et.AI_units[k], ' range:', hex(et.AI_ranges[k]))
-    print('----------------------------------------')
-    print('%d ao' % et.AO_n)
-    et.read_AO()
-    for k in range(et.AO_n):
-        print(k, hex(et.AO_raw[k]), et.AO_values[k], et.AO_units[k], ' range:', hex(et.AO_ranges[k]))
-    print('----------------------------------------')
-    print('%d di' % et.DI_n)
-    et.read_DI()
-    for k in range(et.DI_n):
-        print(k, et.DI_values[k])
-    print('----------------------------------------')
-    print('%d do' % et.DO_n)
-    et.read_DO()
-    for k in range(et.DO_n):
-        print(k, et.DO_values[k])
+    if et._name == 0:
+        print('ET7000 not found at %s' % ip)
+    else:
+        print('ET7000 series %s at %s' % (hex(et._name), ip))
+        print('----------------------------------------')
+        print('%d ai' % et.AI_n)
+        et.read_AI()
+        for k in range(et.AI_n):
+            print(k, hex(et.AI_raw[k]), et.AI_values[k], et.AI_units[k], ' range:', hex(et.AI_ranges[k]))
+        print('----------------------------------------')
+        print('%d ao' % et.AO_n)
+        et.read_AO()
+        for k in range(et.AO_n):
+            print(k, hex(et.AO_raw[k]), et.AO_values[k], et.AO_units[k], ' range:', hex(et.AO_ranges[k]))
+        print('----------------------------------------')
+        print('%d di' % et.DI_n)
+        et.read_DI()
+        for k in range(et.DI_n):
+            print(k, et.DI_values[k])
+        print('----------------------------------------')
+        print('%d do' % et.DO_n)
+        et.read_DO()
+        for k in range(et.DO_n):
+            print(k, et.DO_values[k])
