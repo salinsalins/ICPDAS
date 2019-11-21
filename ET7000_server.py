@@ -68,6 +68,7 @@ class ET7000_Server(Device):
         chan = int(name[-2:])
         ad = name[:2]
         if ad  == 'ao':
+            #print(chan, value)
             self.et.write_AO_channel(chan, value)
         elif ad == 'do':
             self.et.write_DO_channel(chan, value)

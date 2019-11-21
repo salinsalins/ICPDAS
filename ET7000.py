@@ -541,6 +541,7 @@ class ET7000:
         self.AO_ranges = [0xff] * self.AO_n
         self.AO_raw = [0] * self.AO_n
         self.AO_values = [float('nan')] * self.AO_n
+        self.AO_write_values = [float('nan')] * self.AO_n
         self.AO_units = [''] * self.AO_n
         self.AO_write = [0] * self.AO_n
         self.AO_write_raw = [0] * self.AO_n
@@ -705,6 +706,7 @@ class ET7000:
         if result:
             self.AO_write_values[k] = value
             self.AO_write_raw[k] = raw
+            pass
         return result
 
     # DI functions
