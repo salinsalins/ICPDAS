@@ -699,7 +699,7 @@ class ET7000:
         return result
 
     def write_AO_channel(self, k: int, value):
-        raw = self.AO_convert_write(k)(value)
+        raw = self.AO_convert_write[k](value)
         result = self._client.write_single_register(0+k, raw)
         self.AO_write_result = result
         if result:
