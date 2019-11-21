@@ -458,10 +458,10 @@ class ET7000:
         if c_min < c_max:
             k = (c_max - c_min) / (v_max - v_min)
             b = c_min - k * v_min
-            return  lambda x: k * x + b
+            return  lambda x: int(k * x + b)
         k_max = c_max / v_max
         k_min = (0xffff - c_min) / v_min
-        return lambda x: (x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x)
+        return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
 
     @staticmethod
     def convert_to_raw(v, amin, amax):
