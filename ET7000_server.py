@@ -61,16 +61,16 @@ class ET7000_Server(Device):
         if self.et is None:
             return
         #attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
-        lst = []
-        value = attr.get_write_value(lst)
+        #lst = []
+        value = attr.get_write_value()
         #print(value, lst)
         name = attr.get_name()
         chan = int(name[-2:])
         ad = name[:2]
         if ad  == 'ao':
-            self.et.write_AO_channel(chan, lst[0])
+            self.et.write_AO_channel(chan, value)
         elif ad == 'do':
-            self.et.write_DO_channel(chan, lst[0])
+            self.et.write_DO_channel(chan, value)
         else:
             print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
