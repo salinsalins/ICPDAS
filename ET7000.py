@@ -761,7 +761,7 @@ class ET7000:
         self.DO_write_result = self._client.write_multiple_coils(0, values)
         return self.DO_write_result
 
-    def write_DO_channel(self, k, value: bool):
+    def write_DO_channel(self, k: int, value: bool):
         result = self._client.write_single_coil(0+k, value)
         self.DO_write_result = result
         if result:
