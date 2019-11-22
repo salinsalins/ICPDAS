@@ -439,7 +439,8 @@ class ET7000:
             return  lambda x: k * x + b
         k_max = v_max / c_max
         k_min = v_min / (0x10000 - c_min)
-        return lambda x: (x < 0x8000) * k_max * x + (x >= 0x8000) *  k_min * (0x10000 - x)
+        #return lambda x: (x < 0x8000) * k_max * x + (x >= 0x8000) *  k_min * (0x10000 - x)
+        return lambda x: k_max * x if x < 0x8000 else k_min * (0x10000 - x)
 
     @staticmethod
     def ao_convert_function(r):
@@ -461,7 +462,8 @@ class ET7000:
             return  lambda x: int(k * x + b)
         k_max = c_max / v_max
         k_min = (0xffff - c_min) / v_min
-        return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
+        #return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
+        return lambda x: int(k_max * x) if (x >= 0) else int(0xffff - k_min * x)
 
     @staticmethod
     def convert_to_raw(v, amin, amax):
