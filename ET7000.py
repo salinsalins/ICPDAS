@@ -484,6 +484,7 @@ class ET7000:
         # logger confid
         if logger is None:
             logger = logging.getLogger(__name__)
+        self.logger = logger
         # default device type
         self._name = 0
         # default ai
@@ -517,13 +518,13 @@ class ET7000:
         status = self._client.open()
         if not status:
             #print('ET7000 device at %s is offline' % host)
-            logger.error('ET7000 device at %s is offline' % host)
+            self.logger.error('ET7000 device at %s is offline' % host)
             return
         # read module name
         self._name = self.read_module_name()
         if self._name not in ET7000.devices:
             #print('ET7000 device type %s probably not supported' % hex(self._name))
-            logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
+            self.logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
         self.AI_n = self.read_AI_n()
         self.AI_masks = [False] * self.AI_n

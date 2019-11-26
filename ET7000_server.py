@@ -50,10 +50,25 @@ class ET7000_Server(Device):
             return
         attr.set_quality(tango.AttrQuality.ATTR_INVALID)
         if val is not None:
+            self.time = None
+            self.error_count = 0
             attr.set_value(val)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
+            self.error_count += 1
+            self.error_stream("Error reading %s", name)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            if self.time is None:
+                self.time = time.time()
+            else:
+                if time.time() - self.time > 5.0 and self.error_count > 3:
+                    self.error_stream("Error limit exceeded for %s", name)
+                    self.et._client.close()
+                    status = self.et._client.open()
+                    if not status:
+                        self.error_stream('ET7000 device at %s is offline' % self.et._client.host())
+                        self.set_state(DevState.FAULT)
+
 
     def write_general(self, attr: tango.WAttribute):
         #print("Writing attribute %s %s" % (self.ip, attr.get_name()))
@@ -106,8 +121,10 @@ class ET7000_Server(Device):
         #print(self, ' Initialization')
         if self.et is None:
             return
+        self.info_stream('%s at %s initialization' % (hex(self.et._name), self.ip))
         print(self, hex(self.et._name), 'at %s initialization' % self.ip)
         self.set_state(DevState.INIT)
+        # device proxy
         name = self.get_name()
         dp = tango.DeviceProxy(name)
         # initialize ai, ao, di, do attributes
@@ -126,6 +143,7 @@ class ET7000_Server(Device):
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
             print('%d analog inputs initialized' % self.et.AI_n)
+            #self.info_stream('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
             for k in range(self.et.AO_n):
@@ -141,6 +159,7 @@ class ET7000_Server(Device):
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
             print('%d analog outputs initialized' % self.et.AO_n)
+            #self.info_stream('%d analog outputs initialized' % self.et.AO_n)
         # di
         if self.et.DI_n > 0:
             for k in range(self.et.DI_n):
@@ -148,6 +167,7 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                 self.add_attribute(attr, self.read_general, w_meth=self.write_general)
             print('%d digital inputs initialized' % self.et.DI_n)
+            #self.info_stream('%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
@@ -155,48 +175,38 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
             print('%d digital outputs initialized' % self.et.DO_n)
+            #self.info_stream('%d digital outputs initialized' % self.et.DO_n)
         print(' ')
         self.set_state(DevState.RUNNING)
 
-    def remove_io(self):
-        # da = self.get_device_attr()
-        # print(da)
-        # n = da.get_attr_nb()
-        # print(n)
-        # for k in range(n):
-        #     a = da.get_attr_by_ind(k)
-        #     an = a.get_name()
-        #     print(an)
-        #     if an[:2] == 'ai' or an[:2] == 'ao' or an[:2] == 'di' or an[:2] == 'do':
-        #         print('removing ', an)
-        #         try:
-        #             self.remove_attribute(an)
-        #         except Exception as exc:
-        #             print(str(exc))
-        #             self.__class__.remove_attribute(self.__class__, an)
-        #             print('ok')
-        # cl = self.get_device_class()
-        # print(cl)
-        # am = cl.dyn_att_added_methods
-        # print(am)
-        pass
+    def get_device_property(self, prop: str, default=None):
+        name = self.get_name()
+        # device proxy
+        dp = tango.DeviceProxy(name)
+        # read property
+        pr = dp.get_property(prop)[prop]
+        result = None
+        if len(pr) > 0:
+            result = pr[0]
+        if result is None or result == '':
+            result = default
+        return result
 
     def init_device(self):
-        #print(self, 'init_device')
         if hasattr(self, 'et') and self.et is not None:
             return
         self.set_state(DevState.INIT)
         Device.init_device(self)
-        # build dev proxy
-        name = self.get_name()
-        dp = tango.DeviceProxy(name)
+        #name = self.get_name()
+        #dp = tango.DeviceProxy(name)
         # determine ip address
-        pr = dp.get_property('ip')['ip']
-        ip = None
-        if len(pr) > 0:
-            ip = pr[0]
-        if ip is None or ip == '':
-            ip = '192.168.1.122'
+        #pr = dp.get_property('ip')['ip']
+        #ip = None
+        #if len(pr) > 0:
+        #    ip = pr[0]
+        #if ip is None or ip == '':
+        #    ip = '192.168.1.122'
+        ip = self.get_device_property('ip', '192.168.1.122')
         # check if ip is in use
         for d in ET7000_Server.devices:
             if d.ip == ip:
@@ -206,17 +216,25 @@ class ET7000_Server(Device):
                 self.ip = None
                 self.set_state(DevState.FAULT)
                 return
+        # reconnect_timeout property
+        self.reconnect_timeout = self.get_device_property('reconnect_timeout')
         # create ICP DAS device
         et = ET7000(ip)
         self.et = et
         self.ip = ip
+        # create variables
+        self.error_count = 0
+        self.time = None
         # add device
         ET7000_Server.devices.append(self)
         msg = 'ET7000 device type %s at %s has been created' % (hex(self.et._name), ip)
         print(msg)
         self.info_stream(msg)
-        # set state to running
-        self.set_state(DevState.RUNNING)
+        if self.et._name != 0:
+            # set state to running
+            self.set_state(DevState.RUNNING)
+        else:
+            self.set_state(DevState.FAULT)
 
 def post_init_callback():
     #print('post_init')
@@ -231,8 +249,4 @@ if __name__ == "__main__":
     #if len(sys.argv) < 3:
         #print("Usage: python ET7000_server.py device_name ip_address")
         #exit(-1)
-    #util = tango.Util.init(sys.argv)
-    #util.add_classes(ET7000_Server)
-    #util.server_init()
-    #util.server_run()
     ET7000_Server.run_server(post_init_callback=post_init_callback)
