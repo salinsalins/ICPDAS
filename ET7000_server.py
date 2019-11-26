@@ -237,7 +237,12 @@ class ET7000_Server(Device):
             self.set_state(DevState.FAULT)
 
 def post_init_callback():
-    #print('post_init')
+    print('post_init')
+    for dev in ET7000.devices:
+        print(dev)
+        if hasattr(dev, 'add_io'):
+            print('io')
+            #dev.add_io()
     util = tango.Util.instance()
     devices = util.get_device_list('*')
     for dev in devices:
