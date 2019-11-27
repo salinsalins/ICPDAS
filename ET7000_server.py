@@ -114,6 +114,7 @@ class ET7000_Server(Device):
 
     @command
     def Reconnect(self):
+        self.info_stream(self, 'Reconnect')
         if self.et is None:
             self.init_device()
             if self.et is None:
@@ -129,7 +130,7 @@ class ET7000_Server(Device):
             self.set_state(DevState.FAULT)
 
     def add_io(self):
-        #print(self, ' Initialization')
+        #self.info_stream(self, 'ddd_io')
         if self.et is None:
             return
         self.info_stream('%s at %s initialization' % (hex(self.et._name), self.ip))
@@ -190,7 +191,8 @@ class ET7000_Server(Device):
         self.set_state(DevState.RUNNING)
 
     def remove_io(self):
-        #print(self, 'RemoveIO')
+        #self.info_stream(self, 'remove_io')
+        #print(self, 'remove_io')
         if self.et is None:
             return
         atts = self.get_device_attr()
