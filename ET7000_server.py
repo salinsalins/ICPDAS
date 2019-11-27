@@ -46,9 +46,9 @@ class ET7000_Server(Device):
         elif ad == 'ao':
             val = self.et.read_AO_channel(chan)
         else:
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             self.error_stream("Read for unknown attribute %s", name)
             return
-        attr.set_quality(tango.AttrQuality.ATTR_INVALID)
         if val is not None:
             self.time = None
             self.error_count = 0
@@ -57,18 +57,22 @@ class ET7000_Server(Device):
         else:
             self.error_count += 1
             self.error_stream("Error reading %s", name)
+            if ad == 'ai':
+                attr.set_value(float('nan'))
+            elif ad == 'ao':
+                attr.set_value(float('nan'))
+            elif ad == 'di':
+                attr.set_value(False)
+            elif ad == 'do':
+                attr.set_value(False)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             if self.time is None:
                 self.time = time.time()
             else:
-                if time.time() - self.time > 5.0 and self.error_count > 3:
-                    self.error_stream("Error limit exceeded for %s", name)
-                    self.et._client.close()
-                    status = self.et._client.open()
-                    if not status:
-                        self.error_stream('ET7000 device at %s is offline' % self.et._client.host())
-                        self.set_state(DevState.FAULT)
-
+                if time.time() - self.time > self.reconnect_timeout/1000.0:
+                    self.error_stream("Reconnect timeout exceeded for %s", name)
+                    self.Reconnect()
+                    self.time = None
 
     def write_general(self, attr: tango.WAttribute):
         #print("Writing attribute %s %s" % (self.ip, attr.get_name()))
@@ -84,15 +88,29 @@ class ET7000_Server(Device):
         ad = name[:2]
         if ad  == 'ao':
             #print(chan, value)
-            self.et.write_AO_channel(chan, value)
+            result = self.et.write_AO_channel(chan, value)
         elif ad == 'do':
-            self.et.write_DO_channel(chan, value)
+            result = self.et.write_DO_channel(chan, value)
         else:
             print("Write to unknown attribute %s" % name)
             self.error_stream("Write to unknown attribute %s", name)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
-        attr.set_quality(tango.AttrQuality.ATTR_VALID)
+        if result:
+            self.time = None
+            self.error_count = 0
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+        else:
+            self.error_count += 1
+            self.error_stream("Error writing %s", name)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            if self.time is None:
+                self.time = time.time()
+            else:
+                if time.time() - self.time > self.reconnect_timeout/1000.0:
+                    self.error_stream("Reconnect timeout exceeded for %s", name)
+                    self.Reconnect()
+                    self.time = None
 
     @command
     def Reconnect(self):
@@ -195,9 +213,15 @@ class ET7000_Server(Device):
         result = None
         if len(pr) > 0:
             result = pr[0]
-        if result is None or result == '':
-            result = default
-        return result
+        if default is None:
+            return result
+        try:
+            if result is None or result == '':
+                result = default
+            else:
+                result = type(default)(result)
+        except:
+            return result
 
     def init_device(self):
         if hasattr(self, 'et') and self.et is not None:
