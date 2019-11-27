@@ -172,7 +172,7 @@ class ET7000_Server(Device):
         self.set_state(DevState.RUNNING)
 
     def remove_io(self):
-        print(self, 'RemoveIO')
+        #print(self, 'RemoveIO')
         if self.et is None:
             return
         atts = self.get_device_attr()
@@ -183,7 +183,7 @@ class ET7000_Server(Device):
             io = attr_name[-4:-2]
             #print(io)
             if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
-                print('Removing', attr_name)
+                #print('Removing', attr_name)
                 self.remove_attribute(attr_name)
 
     def get_device_property(self, prop: str, default=None):
