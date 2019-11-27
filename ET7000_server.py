@@ -94,28 +94,21 @@ class ET7000_Server(Device):
             return
         attr.set_quality(tango.AttrQuality.ATTR_VALID)
 
-    def write_ao(self, attr):
-        if self.et is None:
-            return
-        value = attr.get_write_value()
-        name = attr.get_name()
-        chan = int(name[-2:])
-        self.et.write_AO_channel(chan, value)
-
     @command
     def Reconnect(self):
-        self.set_state(DevState.DISABLE)
-        self.et._client.close()
         if self.et is None:
             self.init_device()
-            self.add_io()
+            if self.et is None:
+                return
+        self.remove_io()
+        self.add_io()
+        # if device type is recognized
+        if self.et._name != 0:
+            # set state to running
+            self.set_state(DevState.RUNNING)
         else:
-            if self.et._name == 0:
-                self.et.__init__(self.ip)
-                self.add_io()
-            else:
-                self.et.__init__(self.ip)
-        self.set_state(DevState.RUNNING)
+            # unknown device type
+            self.set_state(DevState.FAULT)
 
     def add_io(self):
         #print(self, ' Initialization')
@@ -178,6 +171,21 @@ class ET7000_Server(Device):
             self.info_stream('%d digital outputs initialized' % self.et.DO_n)
         self.set_state(DevState.RUNNING)
 
+    def remove_io(self):
+        print(self, 'RemoveIO')
+        if self.et is None:
+            return
+        atts = self.get_device_attr()
+        n = atts.get_attr_nb()
+        for k in range(n):
+            at = atts.get_attr_by_ind(k)
+            attr_name = at.get_name()
+            io = attr_name[-4:-2]
+            #print(io)
+            if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
+                print('Removing', attr_name)
+                self.remove_attribute(attr_name)
+
     def get_device_property(self, prop: str, default=None):
         name = self.get_name()
         # device proxy
@@ -193,18 +201,13 @@ class ET7000_Server(Device):
 
     def init_device(self):
         if hasattr(self, 'et') and self.et is not None:
-            return
+            self.et._client.close()
+            self.et = None
+            self.ip = None
+            #return
         self.set_state(DevState.INIT)
         Device.init_device(self)
-        #name = self.get_name()
-        #dp = tango.DeviceProxy(name)
-        # determine ip address
-        #pr = dp.get_property('ip')['ip']
-        #ip = None
-        #if len(pr) > 0:
-        #    ip = pr[0]
-        #if ip is None or ip == '':
-        #    ip = '192.168.1.122'
+        # get ip from property
         ip = self.get_device_property('ip', '192.168.1.122')
         # check if ip is in use
         for d in ET7000_Server.devices:
@@ -215,8 +218,6 @@ class ET7000_Server(Device):
                 self.ip = None
                 self.set_state(DevState.FAULT)
                 return
-        # reconnect_timeout property
-        self.reconnect_timeout = self.get_device_property('reconnect_timeout')
         # create ICP DAS device
         et = ET7000(ip)
         self.et = et
@@ -224,15 +225,18 @@ class ET7000_Server(Device):
         # create variables
         self.error_count = 0
         self.time = None
-        # add device
+        self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
+        # add device to list
         ET7000_Server.devices.append(self)
         msg = 'ET7000 device type %s at %s has been created' % (hex(self.et._name), ip)
         print(msg)
         self.info_stream(msg)
+        # if device type is recognized
         if self.et._name != 0:
             # set state to running
             self.set_state(DevState.RUNNING)
         else:
+            # unknown device type
             self.set_state(DevState.FAULT)
 
 def post_init_callback():
