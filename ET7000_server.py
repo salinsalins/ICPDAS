@@ -143,7 +143,7 @@ class ET7000_Server(Device):
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
             print('%d analog inputs initialized' % self.et.AI_n)
-            #self.info_stream('%d analog inputs initialized' % self.et.AI_n)
+            self.info_stream('%d analog inputs initialized' % self.et.AI_n)
         # ao
         if self.et.AO_n > 0:
             for k in range(self.et.AO_n):
@@ -159,7 +159,7 @@ class ET7000_Server(Device):
                 ac.max_value = str(rng['max'])
                 dp.set_attribute_config(ac)
             print('%d analog outputs initialized' % self.et.AO_n)
-            #self.info_stream('%d analog outputs initialized' % self.et.AO_n)
+            self.info_stream('%d analog outputs initialized' % self.et.AO_n)
         # di
         if self.et.DI_n > 0:
             for k in range(self.et.DI_n):
@@ -167,7 +167,7 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                 self.add_attribute(attr, self.read_general, w_meth=self.write_general)
             print('%d digital inputs initialized' % self.et.DI_n)
-            #self.info_stream('%d digital inputs initialized' % self.et.DI_n)
+            self.info_stream('%d digital inputs initialized' % self.et.DI_n)
         # do
         if self.et.DO_n > 0:
             for k in range(self.et.DO_n):
@@ -175,8 +175,7 @@ class ET7000_Server(Device):
                 attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                 self.add_attribute(attr, self.read_general, self.write_general)
             print('%d digital outputs initialized' % self.et.DO_n)
-            #self.info_stream('%d digital outputs initialized' % self.et.DO_n)
-        print(' ')
+            self.info_stream('%d digital outputs initialized' % self.et.DO_n)
         self.set_state(DevState.RUNNING)
 
     def get_device_property(self, prop: str, default=None):
@@ -237,18 +236,17 @@ class ET7000_Server(Device):
             self.set_state(DevState.FAULT)
 
 def post_init_callback():
-    print('post_init')
-    for dev in ET7000.devices:
-        print(dev)
-        if hasattr(dev, 'add_io'):
-            print('io')
-            #dev.add_io()
+    #print('post_init')
+    #for dev in ET7000_Server.devices:
+    #    if hasattr(dev, 'add_io'):
+    #        dev.add_io()
     util = tango.Util.instance()
     devices = util.get_device_list('*')
     for dev in devices:
         #print(dev)
         if hasattr(dev, 'add_io'):
             dev.add_io()
+            print(' ')
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
