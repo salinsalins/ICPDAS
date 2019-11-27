@@ -4,17 +4,13 @@
 """
 ICP DAS ET7000 tango device server"""
 
-import sys
 import time
-import numpy
-import traceback
 
 import tango
-from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
-from tango.server import Device, attribute, command, pipe, device_property
+from tango import AttrWriteType, DispLevel, DevState
+from tango.server import Device, attribute, command
 
 from ET7000 import ET7000
-
 
 class ET7000_Server(Device):
     devices = []
@@ -265,6 +261,7 @@ class ET7000_Server(Device):
             # unknown device type
             self.set_state(DevState.FAULT)
 
+
 def post_init_callback():
     #print('post_init')
     #for dev in ET7000_Server.devices:
@@ -277,6 +274,7 @@ def post_init_callback():
         if hasattr(dev, 'add_io'):
             dev.add_io()
             print(' ')
+
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
