@@ -23,7 +23,7 @@ class ET7000_Server(Device):
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="", format="%s",
-                        doc="ET7000 device type (int 0x70tt). 0 - unknown or offline")
+                        doc="ET7000 device type (70tt). 0000 - unknown or offline")
 
     def read_devicetype(self):
         t = hex(self.et._name)[-4:]
