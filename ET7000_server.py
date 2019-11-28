@@ -265,10 +265,6 @@ class ET7000_Server(Device):
             # unknown device type
             self.set_state(DevState.FAULT)
 
-    def delete_device(self):
-        if self in ET7000_Server.devices:
-            ET7000_Server.devices.remove(self)
-
 def post_init_callback():
     #print('post_init')
     #for dev in ET7000_Server.devices:
