@@ -26,9 +26,10 @@ class ET7000_Server(Device):
                         unit="", format="%s",
                         doc="ET7000 device type (70tt). 0x0 - unknown or offline")
 
-    def __init__(self):
-        self.logger = config_logger()
-        self.et = None
+#    def __init__(self, *args, **kwargs):
+#        print(args, kwargs)
+#        self.logger = config_logger()
+#        self.et = None
 
     def read_devicetype(self):
         if self.et is None:
@@ -141,10 +142,14 @@ class ET7000_Server(Device):
 
     def add_io(self):
         #self.info_stream(self, 'ddd_io')
-        if self.et is None:
+        if self.et is None or self.et._name == 0:
+            msg = '%s Unknown device type' % self
+            print(msg)
+            self.error_stream(msg)
+            self.set_state(DevState.FAULT)
             return
         self.info_stream('%s at %s initialization' % (hex(self.et._name), self.ip))
-        print(self, hex(self.et._name), 'at %s initialization' % self.ip)
+        print('%s %s at %s initialization' % (self.get_name(), hex(self.et._name), self.ip))
         self.set_state(DevState.INIT)
         # device proxy
         name = self.get_name()
@@ -233,7 +238,8 @@ class ET7000_Server(Device):
             else:
                 result = type(default)(result)
         except:
-            return result
+            pass
+        return result
 
     def init_device(self):
         if hasattr(self, 'et') and self.et is not None:
@@ -254,25 +260,28 @@ class ET7000_Server(Device):
                 self.ip = None
                 self.set_state(DevState.FAULT)
                 return
+        self.ip = ip
         # create ICP DAS device
         et = ET7000(ip)
         self.et = et
-        self.ip = ip
         # create variables
         self.error_count = 0
         self.time = None
         self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
         # add device to list
         ET7000_Server.devices.append(self)
-        msg = 'ET7000 device type %s at %s has been created' % (hex(self.et._name), ip)
+        msg = 'ET7000 %s at %s has been created' % (hex(self.et._name), ip)
         print(msg)
         self.info_stream(msg)
-        # if device type is recognized
+        # check if device type is recognized
         if self.et._name != 0:
             # set state to running
             self.set_state(DevState.RUNNING)
         else:
             # unknown device type
+            msg = 'ET7000 at %s ERROR - unknown device type' % ip
+            print(msg)
+            self.error_stream(msg)
             self.set_state(DevState.FAULT)
 
     def delete_device(self):
@@ -291,7 +300,7 @@ def post_init_callback():
         #print(dev)
         if hasattr(dev, 'add_io'):
             dev.add_io()
-            print(' ')
+            #print(' ')
 
 def config_logger(name: str=__name__, level: int=logging.DEBUG):
     logger = logging.getLogger(name)
