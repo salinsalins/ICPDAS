@@ -17,19 +17,6 @@ from tango.server import Device, attribute, command, pipe, device_property
 from ET7000 import ET7000
 
 
-def config_logger(name: str=__name__, level: int=logging.DEBUG):
-    logger = logging.getLogger(name)
-    if not logger.hasHandlers():
-        logger.propagate = False
-        logger.setLevel(level)
-        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
-        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(log_formatter)
-        logger.addHandler(console_handler)
-    return logger
-
-
 class ET7000_Server(Device):
     devices = []
 
@@ -292,6 +279,7 @@ class ET7000_Server(Device):
         if self in ET7000_Server.devices:
             ET7000_Server.devices.remove(self)
 
+
 def post_init_callback():
     #print('post_init')
     #for dev in ET7000_Server.devices:
@@ -304,6 +292,18 @@ def post_init_callback():
         if hasattr(dev, 'add_io'):
             dev.add_io()
             print(' ')
+
+def config_logger(name: str=__name__, level: int=logging.DEBUG):
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        logger.propagate = False
+        logger.setLevel(level)
+        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
+        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+    return logger
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
