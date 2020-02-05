@@ -6,6 +6,7 @@ ICP DAS ET7000 tango device server"""
 
 import sys
 import time
+import logging
 import numpy
 import traceback
 
@@ -14,6 +15,19 @@ from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
 
 from ET7000 import ET7000
+
+
+def config_logger(name: str=__name__, level: int=logging.DEBUG):
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        logger.propagate = False
+        logger.setLevel(level)
+        f_str = '%(asctime)s,%(msecs)3d %(levelname)-7s %(filename)s %(funcName)s(%(lineno)s) %(message)s'
+        log_formatter = logging.Formatter(f_str, datefmt='%H:%M:%S')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+    return logger
 
 
 class ET7000_Server(Device):
@@ -25,8 +39,17 @@ class ET7000_Server(Device):
                         unit="", format="%s",
                         doc="ET7000 device type (70tt). 0x0 - unknown or offline")
 
+    def __init__(self):
+        self.logger = config_logger()
+        self.et = None
+
     def read_devicetype(self):
-        t = hex(self.et._name)[-4:]
+        if self.et is None:
+            return '0000'
+        try:
+            t = hex(self.et._name)[-4:]
+        except:
+            return '0000'
         return t
 
     def read_general(self, attr: tango.Attribute):
