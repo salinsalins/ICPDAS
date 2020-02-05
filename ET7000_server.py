@@ -24,7 +24,7 @@ class ET7000_Server(Device):
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="", format="%s",
-                        doc="ET7000 device type (70tt). 0x0 - unknown or offline")
+                        doc="ET7000 device type. 0x0 - unknown or offline")
 
 #    def __init__(self, *args, **kwargs):
 #        print(args, kwargs)
@@ -33,19 +33,26 @@ class ET7000_Server(Device):
 
     def read_devicetype(self):
         if self.et is None:
+            self._reconnect()
             return '0000'
         try:
             t = hex(self.et._name)[-4:]
         except:
+            self._reconnect()
             return '0000'
         return t
 
     def read_general(self, attr: tango.Attribute):
-        #print("Reading attribute %s %s" % (self.ip, attr.get_name()))
-        #self.info_stream("Reading attribute %s", attr.get_name())
-        if self.et is None:
-            return
         name = attr.get_name()
+        #print("Reading attribute %s %s" % (self.ip, name))
+        if self.et is None:
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            msg = "Read from non initialized device" % self
+            self.logger.error(msg)
+            self.error_stream(msg)
+            self._reconnect()
+            return
         chan = int(name[-2:])
         ad = name[:2]
         if ad == 'ai':
@@ -57,8 +64,11 @@ class ET7000_Server(Device):
         elif ad == 'ao':
             val = self.et.read_AO_channel(chan)
         else:
+            self.set_error_attribute_value(attr)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            self.error_stream("Read for unknown attribute %s", name)
+            msg = "Read unknown attribute %s" % name
+            self.error_stream(msg)
+            self.logger.error(msg)
             return
         if val is not None:
             self.time = None
@@ -67,7 +77,9 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            self.error_stream("Error reading %s", name)
+            msg = "Error reading %s" % name
+            self.logger.error(msg)
+            self.error_stream(msg)
             if ad == 'ai':
                 attr.set_value(float('nan'))
             elif ad == 'ao':
@@ -77,24 +89,23 @@ class ET7000_Server(Device):
             elif ad == 'do':
                 attr.set_value(False)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            if self.time is None:
-                self.time = time.time()
-            else:
-                if time.time() - self.time > self.reconnect_timeout/1000.0:
-                    self.error_stream("Reconnect timeout exceeded for %s", name)
-                    self.Reconnect()
-                    self.time = None
+            self._reconnect()
+
+    def set_error_attribute_value(self, attr: tango.Attribute):
+        if attr.get_data_format() == tango.DevBoolean:
+            attr.attr.set_value(False)
+        elif attr.get_data_format() == tango.DevDouble:
+            attr.set_value(float('nan'))
 
     def write_general(self, attr: tango.WAttribute):
-        #print("Writing attribute %s %s" % (self.ip, attr.get_name()))
-        #self.info_stream("Writing attribute %s", attr.get_name())
-        if self.et is None:
-            return
-        #attr.set_quality(tango.AttrQuality.ATTR_CHANGING)
-        #lst = []
-        value = attr.get_write_value()
-        #print(value, lst)
         name = attr.get_name()
+        if self.et is None:
+            msg = "Write to non initialized device" % self
+            self.logger.error(msg)
+            self.error_stream(msg)
+            #self._reconnect()
+            return
+        value = attr.get_write_value()
         chan = int(name[-2:])
         ad = name[:2]
         if ad  == 'ao':
@@ -103,8 +114,9 @@ class ET7000_Server(Device):
         elif ad == 'do':
             result = self.et.write_DO_channel(chan, value)
         else:
-            print("Write to unknown attribute %s" % name)
-            self.error_stream("Write to unknown attribute %s", name)
+            msg = "Write to unknown attribute %s" % name
+            self.logger.error(msg)
+            self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
         if result:
@@ -113,113 +125,119 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            self.error_stream("Error writing %s", name)
+            msg = "Error writing %s" % name
+            self.logger.error(msg)
+            self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            if self.time is None:
-                self.time = time.time()
-            else:
-                if time.time() - self.time > self.reconnect_timeout/1000.0:
-                    self.error_stream("Reconnect timeout exceeded for %s", name)
-                    self.Reconnect()
-                    self.time = None
+            self._reconnect()
+
+    def _reconnect(self):
+        #self.error_count += 1
+        if self.time is None:
+            self.time = time.time()
+        else:
+            if time.time() - self.time > self.reconnect_timeout / 1000.0:
+                self.error_stream("%s Reconnect timeout exceeded", self)
+                self.Reconnect()
+                self.time = None
 
     @command
     def Reconnect(self):
-        self.info_stream(self, 'Reconnect')
-        if self.et is None:
-            self.init_device()
-            if self.et is None:
-                return
+        msg = '%s Reconnecting ...' % self
+        self.logger.info(msg)
+        self.info_stream(msg)
         self.remove_io()
+        self.init_device()
         self.add_io()
-        # if device type is recognized
-        if self.et._name != 0:
-            # set state to running
-            self.set_state(DevState.RUNNING)
-        else:
-            # unknown device type
-            self.set_state(DevState.FAULT)
 
     def add_io(self):
-        #self.info_stream(self, 'ddd_io')
-        if self.et is None or self.et._name == 0:
-            msg = '%s Unknown device type' % self
-            print(msg)
+        try:
+            if self.type == 0:
+                msg = '%s Unknown device type' % self
+                self.logger.error(msg)
+                self.error_stream(msg)
+                self.set_state(DevState.FAULT)
+                return
+            self.info_stream('%s at %s initialization' % (self.et.type, self.ip))
+            self.logger.info('%s %s at %s initialization' % (self.get_name(), self.et.type, self.ip))
+            self.set_state(DevState.INIT)
+            # device proxy
+            name = self.get_name()
+            dp = tango.DeviceProxy(name)
+            # initialize ai, ao, di, do attributes
+            # ai
+            if self.et.AI_n > 0:
+                for k in range(self.et.AI_n):
+                    attr_name = 'ai%02d'%k
+                    attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
+                    self.add_attribute(attr, self.read_general)
+                    # configure attribute properties
+                    rng = self.et.range(self.et.AI_ranges[k])
+                    ac = dp.get_attribute_config(attr_name)
+                    if ac.unit is None or '' == ac.unit:
+                        ac.unit = str(rng['units'])
+                    ac.min_value = str(rng['min'])
+                    ac.max_value = str(rng['max'])
+                    dp.set_attribute_config(ac)
+                self.logger.info('%d analog inputs initialized' % self.et.AI_n)
+                self.info_stream('%d analog inputs initialized' % self.et.AI_n)
+            # ao
+            if self.et.AO_n > 0:
+                for k in range(self.et.AO_n):
+                    attr_name = 'ao%02d'%k
+                    attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
+                    self.add_attribute(attr, self.read_general, self.write_general)
+                    # configure attribute properties
+                    rng = self.et.range(self.et.AO_ranges[k])
+                    ac = dp.get_attribute_config(attr_name)
+                    if ac.unit is None or '' == ac.unit:
+                        ac.unit = str(rng['units'])
+                    ac.min_value = str(rng['min'])
+                    ac.max_value = str(rng['max'])
+                    dp.set_attribute_config(ac)
+                self.logger.info('%d analog outputs initialized' % self.et.AO_n)
+                self.info_stream('%d analog outputs initialized' % self.et.AO_n)
+            # di
+            if self.et.DI_n > 0:
+                for k in range(self.et.DI_n):
+                    attr_name = 'di%02d'%k
+                    attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
+                    self.add_attribute(attr, self.read_general, w_meth=self.write_general)
+                self.logger.info('%d digital inputs initialized' % self.et.DI_n)
+                self.info_stream('%d digital inputs initialized' % self.et.DI_n)
+            # do
+            if self.et.DO_n > 0:
+                for k in range(self.et.DO_n):
+                    attr_name = 'do%02d'%k
+                    attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
+                    self.add_attribute(attr, self.read_general, self.write_general)
+                self.logger.info('%d digital outputs initialized' % self.et.DO_n)
+                self.info_stream('%d digital outputs initialized' % self.et.DO_n)
+            self.set_state(DevState.RUNNING)
+        except:
+            msg = '%s Error adding IO channels' % self
+            self.logger.error(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
-            return
-        self.info_stream('%s at %s initialization' % (hex(self.et._name), self.ip))
-        print('%s %s at %s initialization' % (self.get_name(), hex(self.et._name), self.ip))
-        self.set_state(DevState.INIT)
-        # device proxy
-        name = self.get_name()
-        dp = tango.DeviceProxy(name)
-        # initialize ai, ao, di, do attributes
-        # ai
-        if self.et.AI_n > 0:
-            for k in range(self.et.AI_n):
-                attr_name = 'ai%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
-                self.add_attribute(attr, self.read_general)
-                # configure attribute properties
-                rng = self.et.range(self.et.AI_ranges[k])
-                ac = dp.get_attribute_config(attr_name)
-                if ac.unit is None or '' == ac.unit:
-                    ac.unit = str(rng['units'])
-                ac.min_value = str(rng['min'])
-                ac.max_value = str(rng['max'])
-                dp.set_attribute_config(ac)
-            print('%d analog inputs initialized' % self.et.AI_n)
-            self.info_stream('%d analog inputs initialized' % self.et.AI_n)
-        # ao
-        if self.et.AO_n > 0:
-            for k in range(self.et.AO_n):
-                attr_name = 'ao%02d'%k
-                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
-                self.add_attribute(attr, self.read_general, self.write_general)
-                # configure attribute properties
-                rng = self.et.range(self.et.AO_ranges[k])
-                ac = dp.get_attribute_config(attr_name)
-                if ac.unit is None or '' == ac.unit:
-                    ac.unit = str(rng['units'])
-                ac.min_value = str(rng['min'])
-                ac.max_value = str(rng['max'])
-                dp.set_attribute_config(ac)
-            print('%d analog outputs initialized' % self.et.AO_n)
-            self.info_stream('%d analog outputs initialized' % self.et.AO_n)
-        # di
-        if self.et.DI_n > 0:
-            for k in range(self.et.DI_n):
-                attr_name = 'di%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
-                self.add_attribute(attr, self.read_general, w_meth=self.write_general)
-            print('%d digital inputs initialized' % self.et.DI_n)
-            self.info_stream('%d digital inputs initialized' % self.et.DI_n)
-        # do
-        if self.et.DO_n > 0:
-            for k in range(self.et.DO_n):
-                attr_name = 'do%02d'%k
-                attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
-                self.add_attribute(attr, self.read_general, self.write_general)
-            print('%d digital outputs initialized' % self.et.DO_n)
-            self.info_stream('%d digital outputs initialized' % self.et.DO_n)
-        self.set_state(DevState.RUNNING)
 
     def remove_io(self):
-        #self.info_stream(self, 'remove_io')
-        #print(self, 'remove_io')
-        if self.et is None:
-            return
-        atts = self.get_device_attr()
-        n = atts.get_attr_nb()
-        for k in range(n):
-            at = atts.get_attr_by_ind(k)
-            attr_name = at.get_name()
-            io = attr_name[-4:-2]
-            #print(io)
-            if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
-                #print('Removing', attr_name)
-                self.remove_attribute(attr_name)
+        try:
+            atts = self.get_device_attr()
+            n = atts.get_attr_nb()
+            for k in range(n):
+                at = atts.get_attr_by_ind(k)
+                attr_name = at.get_name()
+                io = attr_name[-4:-2]
+                #print(io)
+                if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
+                    #print('Removing', attr_name)
+                    self.remove_attribute(attr_name)
+            self.set_state(DevState.UNKNOWN)
+        except:
+            msg = '%s Error deleting IO channels' % self
+            self.logger.error(msg)
+            self.error_stream(msg)
+            self.set_state(DevState.FAULT)
 
     def get_device_property(self, prop: str, default=None):
         name = self.get_name()
@@ -242,11 +260,18 @@ class ET7000_Server(Device):
         return result
 
     def init_device(self):
-        if hasattr(self, 'et') and self.et is not None:
-            self.et._client.close()
-            self.et = None
-            self.ip = None
-            #return
+        try:
+            if hasattr(self, 'et') and self.et is not None:
+                self.et._client.close()
+        except:
+            pass
+        self.logger = config_logger()
+        self.et = None
+        self.ip = None
+        self.error_count = 0
+        self.time = None
+        self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
+        self.type = 0
         self.set_state(DevState.INIT)
         Device.init_device(self)
         # get ip from property
@@ -254,39 +279,53 @@ class ET7000_Server(Device):
         # check if ip is in use
         for d in ET7000_Server.devices:
             if d.ip == ip:
-                print('IP address %s is in use' % ip)
-                self.error_stream('IP address %s is in use' % ip)
-                self.et = None
-                self.ip = None
+                msg = 'ET7000 %s IP address %s is in use' % (hex(self.et._name), ip)
+                self.logger.error(msg)
+                self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
         self.ip = ip
-        # create ICP DAS device
-        et = ET7000(ip)
-        self.et = et
-        # create variables
-        self.error_count = 0
-        self.time = None
-        self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
-        # add device to list
-        ET7000_Server.devices.append(self)
-        msg = 'ET7000 %s at %s has been created' % (hex(self.et._name), ip)
-        print(msg)
-        self.info_stream(msg)
-        # check if device type is recognized
-        if self.et._name != 0:
-            # set state to running
-            self.set_state(DevState.RUNNING)
-        else:
-            # unknown device type
-            msg = 'ET7000 at %s ERROR - unknown device type' % ip
-            print(msg)
+        try:
+            # create ICP DAS device
+            et = ET7000(ip)
+            self.et = et
+            # add device to list
+            ET7000_Server.devices.append(self)
+            self.type = self.et._name
+            msg = 'ET7000 %s at %s has been created' % (self.et.type, ip)
+            self.logger.info(msg)
+            self.info_stream(msg)
+            # check if device type is recognized
+            if self.type != 0:
+                # set state to running
+                self.set_state(DevState.RUNNING)
+            else:
+                # unknown device type
+                msg = 'ET7000 at %s ERROR - unknown device type' % ip
+                self.logger.error(msg)
+                self.error_stream(msg)
+                self.set_state(DevState.FAULT)
+        except:
+            self.et = None
+            self.ip = None
+            self.type = 0
+            msg = 'ET7000 %s ERROR init device' % self
+            self.logger.error(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
 
     def delete_device(self):
+        try:
+            self.et._client.close()
+        except:
+            pass
+        self.et = None
+        self.ip = None
         if self in ET7000_Server.devices:
             ET7000_Server.devices.remove(self)
+        msg = 'ET7000 %s device has been deleted' % self
+        self.logger.info(msg)
+        self.info_stream(msg)
 
 
 def post_init_callback():

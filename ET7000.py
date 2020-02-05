@@ -487,6 +487,7 @@ class ET7000:
         self.logger = logger
         # default device type
         self._name = 0
+        self.type = '0000'
         # default ai
         self.AI_n = 0
         self.AI_masks = []
@@ -522,6 +523,7 @@ class ET7000:
             return
         # read module name
         self._name = self.read_module_name()
+        self.type = hex(self._name).replace('0x', '')
         if self._name not in ET7000.devices:
             #print('ET7000 device type %s probably not supported' % hex(self._name))
             self.logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
