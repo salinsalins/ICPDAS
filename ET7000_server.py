@@ -150,6 +150,13 @@ class ET7000_Server(Device):
         self.init_device()
         self.add_io()
 
+    @command(dtype_in=int)
+    def SetLogLevel(self, level):
+        self.logger.setLevel(level)
+        msg = '%s Log level set to %d' % (self, level)
+        self.logger.info(msg)
+        self.info_stream(msg)
+
     def add_io(self):
         try:
             if self.type == 0:
