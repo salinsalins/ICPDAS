@@ -27,20 +27,15 @@ class ET7000_Server(Device):
                         unit="", format="%s",
                         doc="ET7000 device type. 0x0 - unknown or offline")
 
-#    def __init__(self, *args, **kwargs):
-#        print(args, kwargs)
-#        self.logger = config_logger()
-#        self.et = None
-
     def read_devicetype(self):
-        return self.type
+        return self.device_type_str
 
     def read_general(self, attr: tango.Attribute):
         name = attr.get_name()
-        if self.et is None:
+        if self.device_type == 0:
             self.set_error_attribute_value(attr)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            msg = "%s Read from non initialized device" % self.name
+            msg = "%s Read from non initialized device" % self.device_name
             self.logger.error(msg)
             self.error_stream(msg)
             self._reconnect()
@@ -58,7 +53,7 @@ class ET7000_Server(Device):
         else:
             self.set_error_attribute_value(attr)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            msg = "%s Read unknown attribute %s" % (self.name, name)
+            msg = "%s Read unknown attribute %s" % (self.device_name, name)
             self.logger.error(msg)
             self.error_stream(msg)
             return
@@ -69,7 +64,7 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            msg = "%s Error reading %s" % (self.name, name)
+            msg = "%s Error reading %s" % (self.device_name, name)
             self.logger.error(msg)
             self.error_stream(msg)
             if ad == 'ai':
@@ -92,7 +87,7 @@ class ET7000_Server(Device):
     def write_general(self, attr: tango.WAttribute):
         name = attr.get_name()
         if self.et is None:
-            msg = "%s Write to non initialized device" % self.name
+            msg = "%s Write to non initialized device" % self.device_name
             self.error_stream(msg)
             self.logger.error(msg)
             #self._reconnect()
@@ -105,7 +100,7 @@ class ET7000_Server(Device):
         elif ad == 'do':
             result = self.et.write_DO_channel(chan, value)
         else:
-            msg = "%s Write to unknown attribute %s" % (self.name, name)
+            msg = "%s Write to unknown attribute %s" % (self.device_name, name)
             self.logger.error(msg)
             self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
@@ -116,7 +111,7 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            msg = "%s Error writing %s" % (self.name, name)
+            msg = "%s Error writing %s" % (self.device_name, name)
             self.logger.error(msg)
             self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
@@ -129,13 +124,21 @@ class ET7000_Server(Device):
             self.time = time.time()
         else:
             if time.time() - self.time > self.reconnect_timeout / 1000.0:
-                self.error_stream("%s Reconnect timeout exceeded", self.name)
+                msg = "%s Reconnect timeout exceeded" % self.device_name
+                self.logger.error(msg)
+                self.error_stream(msg)
                 self.Reconnect()
                 self.time = None
 
+    def _connect(self):
+        return
+
+    def _disconnect(self):
+        return
+
     @command
     def Reconnect(self):
-        msg = '%s Reconnecting ...' % self.name
+        msg = '%s Reconnecting ...' % self.device_name
         self.logger.info(msg)
         self.info_stream(msg)
         self.remove_io()
@@ -145,20 +148,20 @@ class ET7000_Server(Device):
     @command(dtype_in=int)
     def SetLogLevel(self, level):
         self.logger.setLevel(level)
-        msg = '%s Log level set to %d' % (self.name, level)
+        msg = '%s Log level set to %d' % (self.device_name, level)
         self.logger.info(msg)
         self.info_stream(msg)
 
     def add_io(self):
         try:
-            if self.type == 0:
-                msg = '%s Unknown device type' % self.name
+            if self.device_type == 0:
+                msg = '%s Unknown device type' % self.device_name
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
-            self.info_stream('%s at %s initialization' % (self.name, self.ip))
-            self.logger.info('%s ET%s at %s initialization' % (self.name, self.type, self.ip))
+            self.info_stream('%s at %s initialization' % (self.device_name, self.ip))
+            self.logger.info('%s ET%s at %s initialization' % (self.device_name, self.device_type_str, self.ip))
             self.set_state(DevState.INIT)
             # device proxy
             name = self.get_name()
@@ -214,7 +217,7 @@ class ET7000_Server(Device):
                 self.info_stream('%d digital outputs initialized' % self.et.DO_n)
             self.set_state(DevState.RUNNING)
         except:
-            msg = '%s Error adding IO channels' % self.name
+            msg = '%s Error adding IO channels' % self.device_name
             self.logger.error(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
@@ -233,7 +236,7 @@ class ET7000_Server(Device):
                     self.remove_attribute(attr_name)
             self.set_state(DevState.UNKNOWN)
         except:
-            msg = '%s Error deleting IO channels' % self.name
+            msg = '%s Error deleting IO channels' % self.device_name
             self.logger.error(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
@@ -270,9 +273,9 @@ class ET7000_Server(Device):
         self.error_count = 0
         self.time = None
         self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
-        self.type = 0
-        #self.name = 'Unknown'
-        self.name = self.get_name()
+        self.device_type = 0
+        self.device_type_str = '0000'
+        self.device_name = self.get_name()
         self.set_state(DevState.INIT)
         Device.init_device(self)
         # get ip from property
@@ -290,27 +293,28 @@ class ET7000_Server(Device):
             # create ICP DAS device
             et = ET7000(ip, logger=self.logger)
             self.et = et
-            #  device taddo list
+            self.device_type = self.et._name
+            self.device_type_str = self.et.type
+            # add device to list
             ET7000_Server.devices.append(self)
-            self.type = self.et._name
-            msg = '%s ET%s at %s has been created' % (self.name, self.et.type, ip)
+            msg = '%s ET%s at %s has been created' % (self.device_name, self.type_str, ip)
             self.logger.info(msg)
             self.info_stream(msg)
             # check if device type is recognized
-            if self.type != 0:
+            if self.device_type != 0:
                 # set state to running
                 self.set_state(DevState.RUNNING)
             else:
                 # unknown device type
-                msg = '%s ET%s ERROR - unknown device type' % (self.name, self.et.type)
+                msg = '%s ET%s ERROR - unknown device type' % (self.device_name, self.type_str)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
         except:
             self.et = None
             self.ip = None
-            self.type = 0
-            msg = '%s ERROR init device' % self.name
+            self.device_type = 0
+            msg = '%s ERROR init device' % self.device_name
             self.logger.error(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
@@ -324,7 +328,7 @@ class ET7000_Server(Device):
         self.ip = None
         if self in ET7000_Server.devices:
             ET7000_Server.devices.remove(self)
-        msg = '%s Device has been deleted' % self.name
+        msg = '%s Device has been deleted' % self.device_name
         self.logger.info(msg)
         self.info_stream(msg)
 
