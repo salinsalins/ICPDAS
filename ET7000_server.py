@@ -114,7 +114,7 @@ class ET7000_Server(Device):
         elif ad == 'do':
             result = self.et.write_DO_channel(chan, value)
         else:
-            msg = "Write to unknown attribute %s" % name
+            msg = "%s Write to unknown attribute %s" % (self, name)
             self.logger.error(msg)
             self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
@@ -125,7 +125,7 @@ class ET7000_Server(Device):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            msg = "Error writing %s" % name
+            msg = "%s Error writing %s" % (self, name)
             self.logger.error(msg)
             self.error_stream(msg)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
