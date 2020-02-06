@@ -9,6 +9,7 @@ import time
 import logging
 import numpy
 import traceback
+import math
 
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
@@ -66,18 +67,18 @@ class ET7000_Server(Device):
         else:
             self.set_error_attribute_value(attr)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            msg = "Read unknown attribute %s" % name
-            self.error_stream(msg)
+            msg = "%s Read unknown attribute %s" % (self, name)
             self.logger.error(msg)
+            self.error_stream(msg)
             return
-        if val is not None:
+        if val is not None and not math.isnan(val):
             self.time = None
             self.error_count = 0
             attr.set_value(val)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             self.error_count += 1
-            msg = "Error reading %s" % name
+            msg = "%s Error reading %s" % (self, name)
             self.logger.error(msg)
             self.error_stream(msg)
             if ad == 'ai':
@@ -101,15 +102,14 @@ class ET7000_Server(Device):
         name = attr.get_name()
         if self.et is None:
             msg = "Write to non initialized device" % self
-            self.logger.error(msg)
             self.error_stream(msg)
+            self.logger.error(msg)
             #self._reconnect()
             return
         value = attr.get_write_value()
         chan = int(name[-2:])
         ad = name[:2]
         if ad  == 'ao':
-            #print(chan, value)
             result = self.et.write_AO_channel(chan, value)
         elif ad == 'do':
             result = self.et.write_DO_channel(chan, value)
@@ -287,7 +287,7 @@ class ET7000_Server(Device):
         self.ip = ip
         try:
             # create ICP DAS device
-            et = ET7000(ip)
+            et = ET7000(ip, logger=self.logger)
             self.et = et
             # add device to list
             ET7000_Server.devices.append(self)
