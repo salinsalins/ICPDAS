@@ -38,12 +38,13 @@ class ET7000_Server(Device):
             cnt = self.is_connected()
             name = attr.get_name()
         if not cnt:
+            #print('1')
             self.reconnect()
         with self._lock:
             if not self.is_connected():
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s Can not connect to device' % (self.device_name, name)
+                msg = '%s %s Waiting for reconnect' % (self.device_name, name)
                 self.logger.debug(msg)
                 self.debug_stream(msg)
                 return
@@ -128,12 +129,12 @@ class ET7000_Server(Device):
                 self.disconnect()
 
     def reconnect(self, force=False):
-        #print(1, self.time, self.is_connected())
+        #print('1 reconnect', self.is_connected(), self.time)
         if not force and self.is_connected():
             return
         if self.time is None:
             self.time = time.time()
-        #print(2, self.time, self.is_connected())
+        #print('2 reconnect', self.is_connected(), self.time)
         if force or time.time() - self.time > self.reconnect_timeout / 5000.0:
             self.Reconnect()
             if not self.is_connected():
@@ -333,6 +334,9 @@ class ET7000_Server(Device):
                 # create ICP DAS device
                 et = ET7000(ip, logger=self.logger)
                 self.et = et
+                #self.et._client.debug(True)
+                self.et._client.auto_close(False)
+                #print(self.et._client.auto_close())
                 self.device_type = self.et._name
                 self.device_type_str = self.et.type
                 # add device to list
