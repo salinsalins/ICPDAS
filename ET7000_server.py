@@ -151,13 +151,14 @@ class ET7000_Server(Device):
 
     def add_io(self):
         try:
-            if self.type == 0:
+            if self.et_name == 0:
                 msg = '%s Unknown device type' % self.name
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
             self.info_stream('%s at %s initialization' % (self.name, self.ip))
+            msg = '%s ET%s at %s has been created' % (self.name, self.type, self.ip)
             self.logger.info('%s ET%s at %s initialization' % (self.name, self.type, self.ip))
             self.set_state(DevState.INIT)
             # device proxy
@@ -293,7 +294,7 @@ class ET7000_Server(Device):
             #  device taddo list
             ET7000_Server.devices.append(self)
             self.type = self.et._name
-            msg = '%s ET%s at %s has been created' % (self.name, self.et.type, ip)
+            msg = '%s ET%s at %s has been created' % (self.name, self.type, ip)
             self.logger.info(msg)
             self.info_stream(msg)
             # check if device type is recognized
@@ -302,7 +303,7 @@ class ET7000_Server(Device):
                 self.set_state(DevState.RUNNING)
             else:
                 # unknown device type
-                msg = '%s ET%s ERROR - unknown device type' % (self.name, self.et.type)
+                msg = '%s ET%s ERROR - unknown device type' % (self.name, self.type)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
