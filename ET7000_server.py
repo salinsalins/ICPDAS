@@ -395,10 +395,10 @@ def test():
     print('test')
 
 def looping():
-    time.sleep(0.5)
+    time.sleep(1.5)
     all_connected = True
     for dev in ET7000_Server.devices:
-        dev.reconnect()
+        #dev.reconnect()
         all_connected = all_connected and dev.is_connected()
         #print(dev, all_connected)
 
