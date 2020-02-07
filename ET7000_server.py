@@ -43,7 +43,7 @@ class ET7000_Server(Device):
             if not self.is_connected():
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s can not connect to device' % (self.device_name, name)
+                msg = '%s %s Can not connect to device' % (self.device_name, name)
                 self.logger.debug(msg)
                 self.debug_stream(msg)
                 return
@@ -128,12 +128,12 @@ class ET7000_Server(Device):
                 self.disconnect()
 
     def reconnect(self, force=False):
-        print(1, self.time, self.is_connected())
+        #print(1, self.time, self.is_connected())
         if not force and self.is_connected():
             return
         if self.time is None:
             self.time = time.time()
-        print(2, self.time, self.is_connected())
+        #print(2, self.time, self.is_connected())
         if force or time.time() - self.time > self.reconnect_timeout / 5000.0:
             self.Reconnect()
             if not self.is_connected():
