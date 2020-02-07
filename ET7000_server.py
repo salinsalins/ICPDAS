@@ -35,16 +35,18 @@ class ET7000_Server(Device):
 
     def read_general(self, attr: tango.Attribute):
         with self._lock:
+            cnt = self.is_connected()
             name = attr.get_name()
+        if not cnt:
+            self.reconnect()
+        with self._lock:
             if not self.is_connected():
-                self.reconnect()
-                if not self.is_connected():
-                    self.set_error_attribute_value(attr)
-                    attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s %s can not conect to device' % (self.device_name, name)
-                    self.logger.debug(msg)
-                    self.debug_stream(msg)
-                    return
+                self.set_error_attribute_value(attr)
+                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+                msg = '%s %s can not connect to device' % (self.device_name, name)
+                self.logger.debug(msg)
+                self.debug_stream(msg)
+                return
             chan = int(name[-2:])
             ad = name[:2]
             if ad == 'ai':
@@ -68,7 +70,7 @@ class ET7000_Server(Device):
                 attr.set_value(val)
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
             else:
-                msg = "%s Error reading %s" % (self.device_name, name)
+                msg = "%s Error reading %s %s" % (self.device_name, name, val)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 if ad == 'ai':
@@ -153,15 +155,18 @@ class ET7000_Server(Device):
 
     def disconnect(self):
         self.error_count += 1
-        if self.error_count <3:
+        if self.error_count < 3:
             return
-        self.time = time.time()
         try:
             self.et._client.close()
         except:
             pass
+        self.time = time.time()
         self.et = None
         self.error_count = 0
+        msg = "%s Disconnected" % self.device_name
+        self.logger.debug(msg)
+        self.debug_stream(msg)
         return
 
     @command
