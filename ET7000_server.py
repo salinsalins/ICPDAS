@@ -19,9 +19,6 @@ from tango.server import Device, attribute, command, pipe, device_property
 #from FakeET7000 import ET7000
 from ET7000 import ET7000
 
-# init a thread lock
-_lock = Lock()
-
 
 class ET7000_Server(Device):
     devices = []
@@ -33,18 +30,18 @@ class ET7000_Server(Device):
                         doc="ET7000 device type. 0x0 - unknown or offline")
 
     def read_devicetype(self):
-        with _lock:
+        with self._lock:
             return self.device_type_str
 
     def read_general(self, attr: tango.Attribute):
-        with _lock:
+        with self._lock:
             name = attr.get_name()
             if not self.is_connected():
                 self.reconnect()
                 if not self.is_connected():
                     self.set_error_attribute_value(attr)
                     attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s Attribute %s is not connected' % (self.device_name, name)
+                    msg = '%s %s Device is not connected' % (self.device_name, name)
                     self.logger.debug(msg)
                     self.debug_stream(msg)
                     return
@@ -92,14 +89,14 @@ class ET7000_Server(Device):
             attr.set_value(float('nan'))
 
     def write_general(self, attr: tango.WAttribute):
-        with _lock:
+        with self._lock:
             name = attr.get_name()
             if not self.is_connected():
                 self.reconnect()
                 if not self.is_connected():
                     self.set_error_attribute_value(attr)
                     attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s Attribute %s is not connected' % (self.device_name, name)
+                    msg = '%s %s Device is not connected' % (self.device_name, name)
                     self.logger.debug(msg)
                     self.debug_stream(msg)
                     return
@@ -129,12 +126,12 @@ class ET7000_Server(Device):
                 self.disconnect()
 
     def reconnect(self, force=False):
-        #print(1, self.time, self.is_connected())
+        print(1, self.time, self.is_connected())
         if not force and self.is_connected():
             return
         if self.time is None:
             self.time = time.time()
-        #print(2, self.time, self.is_connected())
+        print(2, self.time, self.is_connected())
         if force or time.time() - self.time > self.reconnect_timeout / 1000.0:
             self.Reconnect()
             if not self.is_connected():
@@ -178,14 +175,14 @@ class ET7000_Server(Device):
 
     @command(dtype_in=int)
     def SetLogLevel(self, level):
-        with _lock:
+        with self._lock:
             self.logger.setLevel(level)
             msg = '%s Log level set to %d' % (self.device_name, level)
             self.logger.info(msg)
             self.info_stream(msg)
 
     def add_io(self):
-        with _lock:
+        with self._lock:
             try:
                 if self.device_type == 0:
                     msg = '%s No IO attributes added for unknown device' % self.device_name
@@ -257,7 +254,7 @@ class ET7000_Server(Device):
                 self.set_state(DevState.FAULT)
 
     def remove_io(self):
-        with _lock:
+        with self._lock:
             try:
                 atts = self.get_device_attr()
                 n = atts.get_attr_nb()
@@ -297,7 +294,10 @@ class ET7000_Server(Device):
         return result
 
     def init_device(self):
-        with _lock:
+        # init a thread lock
+        if not hasattr(self, '_lock'):
+            self._lock = Lock()
+        with self._lock:
             try:
                 self.et._client.close()
             except:
@@ -355,7 +355,7 @@ class ET7000_Server(Device):
                 self.set_state(DevState.FAULT)
 
     def delete_device(self):
-        with _lock:
+        with self._lock:
             try:
                 self.et._client.close()
             except:
