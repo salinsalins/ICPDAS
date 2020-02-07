@@ -182,13 +182,14 @@ class ET7000_Server(Device):
         with _lock:
             try:
                 if self.device_type == 0:
-                    msg = '%s Unknown device type' % self.device_name
-                    self.logger.error(msg)
-                    self.error_stream(msg)
+                    msg = '%s No IO attributes added for unknown device' % self.device_name
+                    self.logger.debug(msg)
+                    self.debug_stream(msg)
                     self.set_state(DevState.FAULT)
                     return
-                self.info_stream('%s at %s initialization' % (self.device_name, self.ip))
-                self.logger.info('%s ET%s at %s initialization' % (self.device_name, self.device_type_str, self.ip))
+                msg = '%s ET%s at %s initialization' % (self.device_name, self.device_type_str, self.ip)
+                self.info_stream(msg)
+                self.logger.info(msg)
                 self.set_state(DevState.INIT)
                 # device proxy
                 name = self.get_name()
