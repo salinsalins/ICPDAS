@@ -22,6 +22,7 @@ from ET7000 import ET7000
 
 class ET7000_Server(Device):
     devices = []
+    #database = tango.Database()
 
     devicetype = attribute(label="type", dtype=str,
                         display_level=DispLevel.OPERATOR,
@@ -46,10 +47,11 @@ class ET7000_Server(Device):
             self.ip = None
             self.error_count = 0
             self.time = None
-            self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
             self.device_type = 0
             self.device_type_str = '0000'
             self.device_name = self.get_name()
+            self.dp = tango.DeviceProxy(self.device_name)
+            self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
             self.set_state(DevState.INIT)
             Device.init_device(self)
             # get ip from property
@@ -257,6 +259,7 @@ class ET7000_Server(Device):
                         ac.min_value = str(rng['min'])
                         ac.max_value = str(rng['max'])
                         dp.set_attribute_config(ac)
+                        #self.restore_polling(attr_name)
                     self.logger.info('%d analog inputs initialized' % self.et.AI_n)
                     self.info_stream('%d analog inputs initialized' % self.et.AI_n)
                 # ao
@@ -273,6 +276,7 @@ class ET7000_Server(Device):
                         ac.min_value = str(rng['min'])
                         ac.max_value = str(rng['max'])
                         dp.set_attribute_config(ac)
+                        #self.restore_polling(attr_name)
                     self.logger.info('%d analog outputs initialized' % self.et.AO_n)
                     self.info_stream('%d analog outputs initialized' % self.et.AO_n)
                 # di
@@ -281,6 +285,7 @@ class ET7000_Server(Device):
                         attr_name = 'di%02d'%k
                         attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                         self.add_attribute(attr, self.read_general, w_meth=self.write_general)
+                        #self.restore_polling(attr_name)
                     self.logger.info('%d digital inputs initialized' % self.et.DI_n)
                     self.info_stream('%d digital inputs initialized' % self.et.DI_n)
                 # do
@@ -289,6 +294,7 @@ class ET7000_Server(Device):
                         attr_name = 'do%02d'%k
                         attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                         self.add_attribute(attr, self.read_general, self.write_general)
+                        #self.restore_polling(attr_name)
                     self.logger.info('%d digital outputs initialized' % self.et.DO_n)
                     self.info_stream('%d digital outputs initialized' % self.et.DO_n)
                 self.set_state(DevState.RUNNING)
@@ -371,11 +377,8 @@ class ET7000_Server(Device):
             attr.set_value(float('nan'))
 
     def get_device_property(self, prop: str, default=None):
-        name = self.get_name()
-        # device proxy
-        dp = tango.DeviceProxy(name)
         # read property
-        pr = dp.get_property(prop)[prop]
+        pr = self.dp.get_property(prop)[prop]
         result = None
         if len(pr) > 0:
             result = pr[0]
@@ -389,6 +392,26 @@ class ET7000_Server(Device):
         except:
             pass
         return result
+
+    # def get_attribute_property(self, attr_name: str, prop_name: str):
+    #     device_name = self.get_name()
+    #     databse = self.database
+    #     all_attr_prop = databse.get_device_attribute_property(device_name, attr_name)
+    #     all_prop = all_attr_prop[attr_name]
+    #     if prop_name in all_prop:
+    #         prop = all_prop[prop_name][0]
+    #     else:
+    #         prop = ''
+    #     return prop
+
+    # def restore_polling(self, attr_name: str):
+    #     try:
+    #         p = self.get_attribute_property(attr_name, 'polling')
+    #         pn = int(p)
+    #         self.dp.poll_attribute(attr_name, pn)
+    #     except:
+    #         #self.logger.warning('', exc_info=True)
+    #         pass
 
     def config_logger(self, name: str=__name__, level: int=logging.DEBUG):
         logger = logging.getLogger(name)
