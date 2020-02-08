@@ -1,7 +1,39 @@
 # Используемые библиотеки
 import time
 import logging
-from pyModbusTCP.client import ModbusClient
+
+class empty:
+    pass
+
+class client:
+    def __init__(self, host, port=502, timeout=0.15, logger=None):
+        self.count = 0
+        self.data = {
+                        320: 6,
+                        595: 1,
+                        427: 4,
+                    }
+
+    def read_holding_registers(self, n, m):
+        return [self.data[n]] * m
+
+    def read_input_registers(self, n, m):
+        #regs = self._client.read_input_registers(320, 1)
+        #regs = [6]
+        if n in self.data:
+            return [self.data[n]] * m
+        # regs = self._client.read_input_registers(0+channel, n)
+        self.count += 1
+        if self.count == 0x7fff:
+            self.count = 0
+        regs = [self.count for i in range(m)]
+        return regs
+
+    def read_coils(self, n, m):
+        return self.data[n] * m
+
+    def auto_close(self, x):
+        return x
 
 class ET7000:
     ranges = {
@@ -481,7 +513,7 @@ class ET7000:
         return 0
 
     def __init__(self, host, port=502, timeout=0.15, logger=None):
-        self.count = 0
+        self.count = [0, 0x7fff/6, 0x7fff/6*2, 0x7fff/6*3, 0x7fff/6*4, 0x7fff/6*5]
         # logger confid
         if logger is None:
             logger = logging.getLogger(__name__)
@@ -517,6 +549,8 @@ class ET7000:
         self.DO_values = []
         # modbus client
         #self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
+        self._client = empty()
+        self._client.auto_close = lambda x: x
         #status = self._client.open()
         status = True
         if not status:
@@ -603,10 +637,10 @@ class ET7000:
         else:
             n = 1
         #regs = self._client.read_input_registers(0+channel, n)
-        self.count += 1
-        if self.count == 0x7fff:
-            self.count = 0
-        regs = [self.count for i in range(n)]
+        self.count[0] += 1
+        if self.count[0] == 0x7fff:
+            self.count[0] = 0
+        regs = [self.count[0] for i in range(n)]
         if regs and len(regs) == n:
             self.AI_raw[channel:channel+n] = regs
         if n == 1:
@@ -632,10 +666,10 @@ class ET7000:
         v = float('nan')
         if self.AI_masks[k]:
             #regs = self._client.read_input_registers(0+k, 1)
-            self.count += 1
-            if self.count == 0x7fff:
-                self.count = 0
-            regs = [self.count]
+            self.count[k] += 1
+            if self.count[k] == 0x7fff:
+                self.count[k] = 0
+            regs = [self.count[k]]
             if regs:
                 self.AI_raw[k] = regs[0]
                 v = self.AI_convert[k](regs[0])
