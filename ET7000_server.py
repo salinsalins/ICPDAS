@@ -16,8 +16,8 @@ import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
 
-from FakeET7000 import ET7000
-#from ET7000 import ET7000
+#from FakeET7000 import ET7000
+from ET7000 import ET7000
 
 
 class ET7000_Server(Device):
@@ -39,7 +39,7 @@ class ET7000_Server(Device):
                 self.et._client.close()
             except:
                 pass
-            self.logger = self.config_logger()
+            self.logger = self.config_logger(level=logging.INFO)
             ET7000_Server.logger = self.logger
             #self.logger.debug('init_device logger created %s %s', self.logger, self)
             self.et = None
@@ -231,8 +231,8 @@ class ET7000_Server(Device):
             try:
                 if self.device_type == 0:
                     msg = '%s No IO attributes added for unknown device' % self.device_name
-                    self.logger.debug(msg)
-                    self.debug_stream(msg)
+                    self.logger.warning(msg)
+                    self.warning_stream(msg)
                     self.set_state(DevState.FAULT)
                     return
                 msg = '%s ET%s at %s initialization' % (self.device_name, self.device_type_str, self.ip)
