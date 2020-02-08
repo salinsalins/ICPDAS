@@ -16,8 +16,8 @@ import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
 from tango.server import Device, attribute, command, pipe, device_property
 
-from FakeET7000 import ET7000
-#from ET7000 import ET7000
+#from FakeET7000 import ET7000
+from ET7000 import ET7000
 
 
 class ET7000_Server(Device):
@@ -35,16 +35,19 @@ class ET7000_Server(Device):
 
     def read_general(self, attr: tango.Attribute):
         with self._lock:
+            cnt = self.is_connected()
             name = attr.get_name()
+        if not cnt:
+            #print('1')
+            self.reconnect()
+        with self._lock:
             if not self.is_connected():
-                self.reconnect()
-                if not self.is_connected():
-                    self.set_error_attribute_value(attr)
-                    attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s Attribute %s is not connected' % (self.device_name, name)
-                    self.logger.debug(msg)
-                    self.debug_stream(msg)
-                    return
+                self.set_error_attribute_value(attr)
+                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+                msg = '%s %s Waiting for reconnect' % (self.device_name, name)
+                self.logger.debug(msg)
+                self.debug_stream(msg)
+                return
             chan = int(name[-2:])
             ad = name[:2]
             if ad == 'ai':
@@ -68,7 +71,7 @@ class ET7000_Server(Device):
                 attr.set_value(val)
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
             else:
-                msg = "%s Error reading %s" % (self.device_name, name)
+                msg = "%s Error reading %s %s" % (self.device_name, name, val)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 if ad == 'ai':
@@ -96,7 +99,7 @@ class ET7000_Server(Device):
                 if not self.is_connected():
                     self.set_error_attribute_value(attr)
                     attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s Attribute %s is not connected' % (self.device_name, name)
+                    msg = '%s %s Device is not connected' % (self.device_name, name)
                     self.logger.debug(msg)
                     self.debug_stream(msg)
                     return
@@ -126,13 +129,13 @@ class ET7000_Server(Device):
                 self.disconnect()
 
     def reconnect(self, force=False):
-        #print(1, self.time, self.is_connected())
-        #if self.is_connected():
-        #    return
+        #print('1 reconnect', self.is_connected(), self.time)
+        if not force and self.is_connected():
+            return
         if self.time is None:
             self.time = time.time()
-        #print(2, self.time, self.is_connected())
-        if force or (time.time() - self.time > self.reconnect_timeout /5000.0):
+        #print('2 reconnect', self.is_connected(), self.time)
+        if force or time.time() - self.time > self.reconnect_timeout / 5000.0:
             self.Reconnect()
             if not self.is_connected():
                 self.time = time.time()
@@ -142,9 +145,9 @@ class ET7000_Server(Device):
                 self.logger.info(msg)
                 self.info_stream(msg)
                 return
-            msg = '%s Sucessfully reconnected' % self.device_name
-            self.logger.info(msg)
-            self.info_stream(msg)
+            msg = '%s Reconnected successfully' % self.device_name
+            self.logger.debug(msg)
+            self.debug_stream(msg)
 
     def is_connected(self):
         if self.device_type == 0 or self.time is not None or self.et is None:
@@ -153,15 +156,18 @@ class ET7000_Server(Device):
 
     def disconnect(self):
         self.error_count += 1
-        if self.error_count <3:
+        if self.error_count < 3:
             return
-        self.time = time.time()
         try:
             self.et._client.close()
         except:
             pass
+        self.time = time.time()
         self.et = None
         self.error_count = 0
+        msg = "%s Disconnected" % self.device_name
+        self.logger.debug(msg)
+        self.debug_stream(msg)
         return
 
     @command
@@ -250,7 +256,6 @@ class ET7000_Server(Device):
             except:
                 msg = '%s Error adding IO channels' % self.device_name
                 self.logger.error(msg)
-                self.logger.debug('', exc_info=True)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
 
@@ -271,7 +276,6 @@ class ET7000_Server(Device):
             except:
                 msg = '%s Error deleting IO channels' % self.device_name
                 self.logger.error(msg)
-                self.logger.debug('', exc_info=True)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
 
@@ -297,7 +301,8 @@ class ET7000_Server(Device):
 
     def init_device(self):
         # init a thread lock
-        self._lock = Lock()
+        if not hasattr(self, '_lock'):
+            self._lock = Lock()
         with self._lock:
             try:
                 self.et._client.close()
@@ -329,6 +334,9 @@ class ET7000_Server(Device):
                 # create ICP DAS device
                 et = ET7000(ip, logger=self.logger)
                 self.et = et
+                #self.et._client.debug(True)
+                self.et._client.auto_close(False)
+                #print(self.et._client.auto_close())
                 self.device_type = self.et._name
                 self.device_type_str = self.et.type
                 # add device to list
@@ -396,13 +404,12 @@ def test():
     print('test')
 
 def looping():
-    time.sleep(5.0)
+    time.sleep(1.5)
     all_connected = True
     for dev in ET7000_Server.devices:
-        #with dev._lock:
-            dev.reconnect(True)
-            all_connected = all_connected and dev.is_connected()
-            #print(dev, all_connected)
+        #dev.reconnect()
+        all_connected = all_connected and dev.is_connected()
+        #print(dev, all_connected)
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
