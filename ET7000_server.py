@@ -51,7 +51,7 @@ class ET7000_Server(Device):
             self.device_type_str = '0000'
             self.device_name = self.get_name()
             self.dp = tango.DeviceProxy(self.device_name)
-            self.reconnect_timeout = int(self.get_device_property('reconnect_timeout', 5000))
+            self.reconnect_timeout = self.get_device_property('reconnect_timeout', 5000.0)
             self.set_state(DevState.INIT)
             Device.init_device(self)
             # get ip from property
