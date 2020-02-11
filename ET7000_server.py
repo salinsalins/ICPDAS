@@ -120,21 +120,17 @@ class ET7000_Server(Device):
 
     def read_general(self, attr: tango.Attribute):
         with self._lock:
-            cnt = self.is_connected()
-            name = attr.get_name()
-            self.logger.debug('read_general entry %s %s', self.device_name, name)
-        if not cnt:
-            self.reconnect()
-        with self._lock:
+            attr_name = attr.get_name()
+            self.logger.debug('read_general entry %s %s', self.device_name, attr_name)
             if not self.is_connected():
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s Waiting for reconnect' % (self.device_name, name)
+                msg = '%s %s Waiting for reconnect' % (self.device_name, attr_name)
                 self.logger.debug(msg)
                 self.debug_stream(msg)
                 return float('nan')
-            chan = int(name[-2:])
-            ad = name[:2]
+            chan = int(attr_name[-2:])
+            ad = attr_name[:2]
             if ad == 'ai':
                 val = self.et.read_AI_channel(chan)
             elif ad == 'di':
@@ -144,12 +140,11 @@ class ET7000_Server(Device):
             elif ad == 'ao':
                 val = self.et.read_AO_channel(chan)
             else:
-                msg = "%s Read unknown attribute %s" % (self.device_name, name)
+                msg = "%s Read unknown attribute %s" % (self.device_name, attr_name)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                #self.disconnect()
                 return float('nan')
             if val is not None and not math.isnan(val):
                 self.time = None
@@ -158,59 +153,49 @@ class ET7000_Server(Device):
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
                 return val
             else:
-                msg = "%s Error reading %s %s" % (self.device_name, name, val)
+                msg = "%s Error reading %s %s" % (self.device_name, attr_name, val)
                 self.logger.error(msg)
                 self.error_stream(msg)
-                if ad == 'ai':
-                    attr.set_value(float('nan'))
-                elif ad == 'ao':
-                    attr.set_value(float('nan'))
-                elif ad == 'di':
-                    attr.set_value(False)
-                elif ad == 'do':
-                    attr.set_value(False)
+                self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
                 self.disconnect()
                 return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
         with self._lock:
-            cnt = self.is_connected()
-            name = attr.get_name()
-        if not cnt:
-            self.reconnect()
-        with self._lock:
+            attr_name = attr.get_name()
             if not self.is_connected():
                 if not self.is_connected():
                     self.set_error_attribute_value(attr)
                     attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                    msg = '%s %s Waiting for reconnect' % (self.device_name, name)
+                    msg = '%s %s Waiting for reconnect' % (self.device_name, attr_name)
                     self.logger.debug(msg)
                     self.debug_stream(msg)
                     return
             value = attr.get_write_value()
-            chan = int(name[-2:])
-            ad = name[:2]
+            chan = int(attr_name[-2:])
+            ad = attr_name[:2]
             if ad  == 'ao':
                 result = self.et.write_AO_channel(chan, value)
             elif ad == 'do':
                 result = self.et.write_DO_channel(chan, value)
             else:
-                msg = "%s Write to unknown attribute %s" % (self.device_name, name)
+                msg = "%s Write to unknown attribute %s" % (self.device_name, attr_name)
                 self.logger.error(msg)
                 self.error_stream(msg)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                #self.disconnect()
+                self.set_error_attribute_value(attr)
+                #attr.set_quality(tango.AttrQuality.ATTR_INVALID)
                 return
             if result:
                 self.time = None
                 self.error_count = 0
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
             else:
-                msg = "%s Error writing %s" % (self.device_name, name)
+                msg = "%s Error writing %s" % (self.device_name, attr_name)
                 self.logger.error(msg)
                 self.error_stream(msg)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+                self.set_error_attribute_value(attr)
+                #attr.set_quality(tango.AttrQuality.ATTR_INVALID)
                 self.disconnect()
 
     @command
@@ -229,6 +214,27 @@ class ET7000_Server(Device):
             msg = '%s Log level set to %d' % (self.device_name, level)
             self.logger.info(msg)
             self.info_stream(msg)
+
+    def add_attribute_2(self, attr, r_meth=None, w_meth=None):
+        # try:
+            if r_meth is None:
+                r_meth = self.read_general
+            if w_meth is None:
+                w_meth = self.write_general
+            attr_name = attr.get_name()
+            mattrib = self.get_device_attr()
+            try:
+                mattrib.get_attr_by_name(attr_name)
+                self.logger.debug('%s %s attribute exists' % (self.device_name, attr_name))
+                return
+            except:
+                self.add_attribute(attr, r_meth, w_meth=w_meth)
+                self.logger.debug('%s %s attribute created' % (self.device_name, attr_name))
+        # except:
+        #     msg = '%s Exception creating attribute %s' % (self.device_name, attr_name)
+        #     self.logger.info(msg)
+        #     self.logger.debug('', exc_info=True)
+        #     self.info_stream(msg)
 
     def add_io(self):
         with self._lock:
@@ -252,7 +258,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.AI_n):
                         attr_name = 'ai%02d'%k
                         attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
-                        self.add_attribute(attr, self.read_general)
+                        self.add_attribute_2(attr, self.read_general)
                         # configure attribute properties
                         rng = self.et.range(self.et.AI_ranges[k])
                         ac = dp.get_attribute_config(attr_name)
@@ -269,7 +275,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.AO_n):
                         attr_name = 'ao%02d'%k
                         attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
-                        self.add_attribute(attr, self.read_general, self.write_general)
+                        self.add_attribute_2(attr, self.read_general, self.write_general)
                         # configure attribute properties
                         rng = self.et.range(self.et.AO_ranges[k])
                         ac = dp.get_attribute_config(attr_name)
@@ -286,7 +292,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.DI_n):
                         attr_name = 'di%02d'%k
                         attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
-                        self.add_attribute(attr, self.read_general, w_meth=self.write_general)
+                        self.add_attribute_2(attr, self.read_general, w_meth=self.write_general)
                         #self.restore_polling(attr_name)
                     self.logger.info('%d digital inputs initialized' % self.et.DI_n)
                     self.info_stream('%d digital inputs initialized' % self.et.DI_n)
@@ -295,7 +301,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.DO_n):
                         attr_name = 'do%02d'%k
                         attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
-                        self.add_attribute(attr, self.read_general, self.write_general)
+                        self.add_attribute_2(attr, self.read_general, self.write_general)
                         #self.restore_polling(attr_name)
                     self.logger.info('%d digital outputs initialized' % self.et.DO_n)
                     self.info_stream('%d digital outputs initialized' % self.et.DO_n)
@@ -326,7 +332,7 @@ class ET7000_Server(Device):
                 self.logger.error(msg)
                 self.logger.debug('', exc_info=True)
                 self.error_stream(msg)
-                self.set_state(DevState.FAULT)
+                #self.set_state(DevState.FAULT)
 
     def is_connected(self):
         if self.device_type == 0 or self.time is not None or self.et is None:
@@ -334,25 +340,26 @@ class ET7000_Server(Device):
         return True
 
     def reconnect(self, force=False):
-        self.logger.debug('reconnect entry')
-        if not force and self.is_connected():
-            return
-        if self.time is None:
-            self.time = time.time()
-        #print('2 reconnect', self.is_connected(), self.time)
-        if force or ((time.time() - self.time) > self.reconnect_timeout / 1000.0):
-            self.Reconnect()
-            if not self.is_connected():
-                self.time = time.time()
-                self.et = None
-                self.error_count = 0
-                msg = '%s Reconnection error' % self.device_name
-                self.logger.info(msg)
-                self.info_stream(msg)
+        #with self._lock:
+            self.logger.debug('reconnect entry')
+            if not force and self.is_connected():
                 return
-            msg = '%s Reconnected successfully' % self.device_name
-            self.logger.debug(msg)
-            self.debug_stream(msg)
+            if self.time is None:
+                self.time = time.time()
+            #print('2 reconnect', self.is_connected(), self.time)
+            if force or ((time.time() - self.time) > self.reconnect_timeout / 1000.0):
+                self.Reconnect()
+                if not self.is_connected():
+                    self.time = time.time()
+                    self.et = None
+                    self.error_count = 0
+                    msg = '%s Reconnection error' % self.device_name
+                    self.logger.info(msg)
+                    self.info_stream(msg)
+                    return
+                msg = '%s Reconnected successfully' % self.device_name
+                self.logger.debug(msg)
+                self.debug_stream(msg)
 
     def disconnect(self, force=False):
         if not force and self.time is not None:
@@ -447,14 +454,14 @@ def test():
 
 def looping():
     ET7000_Server.logger.debug('loop entry')
-    time.sleep(0.5)
+    time.sleep(5.0)
     ET7000_Server.logger.debug('loop 2')
     all_connected = True
     for dev in ET7000_Server.devices:
         ET7000_Server.logger.debug('loop 3 %s', dev.device_name)
         dev.reconnect()
         all_connected = all_connected and dev.is_connected()
-        ET7000_Server.logger.debug('loop 4 %s %s', dev.device_name, all_connected)
+        ET7000_Server.logger.debug('loop 4 %s %s' % (dev.device_name, all_connected))
         #print(dev, all_connected)
     ET7000_Server.logger.debug('loop exit')
 
