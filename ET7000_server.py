@@ -40,7 +40,7 @@ class ET7000_Server(Device):
                 self.et._client.close()
             except:
                 pass
-            self.logger = self.config_logger(level=logging.DEBUG)
+            self.logger = self.config_logger(level=logging.INFO)
             ET7000_Server.logger = self.logger
             #self.logger.debug('init_device logger created %s %s', self.logger, self)
             self.et = None
