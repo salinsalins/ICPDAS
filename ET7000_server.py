@@ -131,14 +131,17 @@ class ET7000_Server(Device):
                 return float('nan')
             chan = int(attr_name[-2:])
             ad = attr_name[:2]
+            mask = True
             if ad == 'ai':
                 val = self.et.read_AI_channel(chan)
+                mask = self.et.AI_masks[chan]
             elif ad == 'di':
                 val = self.et.read_DI_channel(chan)
             elif ad == 'do':
                 val = self.et.read_DO_channel(chan)
             elif ad == 'ao':
                 val = self.et.read_AO_channel(chan)
+                mask = self.et.AO_masks[chan]
             else:
                 msg = "%s Read unknown attribute %s" % (self.device_name, attr_name)
                 self.logger.error(msg)
@@ -153,12 +156,13 @@ class ET7000_Server(Device):
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
                 return val
             else:
-                msg = "%s Error reading %s %s" % (self.device_name, attr_name, val)
-                self.logger.error(msg)
-                self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                self.disconnect()
+                if mask:
+                    msg = "%s Error reading %s %s" % (self.device_name, attr_name, val)
+                    self.logger.error(msg)
+                    self.error_stream(msg)
+                    self.disconnect()
                 return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
