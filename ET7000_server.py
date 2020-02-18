@@ -258,55 +258,63 @@ class ET7000_Server(Device):
                 if self.et.AI_n > 0:
                     for k in range(self.et.AI_n):
                         try:
-                            attr_name = 'ai%02d'%k
-                            attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
-                            self.add_attribute_2(attr, self.read_general)
-                            # configure attribute properties
-                            rng = self.et.range(self.et.AI_ranges[k])
-                            ac = dp.get_attribute_config(attr_name)
-                            if ac.unit is None or '' == ac.unit:
-                                ac.unit = str(rng['units'])
-                            ac.min_value = str(rng['min'])
-                            ac.max_value = str(rng['max'])
-                            dp.set_attribute_config(ac)
-                            #self.restore_polling(attr_name)
-                            nai += 1
+                            attr_name = 'ai%02d' % k
+                            if self.et.AI_masks[k]:
+                                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
+                                self.add_attribute_2(attr, self.read_general)
+                                # configure attribute properties
+                                rng = self.et.range(self.et.AI_ranges[k])
+                                ac = dp.get_attribute_config(attr_name)
+                                if ac.unit is None or '' == ac.unit:
+                                    ac.unit = str(rng['units'])
+                                ac.min_value = str(rng['min'])
+                                ac.max_value = str(rng['max'])
+                                dp.set_attribute_config(ac)
+                                #self.restore_polling(attr_name)
+                                nai += 1
+                            else:
+                                self.logger.info('%s is switched off', attr_name)
                         except:
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
-                    self.logger.info('%d analog inputs initialized' % nai)
-                    self.info_stream('%d analog inputs initialized' % nai)
+                    msg = '%d of %d analog inputs initialized' % (nai, self.et.AI_n)
+                    self.logger.info(msg)
+                    self.info_stream(msg)
                 # ao
                 nao = 0
                 if self.et.AO_n > 0:
                     for k in range(self.et.AO_n):
                         try:
-                            attr_name = 'ao%02d'%k
-                            attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
-                            self.add_attribute_2(attr, self.read_general, self.write_general)
-                            # configure attribute properties
-                            rng = self.et.range(self.et.AO_ranges[k])
-                            ac = dp.get_attribute_config(attr_name)
-                            if ac.unit is None or '' == ac.unit:
-                                ac.unit = str(rng['units'])
-                            ac.min_value = str(rng['min'])
-                            ac.max_value = str(rng['max'])
-                            dp.set_attribute_config(ac)
-                            #self.restore_polling(attr_name)
-                            nao += 1
+                            attr_name = 'ao%02d' % k
+                            if self.et.AO_masks[k]:
+                                attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
+                                self.add_attribute_2(attr, self.read_general, self.write_general)
+                                # configure attribute properties
+                                rng = self.et.range(self.et.AO_ranges[k])
+                                ac = dp.get_attribute_config(attr_name)
+                                if ac.unit is None or '' == ac.unit:
+                                    ac.unit = str(rng['units'])
+                                ac.min_value = str(rng['min'])
+                                ac.max_value = str(rng['max'])
+                                dp.set_attribute_config(ac)
+                                #self.restore_polling(attr_name)
+                                nao += 1
+                            else:
+                                self.logger.info('%s is switched off', attr_name)
                         except:
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
-                    self.logger.info('%d analog outputs initialized' % nao)
-                    self.info_stream('%d analog outputs initialized' % nao)
+                    msg = '%d of %d analog outputs initialized' % (nao, self.et.AO_n)
+                    self.logger.info(msg)
+                    self.info_stream(msg)
                 # di
                 ndi = 0
                 if self.et.DI_n > 0:
                     for k in range(self.et.DI_n):
                         try:
-                            attr_name = 'di%02d'%k
+                            attr_name = 'di%02d' % k
                             attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ)
                             self.add_attribute_2(attr, self.read_general, w_meth=self.write_general)
                             #self.restore_polling(attr_name)
@@ -315,14 +323,15 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
-                    self.logger.info('%d digital inputs initialized' % ndi)
-                    self.info_stream('%d digital inputs initialized' % ndi)
+                    msg = '%d digital inputs initialized' % ndi
+                    self.logger.info(msg)
+                    self.info_stream(msg)
                 # do
                 ndo = 0
                 if self.et.DO_n > 0:
                     for k in range(self.et.DO_n):
                         try:
-                            attr_name = 'do%02d'%k
+                            attr_name = 'do%02d' % k
                             attr = tango.Attr(attr_name, tango.DevBoolean, tango.AttrWriteType.READ_WRITE)
                             self.add_attribute_2(attr, self.read_general, self.write_general)
                             #self.restore_polling(attr_name)
@@ -331,8 +340,9 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
-                    self.logger.info('%d digital outputs initialized' % ndo)
-                    self.info_stream('%d digital outputs initialized' % ndo)
+                    msg = '%d digital outputs initialized' % ndo
+                    self.logger.info(msg)
+                    self.info_stream(msg)
                 self.set_state(DevState.RUNNING)
             except:
                 msg = '%s Error adding IO channels' % self.device_name
