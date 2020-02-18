@@ -52,6 +52,7 @@ class ET7000_Server(Device):
             self.device_name = self.get_name()
             self.dp = tango.DeviceProxy(self.device_name)
             self.reconnect_timeout = self.get_device_property('reconnect_timeout', 5000.0)
+            self.show_disabled_channels = self.get_device_property('show_disabled_channels', False)
             self.set_state(DevState.INIT)
             Device.init_device(self)
             # get ip from property
@@ -263,7 +264,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.AI_n):
                         try:
                             attr_name = 'ai%02d' % k
-                            if self.et.AI_masks[k]:
+                            if self.et.AI_masks[k] or self.show_disabled_channels:
                                 attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ)
                                 self.add_attribute_2(attr, self.read_general)
                                 # configure attribute properties
@@ -291,7 +292,7 @@ class ET7000_Server(Device):
                     for k in range(self.et.AO_n):
                         try:
                             attr_name = 'ao%02d' % k
-                            if self.et.AO_masks[k]:
+                            if self.et.AO_masks[k] or self.show_disabled_channels:
                                 attr = tango.Attr(attr_name, tango.DevDouble, tango.AttrWriteType.READ_WRITE)
                                 self.add_attribute_2(attr, self.read_general, self.write_general)
                                 # configure attribute properties
