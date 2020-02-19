@@ -499,6 +499,7 @@ class ET7000:
         self.AI_values = []
         # default ao
         self.AO_n = 0
+        self.AO_masks = []
         self.AO_ranges = []
         self.AO_min = []
         self.AO_max = []
@@ -543,6 +544,8 @@ class ET7000:
             self.AI_convert[n] = ET7000.ai_convert_function(r)
         # ao
         self.AO_n = self.read_AO_n()
+        self.AO_masks = [True] * self.AO_n
+        self.read_AO_masks()
         self.AO_ranges = [0xff] * self.AO_n
         self.AO_raw = [0] * self.AO_n
         self.AO_values = [float('nan')] * self.AO_n
@@ -645,6 +648,9 @@ class ET7000:
             return regs[0]
         return 0
 
+    def read_AO_masks(self):
+        return self.AO_masks
+
     def read_AO_ranges(self):
         regs = self._client.read_holding_registers(459, self.AO_n)
         if regs and len(regs) == self.AO_n:
@@ -692,10 +698,11 @@ class ET7000:
 
     def read_AO_channel(self, k: int):
         v = float('nan')
-        regs = self._client.read_holding_registers(0+k, 1)
-        if regs:
-            v = self.AO_convert[k](regs[0])
-            self.AO_values[k] = v
+        if self.AO_masks[k]:
+            regs = self._client.read_holding_registers(0+k, 1)
+            if regs:
+                v = self.AO_convert[k](regs[0])
+                self.AO_values[k] = v
         return v
 
     def write_AO(self, values):

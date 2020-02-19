@@ -180,8 +180,10 @@ class ET7000_Server(Device):
             value = attr.get_write_value()
             chan = int(attr_name[-2:])
             ad = attr_name[:2]
-            if ad  == 'ao':
+            mask = True
+            if ad == 'ao':
                 result = self.et.write_AO_channel(chan, value)
+                mask = self.et.AO_masks[chan]
             elif ad == 'do':
                 result = self.et.write_DO_channel(chan, value)
             else:
@@ -196,12 +198,13 @@ class ET7000_Server(Device):
                 self.error_count = 0
                 attr.set_quality(tango.AttrQuality.ATTR_VALID)
             else:
-                msg = "%s Error writing %s" % (self.device_name, attr_name)
-                self.logger.error(msg)
-                self.error_stream(msg)
-                self.set_error_attribute_value(attr)
-                #attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                self.disconnect()
+                if mask:
+                    msg = "%s Error writing %s" % (self.device_name, attr_name)
+                    self.logger.error(msg)
+                    self.error_stream(msg)
+                    self.set_error_attribute_value(attr)
+                    #attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+                    self.disconnect()
 
     @command
     def Reconnect(self):
