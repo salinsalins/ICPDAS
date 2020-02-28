@@ -13,7 +13,7 @@ import math
 from threading import Thread, Lock
 
 import tango
-from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt
+from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx
 from tango.server import Device, attribute, command, pipe, device_property
 
 #from FakeET7000 import ET7000
@@ -53,6 +53,11 @@ class ET7000_Server(Device):
             self.dp = tango.DeviceProxy(self.device_name)
             self.reconnect_timeout = self.get_device_property('reconnect_timeout', 5000.0)
             self.show_disabled_channels = self.get_device_property('show_disabled_channels', False)
+            if hasattr(self,'config'):
+                self.old_config = self.config
+            else:
+                self.old_config = None
+                self.config = {}
             self.set_state(DevState.INIT)
             Device.init_device(self)
             # get ip from property
@@ -244,6 +249,31 @@ class ET7000_Server(Device):
         #     self.logger.debug('', exc_info=True)
         #     self.info_stream(msg)
 
+    def configure_attribute(self, attr_name, rng):
+        ac_old = None
+        if hasattr(self, 'old_config') and attr_name in self.old_config:
+            ac_old = self.old_config[attr_name]
+        elif hasattr(self, 'config') and attr_name in self.config:
+            ac_old = self.config[attr_name]
+        ac = self.dp.get_attribute_config_ex(attr_name)
+        if ac.unit is None or '' == ac.unit:
+            ac.unit = str(rng['units'])
+        ac.min_value = str(rng['min'])
+        ac.max_value = str(rng['max'])
+        if ac_old is not None:
+            if ac.label is None or '' == ac.label:
+                ac.label = ac_old.label
+            if ac.display_unit is None or '' == ac.display_unit:
+                ac.display_unit = ac_old.display_unit
+            if ac.format is None or '' == ac.format:
+                ac.format = ac_old.format
+        if ac.display_unit is None or '' == ac.display_unit:
+            msg = '%s %s display_units is empty' % (self, attr_name)
+            self.debug_stream(msg)
+            self.logger.warning(msg)
+        self.dp.set_attribute_config(ac)
+        self.config[attr_name] = ac
+
     def add_io(self):
         with self._lock:
             try:
@@ -272,13 +302,14 @@ class ET7000_Server(Device):
                                 self.add_attribute_2(attr, self.read_general)
                                 # configure attribute properties
                                 rng = self.et.range(self.et.AI_ranges[k])
-                                ac = dp.get_attribute_config(attr_name)
-                                if ac.unit is None or '' == ac.unit:
-                                    ac.unit = str(rng['units'])
-                                ac.min_value = str(rng['min'])
-                                ac.max_value = str(rng['max'])
-                                dp.set_attribute_config(ac)
-                                #self.restore_polling(attr_name)
+                                self.configure_attribute(attr_name, rng)
+                                # ac = dp.get_attribute_config(attr_name)
+                                # if ac.unit is None or '' == ac.unit:
+                                #     ac.unit = str(rng['units'])
+                                # ac.min_value = str(rng['min'])
+                                # ac.max_value = str(rng['max'])
+                                # dp.set_attribute_config(ac)
+                                # self.restore_polling(attr_name)
                                 nai += 1
                             else:
                                 self.logger.info('%s is switched off', attr_name)
@@ -300,13 +331,14 @@ class ET7000_Server(Device):
                                 self.add_attribute_2(attr, self.read_general, self.write_general)
                                 # configure attribute properties
                                 rng = self.et.range(self.et.AO_ranges[k])
-                                ac = dp.get_attribute_config(attr_name)
-                                if ac.unit is None or '' == ac.unit:
-                                    ac.unit = str(rng['units'])
-                                ac.min_value = str(rng['min'])
-                                ac.max_value = str(rng['max'])
-                                dp.set_attribute_config(ac)
-                                #self.restore_polling(attr_name)
+                                self.configure_attribute(attr_name, rng)
+                                # ac = dp.get_attribute_config(attr_name)
+                                # if ac.unit is None or '' == ac.unit:
+                                #     ac.unit = str(rng['units'])
+                                # ac.min_value = str(rng['min'])
+                                # ac.max_value = str(rng['max'])
+                                # dp.set_attribute_config(ac)
+                                # self.restore_polling(attr_name)
                                 nao += 1
                             else:
                                 self.logger.info('%s is switched off', attr_name)
