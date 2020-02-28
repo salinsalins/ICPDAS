@@ -56,7 +56,7 @@ class ET7000_Server(Device):
             if hasattr(self,'config'):
                 self.old_config = self.config
             else:
-                self.old_config = None
+                self.old_config = {}
                 self.config = {}
             self.set_state(DevState.INIT)
             Device.init_device(self)
@@ -255,7 +255,7 @@ class ET7000_Server(Device):
             ac_old = self.old_config[attr_name]
         elif hasattr(self, 'config') and attr_name in self.config:
             ac_old = self.config[attr_name]
-        ac = self.dp.get_attribute_config_ex(attr_name)
+        ac = self.dp.get_attribute_config_ex(attr_name)[0]
         if ac.unit is None or '' == ac.unit:
             ac.unit = str(rng['units'])
         ac.min_value = str(rng['min'])
