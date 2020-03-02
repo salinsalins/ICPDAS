@@ -227,7 +227,7 @@ class ET7000_Server(Device):
         msg = '%s Reconnecting ...' % self.device_name
         self.logger.info(msg)
         self.info_stream(msg)
-        self.remove_io()
+        #self.remove_io()
         self.init_device()
         self.add_io()
 
