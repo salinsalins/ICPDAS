@@ -36,6 +36,8 @@ class ET7000_Server(Device):
         if not hasattr(self, '_lock'):
             self._lock = Lock()
         with self._lock:
+            if not hasattr(self, 'attributes'):
+                self.attributes = {}
             try:
                 self.et._client.close()
             except:
@@ -79,6 +81,13 @@ class ET7000_Server(Device):
                 self.et._client.auto_close(False)
                 #print(self.et._client.auto_close())
                 self.device_type = self.et._name
+                # add delay for device initiate after possible reboot
+                # dt = self.device_type
+                # print('dt0', dt)
+                # t0 = time.time()
+                # while dt == 0 and time.time() - t0 < 5.0:
+                #     print('dt ', dt)
+                #     dt= self.et.read_module_name()
                 self.device_type_str = self.et.type
                 # add device to list
                 ET7000_Server.devices.append(self)
@@ -95,10 +104,12 @@ class ET7000_Server(Device):
                     self.logger.error(msg)
                     self.error_stream(msg)
                     self.set_state(DevState.FAULT)
+                    self.disconnect(force=True)
             except:
                 self.et = None
                 self.ip = None
                 self.device_type = 0
+                self.disconnect(True)
                 msg = '%s ERROR init device' % self.device_name
                 self.logger.debug('', exc_info=True)
                 self.logger.error(msg)
@@ -127,7 +138,7 @@ class ET7000_Server(Device):
     def read_general(self, attr: tango.Attribute):
         with self._lock:
             attr_name = attr.get_name()
-            self.logger.debug('read_general entry %s %s', self.device_name, attr_name)
+            #self.logger.debug('read_general entry %s %s', self.device_name, attr_name)
             if not self.is_connected():
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
@@ -238,11 +249,13 @@ class ET7000_Server(Device):
             mattrib = self.get_device_attr()
             try:
                 mattrib.get_attr_by_name(attr_name)
-                self.logger.debug('%s %s attribute exists' % (self.device_name, attr_name))
+                self.logger.debug('%s attribute %s exists' % (self.device_name, attr_name))
                 return
             except:
-                self.add_attribute(attr, r_meth, w_meth=w_meth)
-                self.logger.debug('%s %s attribute created' % (self.device_name, attr_name))
+                self.logger.debug("Exception:", exc_info=True)
+            self.add_attribute(attr, r_meth, w_meth=w_meth)
+            self.attributes[attr.get_name()] = attr
+            self.logger.debug('%s attribute %s has been created' % (self.device_name, attr_name))
         # except:
         #     msg = '%s Exception creating attribute %s' % (self.device_name, attr_name)
         #     self.logger.info(msg)
@@ -282,6 +295,7 @@ class ET7000_Server(Device):
                     self.logger.warning(msg)
                     self.error_stream(msg)
                     self.set_state(DevState.FAULT)
+                    self.disconnect(force=True)
                     return
                 msg = '%s ET%s at %s IO initialization' % (self.device_name, self.device_type_str, self.ip)
                 self.debug_stream(msg)
@@ -289,7 +303,7 @@ class ET7000_Server(Device):
                 self.set_state(DevState.INIT)
                 # device proxy
                 name = self.get_name()
-                dp = tango.DeviceProxy(name)
+                #dp = tango.DeviceProxy(name)
                 # initialize ai, ao, di, do attributes
                 # ai
                 nai = 0
@@ -317,6 +331,8 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
+                            self.disconnect(force=True)
+                            return
                     msg = '%d of %d analog inputs initialized' % (nai, self.et.AI_n)
                     self.logger.info(msg)
                     self.info_stream(msg)
@@ -346,6 +362,8 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
+                            self.disconnect(force=True)
+                            return
                     msg = '%d of %d analog outputs initialized' % (nao, self.et.AO_n)
                     self.logger.info(msg)
                     self.info_stream(msg)
@@ -363,6 +381,8 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
+                            self.disconnect(force=True)
+                            return
                     msg = '%d digital inputs initialized' % ndi
                     self.logger.info(msg)
                     self.info_stream(msg)
@@ -380,6 +400,8 @@ class ET7000_Server(Device):
                             msg = '%s Exception adding IO channel %s' % (self.device_name, attr_name)
                             self.logger.warning(msg)
                             self.logger.debug('', exc_info=True)
+                            self.disconnect(force=True)
+                            return
                     msg = '%d digital outputs initialized' % ndo
                     self.logger.info(msg)
                     self.info_stream(msg)
@@ -390,6 +412,8 @@ class ET7000_Server(Device):
                 self.logger.debug('', exc_info=True)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
+                self.disconnect(force=True)
+                return
 
     def remove_io(self):
         with self._lock:
@@ -404,6 +428,7 @@ class ET7000_Server(Device):
                     if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
                         #print('Removing', attr_name)
                         self.remove_attribute(attr_name)
+                        self.logger.debug('%s attribute %s removed' % (self.device_name, attr_name))
                 self.set_state(DevState.UNKNOWN)
             except:
                 msg = '%s Error deleting IO channels' % self.device_name
@@ -419,12 +444,12 @@ class ET7000_Server(Device):
 
     def reconnect(self, force=False):
         #with self._lock:
-            self.logger.debug('reconnect entry')
+            #self.logger.debug('reconnect entry')
             if not force and self.is_connected():
+                self.logger.debug('%s already connected' % self.device_name)
                 return
             if self.time is None:
                 self.time = time.time()
-            #print('2 reconnect', self.is_connected(), self.time)
             if force or ((time.time() - self.time) > self.reconnect_timeout / 1000.0):
                 self.Reconnect()
                 if not self.is_connected():
@@ -441,6 +466,8 @@ class ET7000_Server(Device):
 
     def disconnect(self, force=False):
         if not force and self.time is not None:
+            msg = "%s already disconnected" % self.device_name
+            self.logger.debug(msg)
             return
         self.error_count += 1
         if not force and self.error_count < 3:
@@ -531,17 +558,17 @@ def test():
     print('test')
 
 def looping():
-    ET7000_Server.logger.debug('loop entry')
+    #ET7000_Server.logger.debug('loop entry')
     time.sleep(5.0)
-    ET7000_Server.logger.debug('loop 2')
+    #ET7000_Server.logger.debug('loop 2')
     all_connected = True
     for dev in ET7000_Server.devices:
-        ET7000_Server.logger.debug('loop 3 %s', dev.device_name)
+        #ET7000_Server.logger.debug('loop 3 %s', dev.device_name)
         dev.reconnect()
         all_connected = all_connected and dev.is_connected()
-        ET7000_Server.logger.debug('loop 4 %s %s' % (dev.device_name, all_connected))
+        ET7000_Server.logger.debug('loop: %s all_connected=%s' % (dev.device_name, all_connected))
         #print(dev, all_connected)
-    ET7000_Server.logger.debug('loop exit')
+    #ET7000_Server.logger.debug('loop exit')
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
