@@ -1,16 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
 ICP DAS ET7000 tango device server"""
 
-import sys
 import time
 import logging
-import numpy
-import traceback
 import math
-from threading import Thread, Lock
+from threading import Lock
 
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx
@@ -55,7 +51,7 @@ class ET7000_Server(Device):
             self.dp = tango.DeviceProxy(self.device_name)
             self.reconnect_timeout = self.get_device_property('reconnect_timeout', 5000.0)
             self.show_disabled_channels = self.get_device_property('show_disabled_channels', False)
-            if hasattr(self,'config'):
+            if hasattr(self, 'config'):
                 self.old_config = self.config
             else:
                 self.old_config = {}
@@ -77,9 +73,7 @@ class ET7000_Server(Device):
                 # create ICP DAS device
                 et = ET7000(ip, logger=self.logger)
                 self.et = et
-                #self.et._client.debug(True)
                 self.et._client.auto_close(False)
-                #print(self.et._client.auto_close())
                 self.device_type = self.et._name
                 # add delay for device initiate after possible reboot
                 # dt = self.device_type
