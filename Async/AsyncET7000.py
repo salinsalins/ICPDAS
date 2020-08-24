@@ -1,106 +1,26 @@
 # Используемые библиотеки
 import time
-import logging
-from pyModbusTCP.client import ModbusClient
+import asyncio
 
 import ET7000
+from Async.AsyncModbusClient import AsyncModbusClient
 
 
 class AsyncET7000(ET7000):
 
     def __init__(self, host, port=502, timeout=0.15, logger=None):
-        # logger confid
-        if logger is None:
-            logger = logging.getLogger(__name__)
-        self.logger = logger
-        # default device type
-        self._name = 0
-        self.type = '0000'
-        # default ai
-        self.AI_n = 0
-        self.AI_masks = []
-        self.AI_ranges = []
-        self.AI_min = []
-        self.AI_max = []
-        self.AI_units = []
-        self.AI_raw = []
-        self.AI_values = []
-        # default ao
-        self.AO_n = 0
-        self.AO_masks = []
-        self.AO_ranges = []
-        self.AO_min = []
-        self.AO_max = []
-        self.AO_units = []
-        self.AO_raw = []
-        self.AO_values = []
-        self.AO_write_raw = []
-        self.AO_write_values = []
-        self.AO_write_result = False
-        # default di
-        self.DI_n = 0
-        self.DI_values = []
-        # default do
-        self.DO_n = 0
-        self.DO_values = []
-        # modbus client
-        self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
-        status = self._client.open()
-        if not status:
-            self.logger.error('ET7000 device at %s is offline' % host)
-            return
-        # read module name
-        self._name = self.read_module_name()
-        self.type = hex(self._name).replace('0x', '')
-        if self._name not in ET7000.devices:
-            #print('ET7000 device type %s probably not supported' % hex(self._name))
-            self.logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
-        # ai
-        self.AI_n = self.read_AI_n()
-        self.AI_masks = [False] * self.AI_n
-        self.AI_ranges = [0xff] * self.AI_n
-        self.AI_raw = [0] * self.AI_n
-        self.AI_values = [float('nan')] * self.AI_n
-        self.AI_units = [''] * self.AI_n
-        self.read_AI_masks()
-        self.read_AI_ranges()
-        self.AI_convert = [lambda x: x] * self.AI_n
-        for n in range(self.AI_n):
-            r = self.AI_ranges[n]
-            self.AI_units[n] = ET7000.ranges[r]['units']
-            self.AI_convert[n] = ET7000.ai_convert_function(r)
-        # ao
-        self.AO_n = self.read_AO_n()
-        self.AO_masks = [True] * self.AO_n
-        self.read_AO_masks()
-        self.AO_ranges = [0xff] * self.AO_n
-        self.AO_raw = [0] * self.AO_n
-        self.AO_values = [float('nan')] * self.AO_n
-        self.AO_write_values = [float('nan')] * self.AO_n
-        self.AO_units = [''] * self.AO_n
-        self.AO_write = [0] * self.AO_n
-        self.AO_write_raw = [0] * self.AO_n
-        self.read_AO_ranges()
-        self.AO_convert = [lambda x: x] * self.AI_n
-        self.AO_convert_write = [lambda x: 0] * self.AI_n
-        for n in range(self.AO_n):
-            r = self.AO_ranges[n]
-            self.AO_units[n] = ET7000.ranges[r]['units']
-            self.AO_convert[n] = ET7000.ai_convert_function(r)  # !!! ai_convert for reading
-            self.AO_convert_write[n] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
-        # di
-        self.DI_n = self.read_DI_n()
-        self.DI_values = [False] * self.DI_n
-        # do
-        self.DO_n = self.read_DO_n()
-        self.DO_values = [False] * self.DO_n
-        self.DO_write = [False] * self.DO_n
+        super().__init(host, port, timeout, logger)
+        self._client.close()
+        self.async_client = AsyncModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
 
-    def read_module_name(self):
-        regs = self._client.read_holding_registers(559, 1)
+    async def async_init(self):
+        pass
+
+    async def async_read_module_name(self):
+        regs = await self.async_client.read_holding_registers(559, 1)
         if regs and regs[0] != 0:
             return regs[0]
-        regs = self._client.read_holding_registers(260, 1)
+        regs = await self.async_client.read_holding_registers(260, 1)
         if regs:
             return regs[0]
         return 0

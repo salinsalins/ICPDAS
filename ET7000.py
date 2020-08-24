@@ -481,6 +481,8 @@ class ET7000:
         return 0
 
     def __init__(self, host, port=502, timeout=0.15, logger=None):
+        self.host = host
+        self.port = port
         # logger confid
         if logger is None:
             logger = logging.getLogger(__name__)
@@ -519,14 +521,12 @@ class ET7000:
         self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
         status = self._client.open()
         if not status:
-            #print('ET7000 device at %s is offline' % host)
             self.logger.error('ET7000 device at %s is offline' % host)
             return
         # read module name
         self._name = self.read_module_name()
         self.type = hex(self._name).replace('0x', '')
         if self._name not in ET7000.devices:
-            #print('ET7000 device type %s probably not supported' % hex(self._name))
             self.logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
         self.AI_n = self.read_AI_n()
