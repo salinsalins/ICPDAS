@@ -18,11 +18,11 @@ class client:
         return [self.data[n]] * m
 
     def read_input_registers(self, n, m):
-        #regs = self._client.read_input_registers(320, 1)
+        #regs = self.client.read_input_registers(320, 1)
         #regs = [6]
         if n in self.data:
             return [self.data[n]] * m
-        # regs = self._client.read_input_registers(0+channel, n)
+        # regs = self.client.read_input_registers(0+channel, n)
         self.count += 1
         if self.count == 0x7fff:
             self.count = 0
@@ -548,10 +548,10 @@ class ET7000:
         self.DO_n = 0
         self.DO_values = []
         # modbus client
-        #self._client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
+        #self.client = ModbusClient(host, port, auto_open=True, auto_close=True, timeout=timeout)
         self._client = empty()
         self._client.auto_close = lambda x: x
-        #status = self._client.open()
+        #status = self.client.open()
         status = True
         if not status:
             #print('ET7000 device at %s is offline' % host)
@@ -561,7 +561,7 @@ class ET7000:
         self._name = self.read_module_name()
         self.type = hex(self._name).replace('0x', '')
         if self._name not in ET7000.devices:
-            #print('ET7000 device type %s probably not supported' % hex(self._name))
+            #print('ET7000 device type %s probably not supported' % hex(self.name))
             self.logger.warning('ET7000 device type %s probably not supported' % hex(self._name))
         # ai
         self.AI_n = self.read_AI_n()
@@ -607,24 +607,24 @@ class ET7000:
 
     # AI functions
     def read_AI_n(self):
-        #regs = self._client.read_input_registers(320, 1)
+        #regs = self.client.read_input_registers(320, 1)
         regs = [6]
         if regs and regs[0] != 0:
             return regs[0]
-        #regs = self._client.read_input_registers(120, 1)
+        #regs = self.client.read_input_registers(120, 1)
         #if regs:
         #    return regs[0]
         return 0
 
     def read_AI_masks(self):
-        #coils = self._client.read_coils(595, self.AI_n)
+        #coils = self.client.read_coils(595, self.ai_n)
         coils = [1,1,1,1,1,1]
         if coils and len(coils) == self.AI_n:
             self.AI_masks = coils
         return coils
 
     def read_AI_ranges(self):
-        #regs = self._client.read_holding_registers(427, self.AI_n)
+        #regs = self.client.read_holding_registers(427, self.ai_n)
         regs = [4,4,4,4,4,4]
         if regs and len(regs) == self.AI_n:
             self.AI_ranges = regs
@@ -636,7 +636,7 @@ class ET7000:
             channel = 0
         else:
             n = 1
-        #regs = self._client.read_input_registers(0+channel, n)
+        #regs = self.client.read_input_registers(0+channel, n)
         self.count[0] += 1
         if self.count[0] == 0x7fff:
             self.count[0] = 0
@@ -665,7 +665,7 @@ class ET7000:
     def read_AI_channel(self, k:int):
         v = float('nan')
         if self.AI_masks[k]:
-            #regs = self._client.read_input_registers(0+k, 1)
+            #regs = self.client.read_input_registers(0+k, 1)
             self.count[k] += 1
             if self.count[k] == 0x7fff:
                 self.count[k] = 0
@@ -678,17 +678,17 @@ class ET7000:
 
     # AO functions
     def read_AO_n(self):
-        #regs = self._client.read_input_registers(330, 1)
+        #regs = self.client.read_input_registers(330, 1)
         regs = [2]
         if regs and regs[0] != 0:
             return regs[0]
-        #regs = self._client.read_input_registers(130, 1)
+        #regs = self.client.read_input_registers(130, 1)
         #if regs:
         #    return regs[0]
         return 0
 
     def read_AO_ranges(self):
-        #regs = self._client.read_holding_registers(459, self.AO_n)
+        #regs = self.client.read_holding_registers(459, self.ao_n)
         regs = [0x33,0x33]
         if regs and len(regs) == self.AO_n:
             self.AO_ranges = regs
@@ -700,7 +700,7 @@ class ET7000:
             channel = 0
         else:
             n = 1
-        #regs = self._client.read_holding_registers(0+channel, n)
+        #regs = self.client.read_holding_registers(0+channel, n)
         regs = [0,0]
         if regs and len(regs) == n:
             self.AO_raw[channel:channel+n] = regs
@@ -709,7 +709,7 @@ class ET7000:
         return regs
 
     def write_AO_raw(self, regs):
-        #result = self._client.write_multiple_registers(0, regs)
+        #result = self.client.write_multiple_registers(0, regs)
         result = True
         self.AO_write_result = result
         if len(regs) == self.AO_n:
@@ -737,7 +737,7 @@ class ET7000:
 
     def read_AO_channel(self, k: int):
         v = float('nan')
-        #regs = self._client.read_holding_registers(0+k, 1)
+        #regs = self.client.read_holding_registers(0+k, 1)
         regs = [0]
         if regs:
             v = self.AO_convert[k](regs[0])
@@ -752,7 +752,7 @@ class ET7000:
 
     def write_AO_channel(self, k: int, value):
         raw = self.AO_convert_write[k](value)
-        #result = self._client.write_single_register(0+k, raw)
+        #result = self.client.write_single_register(0+k, raw)
         result = True
         self.AO_write_result = result
         if result:
@@ -763,24 +763,24 @@ class ET7000:
 
     # DI functions
     def read_DI_n(self):
-        #regs = self._client.read_input_registers(300, 1)
+        #regs = self.client.read_input_registers(300, 1)
         regs = [2]
         if regs and regs[0] != 0:
             return regs[0]
-        #regs = self._client.read_input_registers(100, 1)
+        #regs = self.client.read_input_registers(100, 1)
         #if regs:
         #    return regs[0]
         return 0
 
     def read_DI(self):
-        #regs = self._client.read_discrete_inputs(0, self.DI_n)
+        #regs = self.client.read_discrete_inputs(0, self.di_n)
         regs = [1 for i in range(self.DI_n)]
         if regs:
             self.DI_values = regs
         return self.DI_values
 
     def read_DI_channel(self, k: int):
-        #reg = self._client.read_discrete_inputs(0+k, 1)
+        #reg = self.client.read_discrete_inputs(0+k, 1)
         reg = [1]
         if reg:
             self.DI_values[k] = reg[0]
@@ -790,24 +790,24 @@ class ET7000:
     # DO functions
     def read_DO_n(self):
         self.DO_time = time.time()
-        #regs = self._client.read_input_registers(310, 1)
+        #regs = self.client.read_input_registers(310, 1)
         regs = [2]
         if regs and regs[0] != 0:
             return regs[0]
-        #regs = self._client.read_input_registers(110, 1)
+        #regs = self.client.read_input_registers(110, 1)
         #if regs:
         #    return regs[0]
         return 0
 
     def read_DO(self):
-        #regs = self._client.read_coils(0, self.DI_n)
+        #regs = self.client.read_coils(0, self.di_n)
         regs = [1,1]
         if regs:
             self.DI_values = regs
         return self.DI_values
 
     def read_DO_channel(self, k: int):
-        #reg = self._client.read_coils(0+k, 1)
+        #reg = self.client.read_coils(0+k, 1)
         reg = [1]
         if reg:
             self.DO_values[k] = reg[0]
@@ -816,12 +816,12 @@ class ET7000:
 
     def write_DO(self, values):
         self.DO_write = values
-        #self.DO_write_result = self._client.write_multiple_coils(0, values)
+        #self.DO_write_result = self.client.write_multiple_coils(0, values)
         self.DO_write_result = True
         return self.DO_write_result
 
     def write_DO_channel(self, k: int, value: bool):
-        #result = self._client.write_single_coil(0+k, value)
+        #result = self.client.write_single_coil(0+k, value)
         result = True
         self.DO_write_result = result
         if result:

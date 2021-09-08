@@ -236,27 +236,27 @@ if __name__ == "__main__":
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), ET7000.ranges[r]['max'])
     ip = '192.168.1.122'
     et = ET7000(ip)
-    if et._name == 0:
+    if et.name == 0:
         print('ET7000 not found at %s' % ip)
     else:
-        print('ET7000 series %s at %s' % (hex(et._name), ip))
+        print('ET7000 series %s at %s' % (hex(et.name), ip))
         print('----------------------------------------')
-        print('%d ai' % et.AI_n)
-        et.read_AI()
-        for k in range(et.AI_n):
-            print(k, hex(et.AI_raw[k]), et.AI_values[k], et.AI_units[k], ' range:', hex(et.AI_ranges[k]))
+        print('%d ai' % et.ai_n)
+        et.ai_read()
+        for k in range(et.ai_n):
+            print(k, hex(et.ai_raw[k]), et.ai_values[k], et.ai_units[k], ' range:', hex(et.ai_ranges[k]))
         print('----------------------------------------')
-        print('%d ao' % et.AO_n)
-        et.read_AO()
-        for k in range(et.AO_n):
-            print(k, hex(et.AO_raw[k]), et.AO_values[k], et.AO_units[k], ' range:', hex(et.AO_ranges[k]))
+        print('%d ao' % et.ao_n)
+        et.ao_read()
+        for k in range(et.ao_n):
+            print(k, hex(et.ao_raw[k]), et.ao_values[k], et.ao_units[k], ' range:', hex(et.ao_ranges[k]))
         print('----------------------------------------')
-        print('%d di' % et.DI_n)
-        et.read_DI()
-        for k in range(et.DI_n):
-            print(k, et.DI_values[k])
+        print('%d di' % et.di_n)
+        et.di_read()
+        for k in range(et.di_n):
+            print(k, et.di_values[k])
         print('----------------------------------------')
-        print('%d do' % et.DO_n)
-        et.read_DO()
-        for k in range(et.DO_n):
-            print(k, et.DO_values[k])
+        print('%d do' % et.do_n)
+        et.do_read()
+        for k in range(et.do_n):
+            print(k, et.do_values[k])
