@@ -566,7 +566,7 @@ def looping():
 
 if __name__ == "__main__":
     #if len(sys.argv) < 3:
-        #print("Usage: python ET7000_server.py device_name ip_address")
+        #print("Usage: python ET7000_Server.py device_name ip_address")
         #exit(-1)
     ET7000_Server.run_server(post_init_callback=post_init_callback, event_loop=looping)
     #ET7000_Server.run_server(post_init_callback=post_init_callback)
