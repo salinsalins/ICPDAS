@@ -436,12 +436,11 @@ class ET7000:
         except:
             pass
         if c_min < c_max:
-            k = (v_max - v_min) / (c_max - c_min)
+            k = float(v_max - v_min) / (c_max - c_min)
             b = v_min - k * c_min
             return lambda x: k * x + b
         k_max = v_max / c_max
         k_min = v_min / (0x10000 - c_min)
-        # return lambda x: (x < 0x8000) * k_max * x + (x >= 0x8000) *  k_min * (0x10000 - x)
         return lambda x: k_max * x if x < 0x8000 else k_min * (0x10000 - x)
 
     @staticmethod
@@ -468,6 +467,7 @@ class ET7000:
         return lambda x: int(k_max * x) if (x >= 0) else int(0xffff - k_min * x)
 
     @staticmethod
+    # Legacy. Did nut used here.
     def convert_to_raw(v, amin, amax):
         v = float(v)
         # обрабатывается 2 случая - минимум нулевой или больше 0
@@ -496,11 +496,8 @@ class ET7000:
         self.ai_n = 0
         self.ai_masks = []
         self.ai_ranges = []
-        self.ai_min = []
-        self.ai_max = []
         self.ai_units = []
-        self.ai_raw = []
-        self.ai_values = []
+        self.ai_convert = []
         # default ao
         self.ao_n = 0
         self.ao_masks = []
@@ -532,17 +529,17 @@ class ET7000:
             self.logger.warning('Unknown ET-7000 device type %s' % hex(self.name))
         # ai
         self.ai_n = self.ai_read_n()
-        self.ai_masks = [False] * self.ai_n
-        self.ai_read_masks()
-        self.ai_ranges = [0xff] * self.ai_n
-        self.ai_read_ranges()
+        self.ai_masks = self.ai_read_masks()
+        self.ai_ranges = self.ai_read_ranges()
         self.ai_raw = [0] * self.ai_n
         self.ai_values = [float('nan')] * self.ai_n
         self.ai_units = [''] * self.ai_n
-        self.ai_convert = [lambda x: x] * self.ai_n
         for i in range(self.ai_n):
-            r = self.ai_ranges[i]
-            self.ai_units[i] = ET7000.ranges[r]['units']
+            try:
+                rng = ET7000.ranges[self.ai_ranges[i]]
+            except:
+                rng = ET7000.ranges[0xff]
+            self.ai_units[i] = rng['units']
             self.ai_convert[i] = ET7000.ai_convert_function(r)
         # ao
         self.ao_n = self.ao_read_n()
@@ -593,52 +590,16 @@ class ET7000:
     def ai_read_masks(self):
         coils = self.client.read_coils(595, self.ai_n)
         if coils and len(coils) == self.ai_n:
-            self.ai_masks = coils
-        return coils
+            return coils
+        return [False] * self.ai_n
 
     def ai_read_ranges(self):
         regs = self.client.read_holding_registers(427, self.ai_n)
         if regs and len(regs) == self.ai_n:
-            self.ai_ranges = regs
-        return regs
-
-    def ai_read_raw(self, channel=None):
-        if channel is None:
-            n = self.ai_n
-            channel = 0
-        else:
-            n = 1
-        regs = self.client.read_input_registers(0 + channel, n)
-        if regs and len(regs) == n:
-            self.ai_raw[channel:channel + n] = regs
-        if n == 1:
-            return regs[0]
-        return regs
-
-    def ai_convert_from_raw(self):
-        for k in range(self.ai_n):
-            if self.ai_masks[k]:
-                self.ai_values[k] = self.ai_convert[k](self.ai_raw[k])
-            else:
-                self.ai_values[k] = NaN
-        return self.ai_values
+            return regs
+        return [0xff] * self.ai_n
 
     def ai_read(self):
-        self.ai_read_raw()
-        self.ai_convert_from_raw()
-        return self.ai_values
-
-    def ai_read_channel(self, channel: int):
-        v = float('nan')
-        if self.ai_masks[channel]:
-            regs = self.client.read_input_registers(0 + channel, 1)
-            if regs:
-                self.ai_raw[channel] = regs[0]
-                v = self.ai_convert[channel](regs[0])
-        self.ai_values[channel] = v
-        return v
-
-    def ai_read_2(self):
         n = self.ai_n
         result = self.client.read_input_registers(0, n)
         if result and len(result) == n:
@@ -650,6 +611,17 @@ class ET7000:
             return result
         else:
             return [NaN] * n
+
+    def ai_read_channel(self, channel: int):
+        v = NaN
+        try:
+            if self.ai_masks[channel]:
+                regs = self.client.read_input_registers(0 + channel, 1)
+                if regs:
+                    v = self.ai_convert[channel](regs[0])
+        except:
+            pass
+        return v
 
     # AO functions
     def ao_read_n(self):
@@ -705,9 +677,14 @@ class ET7000:
         return answer
 
     def ao_read(self):
-        self.ao_read_raw()
-        self.ao_convert_from_raw()
-        return self.ao_values
+        n = self.ao_n
+        regs = self.client.read_holding_registers(0, n)
+        if regs and len(regs) == n:
+            for k in range(n):
+                regs[k] = self.ao_convert[k](regs[k])
+        else:
+            regs = [NaN] * n
+        return regs
 
     def ao_read_channel(self, k: int):
         v = float('nan')
