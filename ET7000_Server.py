@@ -21,11 +21,11 @@ class ET7000_Server(TangoServerPrototype):
     server_version = '3.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
-    device_type = attribute(label="type", dtype=str,
+    device_type = attribute(label="type_str", dtype=str,
                             display_level=DispLevel.OPERATOR,
                             access=AttrWriteType.READ,
                             unit="", format="%s",
-                            doc="ET7000 device type. 0x0 - unknown or offline")
+                            doc="ET7000 device type_str. 0x0 - unknown or offline")
 
     def init_device(self):
         super().init_device()
@@ -74,20 +74,20 @@ class ET7000_Server(TangoServerPrototype):
                     self.logger.error('Device %s is not ready' % self)
                     self.set_state(DevState.FAULT)
                     return
-            self.device_type = self.et.name
-            self.device_type_str = self.et.type
+            self.device_type = self.et.type
+            self.device_type_str = self.et.type_str
             # add device to list
             ET7000_Server.device_list.append(self)
             msg = '%s ET-%s at %s has been created' % (self.device_name, self.device_type_str, ip)
             self.logger.info(msg)
             self.info_stream(msg)
-            # check if device type is recognized
+            # check if device type_str is recognized
             if self.device_type != 0:
                 # set state to running
                 self.set_state(DevState.RUNNING)
             else:
-                # unknown device type
-                msg = '%s ET-%s ERROR - unknown device type' % (self.device_name, self.device_type_str)
+                # unknown device type_str
+                msg = '%s ET-%s ERROR - unknown device type_str' % (self.device_name, self.device_type_str)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
@@ -282,7 +282,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.set_state(DevState.INIT)
                 # device proxy
                 name = self.get_name()
-                # dp = tango.DeviceProxy(name)
+                # dp = tango.DeviceProxy(type)
                 # initialize ai, ao, di, do attributes
                 # ai
                 nai = 0

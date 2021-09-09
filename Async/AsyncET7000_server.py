@@ -20,11 +20,11 @@ class ET7000_Server(Device):
     devices = []
     #database = tango.Database()
 
-    devicetype = attribute(label="type", dtype=str,
+    devicetype = attribute(label="type_str", dtype=str,
                         display_level=DispLevel.OPERATOR,
                         access=AttrWriteType.READ,
                         unit="", format="%s",
-                        doc="ET7000 device type. 0x0 - unknown or offline")
+                        doc="ET7000 device type_str. 0x0 - unknown or offline")
 
     def init_device(self):
         #print(time_ms(), 'init_device entry', self)
@@ -74,7 +74,7 @@ class ET7000_Server(Device):
                 et = ET7000(ip, logger=self.logger)
                 self.et = et
                 self.et.client.auto_close(False)
-                self.device_type = self.et.name
+                self.device_type = self.et.type
                 # add delay for device initiate after possible reboot
                 # dt = self.device_type
                 # print('dt0', dt)
@@ -82,19 +82,19 @@ class ET7000_Server(Device):
                 # while dt == 0 and time.time() - t0 < 5.0:
                 #     print('dt ', dt)
                 #     dt= self.et.read_module_name()
-                self.device_type_str = self.et.type
+                self.device_type_str = self.et.type_str
                 # add device to list
                 ET7000_Server.devices.append(self)
                 msg = '%s ET%s at %s has been created' % (self.device_name, self.device_type_str, ip)
                 self.logger.info(msg)
                 self.info_stream(msg)
-                # check if device type is recognized
+                # check if device type_str is recognized
                 if self.device_type != 0:
                     # set state to running
                     self.set_state(DevState.RUNNING)
                 else:
-                    # unknown device type
-                    msg = '%s ET%s ERROR - unknown device type' % (self.device_name, self.device_type_str)
+                    # unknown device type_str
+                    msg = '%s ET%s ERROR - unknown device type_str' % (self.device_name, self.device_type_str)
                     self.logger.error(msg)
                     self.error_stream(msg)
                     self.set_state(DevState.FAULT)
@@ -297,7 +297,7 @@ class ET7000_Server(Device):
                 self.set_state(DevState.INIT)
                 # device proxy
                 name = self.get_name()
-                #dp = tango.DeviceProxy(name)
+                #dp = tango.DeviceProxy(type)
                 # initialize ai, ao, di, do attributes
                 # ai
                 nai = 0

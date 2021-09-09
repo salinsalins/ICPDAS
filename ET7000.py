@@ -490,14 +490,9 @@ class ET7000:
             logger = logging.getLogger(__name__)
         self.logger = logger
         # defaults
-        self.name = 0
-        self.type = '0000'
+        self.type = 0
+        self.type_str = '0000'
         # default ai
-        self.ai_n = 0
-        self.ai_masks = []
-        self.ai_ranges = []
-        self.ai_units = []
-        self.ai_convert = []
         # default ao
         self.ao_n = 0
         self.ao_masks = []
@@ -522,31 +517,32 @@ class ET7000:
         if not status:
             self.logger.error('ET-7000 device at %s is offline' % host)
             return
-        # read module name
-        self.name = self.read_module_name()
-        self.type = hex(self.name).replace('0x', '')
-        if self.name not in ET7000.devices:
-            self.logger.warning('Unknown ET-7000 device type %s' % hex(self.name))
+        # read module type
+        self.type = self.read_module_name()
+        self.type_str = hex(self.type).replace('0x', '')
+        if self.type not in ET7000.devices:
+            self.logger.warning('Unknown ET-7000 device type_str %s' % hex(self.type))
         # ai
         self.ai_n = self.ai_read_n()
         self.ai_masks = self.ai_read_masks()
         self.ai_ranges = self.ai_read_ranges()
-        self.ai_raw = [0] * self.ai_n
-        self.ai_values = [float('nan')] * self.ai_n
         self.ai_units = [''] * self.ai_n
+        self.ai_convert = [lambda :x x] * self.ai_n
+        self.ai_min = [0.0] * self.ai_n
+        self.ai_max = [0.0] * self.ai_n
         for i in range(self.ai_n):
             try:
                 rng = ET7000.ranges[self.ai_ranges[i]]
             except:
                 rng = ET7000.ranges[0xff]
             self.ai_units[i] = rng['units']
-            self.ai_convert[i] = ET7000.ai_convert_function(r)
+            self.ai_min[i] = rng['min']
+            self.ai_max[i] = rng['max']
+            self.ai_convert[i] = ET7000.ai_convert_function(rng)
         # ao
         self.ao_n = self.ao_read_n()
-        self.ao_masks = [True] * self.ao_n
-        self.ao_read_masks()
-        self.ao_ranges = [0xff] * self.ao_n
-        self.ao_read_ranges()
+        self.ao_masks = self.ao_read_masks()
+        self.ao_ranges = self.ao_read_ranges()
         self.ao_raw = [0] * self.ao_n
         self.ao_write_raw_values = [0] * self.ao_n
         self.ao_values = [float('nan')] * self.ao_n
@@ -634,13 +630,13 @@ class ET7000:
         return 0
 
     def ao_read_masks(self):
-        return self.ao_masks
+        return [True] * self.ao_n
 
     def ao_read_ranges(self):
         regs = self.client.read_holding_registers(459, self.ao_n)
         if regs and len(regs) == self.ao_n:
-            self.ao_ranges = regs
-        return regs
+            return regs
+        return [0xff] * self.ao_n
 
     def ao_read_raw(self, channel=None):
         if channel is None:
@@ -687,12 +683,14 @@ class ET7000:
         return regs
 
     def ao_read_channel(self, k: int):
-        v = float('nan')
-        if self.ao_masks[k]:
-            regs = self.client.read_holding_registers(0 + k, 1)
-            if regs:
-                v = self.ao_convert[k](regs[0])
-                self.ao_values[k] = v
+        v = NaN
+        try:
+            if self.ao_masks[k]:
+                regs = self.client.read_holding_registers(0 + k, 1)
+                if regs:
+                    v = self.ao_convert[k](regs[0])
+        except:
+            pass
         return v
 
     def ao_write(self, values):
@@ -780,10 +778,10 @@ if __name__ == "__main__":
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), ET7000.ranges[r]['max'])
     ip = '192.168.1.122'
     et = ET7000(ip)
-    if et.name == 0:
+    if et.type == 0:
         print('ET7000 not found at %s' % ip)
     else:
-        print('ET7000 series %s at %s' % (hex(et.name), ip))
+        print('ET7000 series %s at %s' % (hex(et.type), ip))
         print('----------------------------------------')
         print('%d ai' % et.ai_n)
         et.ai_read()

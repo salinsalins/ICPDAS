@@ -236,10 +236,10 @@ if __name__ == "__main__":
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), ET7000.ranges[r]['max'])
     ip = '192.168.1.122'
     et = ET7000(ip)
-    if et.name == 0:
+    if et.type == 0:
         print('ET7000 not found at %s' % ip)
     else:
-        print('ET7000 series %s at %s' % (hex(et.name), ip))
+        print('ET7000 series %s at %s' % (hex(et.type), ip))
         print('----------------------------------------')
         print('%d ai' % et.ai_n)
         et.ai_read()

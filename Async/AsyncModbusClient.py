@@ -17,19 +17,19 @@ class AsyncModbusClient(ModbusClient):
         Use functions avoid to launch ValueError except if params is incorrect.
 
         :param host: hostname or IPv4/IPv6 address server address (optional)
-        :type host: str
+        :type_str host: str
         :param port: TCP port number (optional)
-        :type port: int
+        :type_str port: int
         :param unit_id: unit ID (optional)
-        :type unit_id: int
+        :type_str unit_id: int
         :param timeout: socket timeout in seconds (optional)
-        :type timeout: float
+        :type_str timeout: float
         :param debug: debug state (optional)
-        :type debug: bool
+        :type_str debug: bool
         :param auto_open: auto TCP connect (optional)
-        :type auto_open: bool
+        :type_str auto_open: bool
         :param auto_close: auto TCP close (optional)
-        :type auto_close: bool
+        :type_str auto_close: bool
         :return: Object ModbusClient
         :rtype: ModbusClient
         :raises ValueError: if a set parameter value is incorrect
@@ -85,9 +85,9 @@ class AsyncModbusClient(ModbusClient):
         """Modbus function READ_HOLDING_REGISTERS (0x03)
 
         :param reg_addr: register address (0 to 65535)
-        :type reg_addr: int
+        :type_str reg_addr: int
         :param reg_nb: number of registers to read (1 to 125)
-        :type reg_nb: int
+        :type_str reg_nb: int
         :returns: registers list or None if fail
         :rtype: list of int or None
         """
