@@ -400,29 +400,6 @@ class ET7000:
     }
 
     @staticmethod
-    def range(r):
-        if r in ET7000.ranges:
-            return (ET7000.ranges[r])
-        return ET7000.ranges[0xff]
-
-    # default conversion from quanta to real units
-    @staticmethod
-    def convert_from_raw(bit_code, min_code, max_code):
-        bit_code = float(bit_code)
-        # обрабатывается 2 случая - минимум нулевой или больше 0
-        if min_code >= 0 and max_code > 0:
-            return min_code + (max_code - min_code) * bit_code / 0xffff
-        # и минимум  и максимум разного знака
-        if min_code < 0 and max_code > 0:
-            range = max(-min_code, max_code)
-            if bit_code <= 0x7fff:
-                return range * bit_code / 0x7fff
-            else:
-                return range * (0x8000 - bit_code) / 0x8000
-        # в других случаях ошибка
-        return float('nan')
-
-    @staticmethod
     def ai_convert_function(r):
         v_min = 0
         v_max = 0xffff
@@ -466,22 +443,6 @@ class ET7000:
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
         return lambda x: int(k_max * x) if (x >= 0) else int(0xffff - k_min * x)
 
-    @staticmethod
-    # Legacy. Did nut used here.
-    def convert_to_raw(v, amin, amax):
-        v = float(v)
-        # обрабатывается 2 случая - минимум нулевой или больше 0
-        if amin >= 0 and amax > 0:
-            return int((v - amin) / (amax - amin) * 0xffff)
-        # и минимум  и максимум разного знака
-        if amin < 0 and amax > 0:
-            if v >= 0.0:
-                return int(v * 0x7fff / amax)
-            else:
-                return int(0x8000 - v / amax * 0x7fff)
-        # в других случаях ошибка
-        return 0
-
     def __init__(self, host: str, port=502, timeout=0.15, logger=None):
         self.host = host
         self.port = port
@@ -493,6 +454,12 @@ class ET7000:
         self.type = 0
         self.type_str = '0000'
         # default ai
+        self.ai_n = 0
+        self.ai_masks = []
+        self.ai_ranges = []
+        self.ai_min = []
+        self.ai_max = []
+        self.ai_units = []
         # default ao
         self.ao_n = 0
         self.ao_masks = []
@@ -500,71 +467,58 @@ class ET7000:
         self.ao_min = []
         self.ao_max = []
         self.ao_units = []
-        self.ao_raw = []
-        self.ao_values = []
-        self.ao_write_raw_values = []
-        self.ao_write_values = []
-        self.ao_write_result = False
         # default di
         self.di_n = 0
-        self.di_values = []
         # default do
         self.do_n = 0
-        self.do_values = []
         # modbus client
         self.client = ModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
-        status = self.client.open()
-        if not status:
-            self.logger.error('ET-7000 device at %s is offline' % host)
+        self.is_open = self.client.open()
+        if not self.is_open:
+            self.logger.error('ET-7xxx device at %s is offline' % host)
             return
         # read module type
-        self.type = self.read_module_name()
+        self.type = self.read_module_type()
         self.type_str = hex(self.type).replace('0x', '')
         if self.type not in ET7000.devices:
-            self.logger.warning('Unknown ET-7000 device type_str %s' % hex(self.type))
+            self.logger.debug('Unknown ET-7xxx device type ET-%s' % self.type_str)
         # ai
         self.ai_n = self.ai_read_n()
         self.ai_masks = self.ai_read_masks()
         self.ai_ranges = self.ai_read_ranges()
         self.ai_units = [''] * self.ai_n
-        self.ai_convert = [lambda :x x] * self.ai_n
+        self.ai_convert = [lambda x: x] * self.ai_n
         self.ai_min = [0.0] * self.ai_n
         self.ai_max = [0.0] * self.ai_n
         for i in range(self.ai_n):
-            try:
-                rng = ET7000.ranges[self.ai_ranges[i]]
-            except:
-                rng = ET7000.ranges[0xff]
-            self.ai_units[i] = rng['units']
-            self.ai_min[i] = rng['min']
-            self.ai_max[i] = rng['max']
-            self.ai_convert[i] = ET7000.ai_convert_function(rng)
+            r = self.ai_ranges.get(i, 0xff)
+            self.ai_units[i] = ET7000.ranges[r]['units']
+            self.ai_min[i] = ET7000.ranges[r]['min']
+            self.ai_max[i] = ET7000.ranges[r]['max']
+            self.ai_convert[i] = ET7000.ai_convert_function(r)
         # ao
         self.ao_n = self.ao_read_n()
         self.ao_masks = self.ao_read_masks()
         self.ao_ranges = self.ao_read_ranges()
-        self.ao_raw = [0] * self.ao_n
-        self.ao_write_raw_values = [0] * self.ao_n
-        self.ao_values = [float('nan')] * self.ao_n
-        self.ao_write_values = [float('nan')] * self.ao_n
         self.ao_units = [''] * self.ao_n
-        self.ao_write = [0] * self.ao_n
+        self.ai_min = [0.0] * self.ao_n
+        self.ai_max = [0.0] * self.ao_n
         self.ao_convert = [lambda x: x] * self.ai_n
         self.ao_convert_write = [lambda x: 0] * self.ai_n
         for i in range(self.ao_n):
-            r = self.ao_ranges[i]
+            r = self.ai_ranges.get(i, 0xff)
             self.ao_units[i] = ET7000.ranges[r]['units']
+            self.ao_min[i] = ET7000.ranges[r]['min']
+            self.ao_max[i] = ET7000.ranges[r]['max']
             self.ao_convert[i] = ET7000.ai_convert_function(r)  # !!! ai_convert for reading
             self.ao_convert_write[i] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
         # di
         self.di_n = self.di_read_n()
-        self.di_values = [False] * self.di_n
         # do
         self.do_n = self.do_read_n()
-        self.do_values = [False] * self.do_n
-        self.do_write = [False] * self.do_n
+        self.logger.debug('ET-%s at %s has been created' % (self.type_str, host))
 
-    def read_module_name(self):
+    def read_module_type(self):
         regs = self.client.read_holding_registers(559, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -595,7 +549,9 @@ class ET7000:
             return regs
         return [0xff] * self.ai_n
 
-    def ai_read(self):
+    def ai_read(self, channel=None):
+        if channel is not None:
+            return self.ai_read_channel(channel)
         n = self.ai_n
         result = self.client.read_input_registers(0, n)
         if result and len(result) == n:
@@ -638,41 +594,9 @@ class ET7000:
             return regs
         return [0xff] * self.ao_n
 
-    def ao_read_raw(self, channel=None):
-        if channel is None:
-            n = self.ao_n
-            channel = 0
-        else:
-            n = 1
-        regs = self.client.read_holding_registers(0 + channel, n)
-        if regs and len(regs) == n:
-            self.ao_raw[channel:channel + n] = regs
-        if n == 1:
-            return regs[0]
-        return regs
-
-    def ao_write_raw(self, regs):
-        result = self.client.write_multiple_registers(0, regs)
-        self.ao_write_result = result
-        if len(regs) == self.ao_n:
-            self.ao_write_raw_values = regs
-        return result
-
-    def ao_convert_from_raw(self):
-        raw = self.ao_raw
-        for k in range(self.ao_n):
-            self.ao_values[k] = self.ao_convert[k](raw[k])
-        return self.ao_values
-
-    def ao_convert_to_raw(self, values=None):
-        if values is None:
-            values = self.ao_write_values
-        answer = []
-        for k in range(len(values)):
-            answer.append(self.ao_convert_write[k](values[k]))
-        return answer
-
-    def ao_read(self):
+    def ao_read(self, channel=None):
+        if channel is not None:
+            return self.ao_read_channel(channel)
         n = self.ao_n
         regs = self.client.read_holding_registers(0, n)
         if regs and len(regs) == n:
@@ -694,20 +618,20 @@ class ET7000:
         return v
 
     def ao_write(self, values):
-        self.ao_write_values = values
-        regs = ET7000.ao_convert_to_raw(values)
-        result = self.ao_write_raw_values(regs)
-        return result
+        if len(values) != self.ao_n:
+            return False
+        regs = [self.ao_convert_write[i](v) for i, v in enumerate(values)]
+        result = self.client.write_multiple_registers(0, regs)
+        if result:
+            return True
+        return False
 
     def ao_write_channel(self, k: int, value):
-        raw = self.ao_convert_write[k](value)
+        raw = self.ao_convert_write[k](float(value))
         result = self.client.write_single_register(0 + k, raw)
-        self.ao_write_result = result
         if result:
-            self.ao_write_values[k] = value
-            self.ao_write_raw_values[k] = raw
-            pass
-        return result
+            return True
+        return False
 
     # DI functions
     def di_read_n(self):
@@ -719,22 +643,22 @@ class ET7000:
             return regs[0]
         return 0
 
-    def di_read(self):
+    def di_read(self, channel=None):
+        if channel is not None:
+            return self.di_read_channel(channel)
         regs = self.client.read_discrete_inputs(0, self.di_n)
-        if regs:
-            self.di_values = regs
-        return self.di_values
+        if regs and len(regs) == self.di_n:
+            return regs
+        return [None] * self.di_n
 
     def di_read_channel(self, k: int):
         reg = self.client.read_discrete_inputs(0 + k, 1)
         if reg:
-            self.di_values[k] = reg[0]
             return reg[0]
         return None
 
     # DO functions
     def do_read_n(self):
-        self.DO_time = time.time()
         regs = self.client.read_input_registers(310, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -743,30 +667,31 @@ class ET7000:
             return regs[0]
         return 0
 
-    def do_read(self):
-        regs = self.client.read_coils(0, self.di_n)
-        if regs:
-            self.di_values = regs
-        return self.di_values
+    def do_read(self, channel=None):
+        if channel is not None:
+            return self.do_read_channel(channel)
+        regs = self.client.read_coils(0, self.do_n)
+        if regs and len(regs) == self.do_n:
+            return regs
+        return [None] * self.do_n
 
     def do_read_channel(self, k: int):
         reg = self.client.read_coils(0 + k, 1)
         if reg:
-            self.do_values[k] = reg[0]
             return reg[0]
         return None
 
     def do_write(self, values):
-        self.do_write = values
-        self.DO_write_result = self.client.write_multiple_coils(0, values)
-        return self.DO_write_result
+        result = self.client.write_multiple_coils(0, values)
+        if result:
+            return True
+        return False
 
     def do_write_channel(self, k: int, value: bool):
         result = self.client.write_single_coil(0 + k, value)
-        self.DO_write_result = result
         if result:
-            self.do_write[k] = value
-        return result
+            return result
+        return False
 
 
 if __name__ == "__main__":

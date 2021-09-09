@@ -69,7 +69,7 @@ class ET7000_Server(TangoServerPrototype):
             self.et.client.auto_close(False)
             # wait for device initiate after possible reboot
             t0 = time.time()
-            while self.et.read_module_name() == 0:
+            while self.et.read_module_type() == 0:
                 if time.time() - t0 > 5.0:
                     self.logger.error('Device %s is not ready' % self)
                     self.set_state(DevState.FAULT)
