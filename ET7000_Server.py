@@ -21,36 +21,25 @@ class ET7000_Server(TangoServerPrototype):
     server_version = '3.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
-    device_type = attribute(label="type_str", dtype=str,
+    device_type = attribute(label="device_type", dtype=str,
                             display_level=DispLevel.OPERATOR,
                             access=AttrWriteType.READ,
                             unit="", format="%s",
-                            doc="ET7000 device type_str. 0x0 - unknown or offline")
+                            doc="ET7000 device type. 0x0000 - unknown or offline")
 
     def init_device(self):
         super().init_device()
 
     def set_config(self):
         super().set_config()
-        if not hasattr(self, 'attributes'):
-            self.attributes = {}
-        try:
-            self.et.client.close()
-        except:
-            pass
-        ET7000_Server.logger = self.logger
+        self.attributes = {}
         self.et = None
         self.ip = None
         self.error_count = 0
-        self.time = None
-        self.device_type = 0
-        self.device_type_str = '0000'
-        self.device_name = self.get_name()
+        self.time = time.time()
         self.reconnect_timeout = self.config.get('reconnect_timeout', 5000.0)
         self.show_disabled_channels = self.self.config.get('show_disabled_channels', False)
-
         self.set_state(DevState.INIT)
-        Device.init_device(self)
         # get ip from property
         ip = self.config.get('ip', '192.168.1.122')
         # check if ip is in use
@@ -64,109 +53,101 @@ class ET7000_Server(TangoServerPrototype):
         self.ip = ip
         try:
             # create ICP DAS device
-            et = ET7000(ip, logger=self.logger)
-            self.et = et
+            self.et = ET7000(ip, logger=self.logger)
             self.et.client.auto_close(False)
             # wait for device initiate after possible reboot
             t0 = time.time()
             while self.et.read_module_type() == 0:
                 if time.time() - t0 > 5.0:
-                    self.logger.error('Device %s is not ready' % self)
+                    self.logger.error('Device %s is not ready' % self.get_name())
                     self.set_state(DevState.FAULT)
                     return
-            self.device_type = self.et.type
-            self.device_type_str = self.et.type_str
             # add device to list
             ET7000_Server.device_list.append(self)
-            msg = '%s ET-%s at %s has been created' % (self.device_name, self.device_type_str, ip)
+            msg = '%s ET-%s at %s has been created' % (self.get_name(), self.et.type_str, ip)
             self.logger.info(msg)
             self.info_stream(msg)
             # check if device type_str is recognized
-            if self.device_type != 0:
+            if self.et.type != 0:
                 # set state to running
                 self.set_state(DevState.RUNNING)
             else:
                 # unknown device type_str
-                msg = '%s ET-%s ERROR - unknown device type_str' % (self.device_name, self.device_type_str)
+                msg = '%s ET-%s ERROR - unknown device type' % (self.get_name(), self.et.type_str)
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
-                self.disconnect(force=True)
+                self.disconnect(True)
         except:
             self.et = None
             self.ip = None
-            self.device_type = 0
             self.disconnect(True)
-            msg = '%s ERROR init device' % self.device_name
-            self.logger.debug('', exc_info=True)
-            self.logger.error(msg)
+            msg = '%s ERROR init device' % self.get_name()
+            self.log_exception(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
 
     def delete_device(self):
-        with self._lock:
-            try:
-                self.et.client.close()
-            except:
-                pass
-            self.et = None
-            self.ip = None
-            if self in ET7000_Server.devices:
-                ET7000_Server.device_list.remove(self)
-            msg = '%s Device has been deleted' % self.device_name
-            self.logger.info(msg)
-            self.info_stream(msg)
+        try:
+            self.et.client.close()
+        except:
+            pass
+        self.et = None
+        self.ip = None
+        if self in ET7000_Server.devices:
+            ET7000_Server.device_list.remove(self)
+        msg = '%s Device has been deleted' % self.get_name()
+        self.logger.info(msg)
+        self.info_stream(msg)
 
     def read_device_type(self):
-        with self._lock:
-            return self.device_type_str
+        return self.et.type_str
 
     def read_general(self, attr: tango.Attribute):
-        with self._lock:
-            attr_name = attr.get_name()
-            # self.logger.debug('read_general entry %s %s', self.device_name, attr_name)
-            if not self.is_connected():
-                self.set_error_attribute_value(attr)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s Waiting for reconnect' % (self.device_name, attr_name)
-                self.logger.debug(msg)
-                self.debug_stream(msg)
-                return float('nan')
-            chan = int(attr_name[-2:])
-            ad = attr_name[:2]
-            mask = True
-            if ad == 'ai':
-                val = self.et.ai_read_channel(chan)
-                mask = self.et.ai_masks[chan]
-            elif ad == 'di':
-                val = self.et.di_read_channel(chan)
-            elif ad == 'do':
-                val = self.et.do_read_channel(chan)
-            elif ad == 'ao':
-                val = self.et.ao_read_channel(chan)
-                mask = self.et.ao_masks[chan]
-            else:
-                msg = "%s Read unknown attribute %s" % (self.device_name, attr_name)
+        # self.logger.debug('entry %s %s', self.device_name, attr_name)
+        attr_name = attr.get_name()
+        if not self.is_connected():
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            msg = '%s %s Waiting for reconnect' % (self.device_name, attr_name)
+            self.logger.debug(msg)
+            self.debug_stream(msg)
+            return float('nan')
+        chan = int(attr_name[-2:])
+        ad = attr_name[:2]
+        mask = True
+        if ad == 'ai':
+            val = self.et.ai_read_channel(chan)
+            mask = self.et.ai_masks[chan]
+        elif ad == 'di':
+            val = self.et.di_read_channel(chan)
+        elif ad == 'do':
+            val = self.et.do_read_channel(chan)
+        elif ad == 'ao':
+            val = self.et.ao_read_channel(chan)
+            mask = self.et.ao_masks[chan]
+        else:
+            msg = "%s Read unknown attribute %s" % (self.get_name(), attr_name)
+            self.logger.error(msg)
+            self.error_stream(msg)
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            return float('nan')
+        if val is not None and not math.isnan(val):
+            self.time = None
+            self.error_count = 0
+            attr.set_value(val)
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+            return val
+        else:
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            if mask:
+                msg = "%s Error reading %s %s" % (self.device_name, attr_name, val)
                 self.logger.error(msg)
                 self.error_stream(msg)
-                self.set_error_attribute_value(attr)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                return float('nan')
-            if val is not None and not math.isnan(val):
-                self.time = None
-                self.error_count = 0
-                attr.set_value(val)
-                attr.set_quality(tango.AttrQuality.ATTR_VALID)
-                return val
-            else:
-                self.set_error_attribute_value(attr)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                if mask:
-                    msg = "%s Error reading %s %s" % (self.device_name, attr_name, val)
-                    self.logger.error(msg)
-                    self.error_stream(msg)
-                    self.disconnect()
-                return float('nan')
+                self.disconnect()
+            return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
         with self._lock:
@@ -484,23 +465,6 @@ class ET7000_Server(TangoServerPrototype):
         elif attr.get_data_format() == tango.DevDouble:
             attr.set_value(float('nan'))
 
-    def get_device_property(self, prop: str, default=None):
-        # read property
-        pr = self.dp.get_property(prop)[prop]
-        result = None
-        if len(pr) > 0:
-            result = pr[0]
-        if default is None:
-            return result
-        try:
-            if result is None or result == '':
-                result = default
-            else:
-                result = type(default)(result)
-        except:
-            pass
-        return result
-
     # def get_attribute_property(self, attr_name: str, prop_name: str):
     #     device_name = self.get_name()
     #     databse = self.database
@@ -521,39 +485,11 @@ class ET7000_Server(TangoServerPrototype):
     #         #self.logger.warning('', exc_info=True)
     #         pass
 
+    def initialize_dynamic_attributes(self):
+        # self.logger.error('-------- entry -----')
+        self.add_io()
 
-def time_ms():
-    t = time.time()
-    return time.strftime('%H:%M:%S') + (',%3d' % int((t - int(t)) * 1000.0))
-
-
-def post_init_callback():
-    # util = tango.Util.instance()
-    # devices = util.get_device_list('*')
-    for dev in ET7000_Server.devices:
-        # print(dev)
-        # if hasattr(dev, 'add_io'):
-        dev.add_io()
-        # print(' ')
-
-
-def looping():
-    # ET7000_Server.logger.debug('loop entry')
-    time.sleep(5.0)
-    # ET7000_Server.logger.debug('loop 2')
-    all_connected = True
-    for dev in ET7000_Server.devices:
-        # ET7000_Server.logger.debug('loop 3 %s', dev.device_name)
-        dev.reconnect()
-        all_connected = all_connected and dev.is_connected()
-        ET7000_Server.logger.debug('loop: %s all_connected=%s' % (dev.device_name, all_connected))
-        # print(dev, all_connected)
-    # ET7000_Server.logger.debug('loop exit')
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 3:
-    # print("Usage: python ET7000_Server.py device_name ip_address")
-    # exit(-1)
-    ET7000_Server.run_server(post_init_callback=post_init_callback, event_loop=looping)
-    # ET7000_Server.run_server(post_init_callback=post_init_callback)
+    ET7000_Server.run_server()

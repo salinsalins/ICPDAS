@@ -491,7 +491,7 @@ class ET7000:
         self.ai_min = [0.0] * self.ai_n
         self.ai_max = [0.0] * self.ai_n
         for i in range(self.ai_n):
-            r = self.ai_ranges.get(i, 0xff)
+            r = self.ai_ranges[i]
             self.ai_units[i] = ET7000.ranges[r]['units']
             self.ai_min[i] = ET7000.ranges[r]['min']
             self.ai_max[i] = ET7000.ranges[r]['max']
@@ -506,7 +506,7 @@ class ET7000:
         self.ao_convert = [lambda x: x] * self.ai_n
         self.ao_convert_write = [lambda x: 0] * self.ai_n
         for i in range(self.ao_n):
-            r = self.ai_ranges.get(i, 0xff)
+            r = self.ai_ranges[i]
             self.ao_units[i] = ET7000.ranges[r]['units']
             self.ao_min[i] = ET7000.ranges[r]['min']
             self.ao_max[i] = ET7000.ranges[r]['max']
