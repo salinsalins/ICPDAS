@@ -15,6 +15,7 @@ from tango.server import Device, attribute, command, pipe, device_property
 from ET7000 import FakeET7000 as ET7000
 # from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
+from TangoUtils import config_logger
 
 
 class ET7000_Server(TangoServerPrototype):
@@ -34,6 +35,9 @@ class ET7000_Server(TangoServerPrototype):
                    doc="ET7000 device IP address")
 
     def init_device(self):
+        if self in ET7000_Server.device_list:
+            self.logger.info('delete')
+            self.delete_device()
         super().init_device()
         self.time = None
 
@@ -43,7 +47,7 @@ class ET7000_Server(TangoServerPrototype):
         self.et = None
         self.ip = None
         self.error_count = 0
-        self.time = time.time()
+        self.time = None
         self.reconnect_timeout = self.config.get('reconnect_timeout', 5000.0)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
         self.set_state(DevState.INIT)
@@ -84,24 +88,24 @@ class ET7000_Server(TangoServerPrototype):
                 self.logger.error(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
-                self.disconnect(True)
         except:
             self.et = None
             self.ip = None
-            self.disconnect(True)
             msg = '%s ERROR init device' % self.get_name()
             self.log_exception(msg)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
 
     def delete_device(self):
+        self.remove_io()
         try:
             self.et.client.close()
         except:
             pass
         self.et = None
         self.ip = None
-        if self in ET7000_Server.devices:
+        super().delete_device()
+        if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
         msg = '%s Device has been deleted' % self.get_name()
         self.logger.info(msg)
@@ -156,19 +160,17 @@ class ET7000_Server(TangoServerPrototype):
                 msg = "%s Error reading %s %s" % (self.get_name(), attr_name, val)
                 self.logger.error(msg)
                 self.error_stream(msg)
-                self.disconnect()
             return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
         attr_name = attr.get_name()
         if not self.is_connected():
-            if not self.is_connected():
-                self.set_error_attribute_value(attr)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-                self.logger.debug(msg)
-                self.debug_stream(msg)
-                return
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
+            self.logger.debug(msg)
+            self.debug_stream(msg)
+            return
         value = attr.get_write_value()
         chan = int(attr_name[-2:])
         ad = attr_name[:2]
@@ -196,89 +198,31 @@ class ET7000_Server(TangoServerPrototype):
                 self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                self.disconnect()
 
     @command
-    def Reconnect(self):
-        msg = '%s Reconnecting ...' % self.get_name()
-        self.logger.info(msg)
-        self.info_stream(msg)
-        # self.remove_io()
+    def reconnect(self):
+        self.delete_device()
         self.init_device()
         self.add_io()
-
-    def add_attribute_2(self, attr, r_meth=None, w_meth=None):
-        # try:
-        if r_meth is None:
-            r_meth = self.read_general
-        if w_meth is None:
-            w_meth = self.write_general
-        attr_name = attr.get_name()
-        mattrib = self.get_device_attr()
-        try:
-            mattrib.get_attr_by_name(attr_name)
-            self.logger.debug('%s attribute %s exists' % (self.get_name(), attr_name))
-            return
-        except:
-            self.logger.debug("Exception:", exc_info=True)
-        self.add_attribute(attr, r_meth, w_meth=w_meth)
-        self.attributes[attr.get_name()] = attr
-        self.logger.debug('%s attribute %s has been created' % (self.get_name(), attr_name))
-
-    # except:
-    #     msg = '%s Exception creating attribute %s' % (self.get_name(), attr_name)
-    #     self.logger.info(msg)
-    #     self.logger.debug('', exc_info=True)
-    #     self.info_stream(msg)
-
-    def configure_attribute(self, attr_name, rng):
-        ac_old = None
-        if hasattr(self, 'old_config') and attr_name in self.old_config:
-            ac_old = self.old_config[attr_name]
-        elif hasattr(self, 'config') and attr_name in self.config:
-            ac_old = self.config[attr_name]
-        ac = self.dp.get_attribute_config_ex(attr_name)[0]
-        if ac.unit is None or '' == ac.unit:
-            ac.unit = str(rng['units'])
-        ac.min_value = str(rng['min'])
-        ac.max_value = str(rng['max'])
-        if ac_old is not None:
-            if ac.label is None or '' == ac.label:
-                ac.label = ac_old.label
-            if ac.display_unit is None or '' == ac.display_unit:
-                ac.display_unit = ac_old.display_unit
-            if ac.format is None or '' == ac.format:
-                ac.format = ac_old.format
-        if ac.display_unit is None or '' == ac.display_unit:
-            msg = '%s %s display_units is empty' % (self, attr_name)
-            self.debug_stream(msg)
-            self.logger.warning(msg)
-        self.dp.set_attribute_config(ac)
-        self.config[attr_name] = ac
+        msg = '%s Reconnected' % self.get_name()
+        self.logger.info(msg)
+        self.info_stream(msg)
 
     def add_io(self):
         try:
-            if self.device_type == 0:
+            if self.et.type == 0:
                 msg = '%s No IO attributes added for unknown device' % self.get_name()
                 self.logger.warning(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
-                self.disconnect(force=True)
                 return
-            msg = '%s ET%s at %s IO initialization' % (self.get_name(), self.et.type_str, self.ip)
-            self.debug_stream(msg)
-            self.logger.debug(msg)
             self.set_state(DevState.INIT)
-            # device proxy
-            name = self.get_name()
-            # dp = tango.DeviceProxy(type)
-            # initialize ai, ao, di, do attributes
+            attr_name = ''
             # ai
             nai = 0
             if self.et.ai_n > 0:
                 for k in range(self.et.ai_n):
                     try:
-                        print(self.et.ai_units[k], self.et.ai_max[k])
                         attr_name = 'ai%02d' % k
                         if self.et.ai_masks[k] or self.show_disabled_channels:
                             attr = tango.server.attribute(name=attr_name, dtype=float,
@@ -299,13 +243,11 @@ class ET7000_Server(TangoServerPrototype):
                             # self.restore_polling(attr_name)
                             nai += 1
                         else:
-                            self.logger.info('%s is switched off', attr_name)
+                            self.logger.info('%s is disabled', attr_name)
                     except:
-                        msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
+                        msg = '%s Exception adding AI %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
-                        self.disconnect(force=True)
-                        return
                 msg = '%d of %d analog inputs initialized' % (nai, self.et.ai_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -334,13 +276,11 @@ class ET7000_Server(TangoServerPrototype):
                             # self.restore_polling(attr_name)
                             nao += 1
                         else:
-                            self.logger.info('%s is switched off', attr_name)
+                            self.logger.info('%s is disabled', attr_name)
                     except:
-                        msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
+                        msg = '%s Exception adding AO %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
-                        self.disconnect(force=True)
-                        return
                 msg = '%d of %d analog outputs initialized' % (nao, self.et.ao_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -368,8 +308,6 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
-                        self.disconnect(force=True)
-                        return
                 msg = '%d digital inputs initialized' % ndi
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -398,8 +336,6 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
-                        self.disconnect(force=True)
-                        return
                 msg = '%d digital outputs initialized' % ndo
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -410,22 +346,14 @@ class ET7000_Server(TangoServerPrototype):
             self.logger.debug('', exc_info=True)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
-            self.disconnect(force=True)
             return
 
     def remove_io(self):
         try:
-            atts = self.get_device_attr()
-            n = atts.get_attr_nb()
-            for k in range(n):
-                at = atts.get_attr_by_ind(k)
-                attr_name = at.get_name()
-                io = attr_name[-4:-2]
-                # print(io)
-                if io == 'ai' or io == 'ao' or io == 'di' or io == 'do':
-                    # print('Removing', attr_name)
-                    self.remove_attribute(attr_name)
-                    self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
+            for attr_name in self.attributes:
+                self.remove_attribute(attr_name)
+                self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
+            self.attributes = {}
             self.set_state(DevState.UNKNOWN)
         except:
             msg = '%s Error deleting IO channels' % self.get_name()
@@ -435,51 +363,9 @@ class ET7000_Server(TangoServerPrototype):
             # self.set_state(DevState.FAULT)
 
     def is_connected(self):
-        if self.device_type == 0 or self.time is not None or self.et is None:
+        if self.et is None or self.et.type == 0:
             return False
         return True
-
-    def reconnect(self, force=False):
-        # with self._lock:
-        # self.logger.debug('reconnect entry')
-        if not force and self.is_connected():
-            self.logger.debug('%s already connected' % self.get_name())
-            return
-        if self.time is None:
-            self.time = time.time()
-        if force or ((time.time() - self.time) > self.reconnect_timeout / 1000.0):
-            self.Reconnect()
-            if not self.is_connected():
-                self.time = time.time()
-                self.et = None
-                self.error_count = 0
-                msg = '%s Reconnection error' % self.get_name()
-                self.logger.info(msg)
-                self.info_stream(msg)
-                return
-            msg = '%s Reconnected successfully' % self.get_name()
-            self.logger.debug(msg)
-            self.debug_stream(msg)
-
-    def disconnect(self, force=False):
-        if not force and self.time is not None:
-            msg = "%s already disconnected" % self.get_name()
-            self.logger.debug(msg)
-            return
-        self.error_count += 1
-        if not force and self.error_count < 3:
-            return
-        try:
-            self.et.client.close()
-        except:
-            pass
-        self.time = time.time()
-        self.et = None
-        self.error_count = 0
-        msg = "%s Disconnected" % self.get_name()
-        self.logger.debug(msg)
-        self.debug_stream(msg)
-        return
 
     def set_error_attribute_value(self, attr: tango.Attribute):
         if attr.get_data_format() == tango.DevBoolean:
