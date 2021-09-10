@@ -161,7 +161,6 @@ class ET7000_Server(TangoServerPrototype):
             return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
-        self.logger.debug('---entry---')
         attr_name = attr.get_name()
         if not self.is_connected():
             self.set_error_attribute_value(attr)

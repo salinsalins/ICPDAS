@@ -688,10 +688,10 @@ class FakeET7000(ET7000):
             self.is_open = False
             self.count = 0
             self.holding_registers = [0] * 6
-            self.coils = [0] * 6
+            self.coils = [True] * 6
             self.data = {
                 320: 6,
-                595: 1,
+                595: True,
                 559: 0x7026,
                 427: 4,
                 459: 0x33,
@@ -714,7 +714,9 @@ class FakeET7000(ET7000):
             return [self.get_count() for i in range(m)]
 
         def read_coils(self, n, m):
-            return [self.data[n]] * m
+            if n in self.data:
+                return [self.data[n]] * m
+            return self.coils[:m]
 
         def write_single_register(self, n, m):
             if n < 6:
@@ -729,7 +731,7 @@ class FakeET7000(ET7000):
 
         def write_single_coil(self, n, m):
             if n < 6:
-                self.coils[n] = m
+                self.coils[n] = bool(m)
             return True
 
         def write_multiple_coils(self, n, m):
@@ -737,6 +739,9 @@ class FakeET7000(ET7000):
             if n < 6 and n2 < 6:
                 self.coils[n:n2] = m
             return True
+
+        def read_discrete_inputs(self, n, m):
+            return [True] * m
 
         def auto_close(self, x):
             return x
