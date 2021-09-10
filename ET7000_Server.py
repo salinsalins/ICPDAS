@@ -36,10 +36,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def init_device(self):
         if self in ET7000_Server.device_list:
-            self.logger.info('delete')
             self.delete_device()
         super().init_device()
-        self.time = None
 
     def set_config(self):
         super().set_config()
@@ -163,6 +161,7 @@ class ET7000_Server(TangoServerPrototype):
             return float('nan')
 
     def write_general(self, attr: tango.WAttribute):
+        self.logger.debug('---entry---')
         attr_name = attr.get_name()
         if not self.is_connected():
             self.set_error_attribute_value(attr)
@@ -229,7 +228,7 @@ class ET7000_Server(TangoServerPrototype):
                                                           dformat=tango.AttrDataFormat.SCALAR,
                                                           access=tango.AttrWriteType.READ,
                                                           max_dim_x=1, max_dim_y=0,
-                                                          fread=self.read_general,
+                                                          fget=self.read_general,
                                                           label=attr_name,
                                                           doc='Analog input %s' % k,
                                                           unit=self.et.ai_units[k],
@@ -262,8 +261,8 @@ class ET7000_Server(TangoServerPrototype):
                                                           dformat=tango.AttrDataFormat.SCALAR,
                                                           access=tango.AttrWriteType.READ_WRITE,
                                                           max_dim_x=1, max_dim_y=0,
-                                                          fread=self.read_general,
-                                                          fwrite=self.write_general,
+                                                          fget=self.read_general,
+                                                          fset=self.write_general,
                                                           label=attr_name,
                                                           doc='Analog output %s' % k,
                                                           unit=self.et.ao_units[k],
@@ -294,7 +293,7 @@ class ET7000_Server(TangoServerPrototype):
                                                       dformat=tango.AttrDataFormat.SCALAR,
                                                       access=tango.AttrWriteType.READ,
                                                       max_dim_x=1, max_dim_y=0,
-                                                      fread=self.read_general,
+                                                      fget=self.read_general,
                                                       label=attr_name,
                                                       doc='Digital input %s' % k,
                                                       unit='',
@@ -321,8 +320,8 @@ class ET7000_Server(TangoServerPrototype):
                                                       dformat=tango.AttrDataFormat.SCALAR,
                                                       access=tango.AttrWriteType.READ_WRITE,
                                                       max_dim_x=1, max_dim_y=0,
-                                                      fread=self.read_general,
-                                                      fwrite=self.write_general,
+                                                      fget=self.read_general,
+                                                      fset=self.write_general,
                                                       label=attr_name,
                                                       doc='Digital output %s' % k,
                                                       unit='',
