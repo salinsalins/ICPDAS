@@ -27,6 +27,12 @@ class ET7000_Server(TangoServerPrototype):
                             unit="", format="%s",
                             doc="ET7000 device type. 0x0000 - unknown or offline")
 
+    ip = attribute(label="IP", dtype=str,
+                   display_level=DispLevel.OPERATOR,
+                   access=AttrWriteType.READ,
+                   unit="", format="%s",
+                   doc="ET7000 device IP adress")
+
     def init_device(self):
         super().init_device()
 
@@ -102,6 +108,9 @@ class ET7000_Server(TangoServerPrototype):
 
     def read_device_type(self):
         return self.et.type_str
+
+    def read_ip(self):
+        return self.ip
 
     def read_general(self, attr: tango.Attribute):
         # self.logger.debug('entry %s %s', self.device_name, attr_name)
@@ -488,7 +497,6 @@ class ET7000_Server(TangoServerPrototype):
     def initialize_dynamic_attributes(self):
         # self.logger.error('-------- entry -----')
         self.add_io()
-
 
 
 if __name__ == "__main__":
