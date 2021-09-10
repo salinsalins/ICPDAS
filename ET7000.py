@@ -690,6 +690,28 @@ class FakeET7000(ET7000):
             self.holding_registers = [0] * 6
             self.coils = [True] * 6
             self.data = {
+                40000: 0,
+                40001: 0,
+                40002: 0,
+                40003: 0,
+                40004: 0,
+                40005: 0,
+                40559: 0x7026,
+                30000: 0,
+                30001: 0,
+                30002: 0,
+                30003: 0,
+                30004: 0,
+                30005: 0,
+                30320: 6,
+                00000: 0,
+                1: 0,
+                595: True,
+                596: True,
+                597: True,
+                598: True,
+                599: True,
+                600: True,
                 320: 6,
                 595: True,
                 559: 0x7026,
@@ -697,26 +719,40 @@ class FakeET7000(ET7000):
                 459: 0x33,
             }
 
-        def get_count(self):
+        def new_count(self):
             self.count += 1
             if self.count == 0x8000:
                 self.count = 0
             return self.count
 
+        def modbus_read(self, prefix, n, m):
+            result = []
+            for i in range(m):
+                result.append(self.data[prefix + n + i])
+            return result
+
+        def modbus_write(self, prefix, n, m, values):
+            for i in range(m):
+                self.data[prefix + n + i] = values[i]
+            return True
+
         def read_holding_registers(self, n, m):
-            if n in self.data:
-                return [self.data[n]] * m
-            return self.holding_registers[n:n+m]
+            return self.modbus_read(0x40000, n, m)
+            # if n in self.data:
+            #     return [self.data[n]] * m
+            # return self.holding_registers[n:n+m]
 
         def read_input_registers(self, n, m):
-            if n in self.data:
-                return [self.data[n]] * m
-            return [self.get_count() for i in range(m)]
+            return self.modbus_read(0x30000, n, m)
+            # if n in self.data:
+            #     return [self.data[n]] * m
+            # return [self.new_count() for i in range(m)]
 
         def read_coils(self, n, m):
-            if n in self.data:
-                return [self.data[n]] * m
-            return self.coils[:m]
+            return self.modbus_read(0x00000, n, m)
+            # if n in self.data:
+            #     return [self.data[n]] * m
+            # return self.coils[:m]
 
         def write_single_register(self, n, m):
             if n < 6:
