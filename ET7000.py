@@ -430,9 +430,9 @@ class ET7000:
         k_max = c_max / v_max
         k_min = (0xffff - c_min) / v_min
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
-        return lambda x: int(k_max * x) if (x >= 0) else int(0xffff - k_min * x)
+        return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
-    def __init__(self, host: str, port=502, timeout=0.15, logger=None):
+    def __init__(self, host: str, port=502, timeout=0.15, logger=None, client = ModbusClient):
         self.host = host
         self.port = port
         # logger config
@@ -461,7 +461,7 @@ class ET7000:
         # default do
         self.do_n = 0
         # modbus client
-        self.client = ModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
+        self.client = client(host, port, auto_open=True, auto_close=False, timeout=timeout)
         self.is_open = self.client.open()
         if not self.is_open:
             self.logger.error('ET-7xxx device at %s is offline' % host)
@@ -488,10 +488,11 @@ class ET7000:
         self.ao_masks = self.ao_read_masks()
         self.ao_ranges = self.ao_read_ranges()
         self.ao_units = [''] * self.ao_n
-        self.ai_min = [0.0] * self.ao_n
-        self.ai_max = [0.0] * self.ao_n
-        self.ao_convert = [lambda x: x] * self.ai_n
-        self.ao_convert_write = [lambda x: 0] * self.ai_n
+        self.ao_min = [0.0] * self.ao_n
+        self.ao_max = [0.0] * self.ao_n
+        self.ao_convert = [lambda x: x] * self.ao_n
+        self.ao_convert_write = [lambda x: 0] * self.ao_n
+        self.ao_quanta = [0.0] * self.ao_n
         for i in range(self.ao_n):
             r = self.ai_ranges[i]
             self.ao_units[i] = ET7000.ranges[r]['units']
@@ -499,6 +500,9 @@ class ET7000:
             self.ao_max[i] = ET7000.ranges[r]['max']
             self.ao_convert[i] = ET7000.ai_convert_function(r)  # !!! ai_convert for reading
             self.ao_convert_write[i] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
+            self.ao_quanta[i] = abs(self.ao_convert[i](1) - self.ao_convert[i](0))
+        self.ao_last_written_values = [0.0] * self.ao_n
+        self.ao_correct_output = True
         # di
         self.di_n = self.di_read_n()
         # do
@@ -606,6 +610,10 @@ class ET7000:
                 regs = self.client.read_holding_registers(0 + k, 1)
                 if regs:
                     v = self.ao_convert[k](regs[0])
+            if self.ao_correct_output:
+                # self.logger.debug('%s', abs(self.ao_last_written_values[k] - v) / self.ao_quanta[k])
+                if abs(self.ao_last_written_values[k] - v) < self.ao_quanta[k]:
+                    v = self.ao_last_written_values[k]
         except:
             pass
         return v
@@ -623,6 +631,7 @@ class ET7000:
         raw = self.ao_convert_write[k](float(value))
         result = self.client.write_single_register(0 + k, raw)
         if result:
+            self.ao_last_written_values[k] = float(value)
             return True
         return False
 
@@ -719,7 +728,7 @@ class ET7000:
 class FakeET7000(ET7000):
 
     class _client:
-        def __init__(self, host, port=502, timeout=0.15, logger=None):
+        def __init__(self, host, *args, **kwargs):
             self.is_open = False
             self.count = 0
             self.holding_registers = [0] * 6
@@ -815,79 +824,8 @@ class FakeET7000(ET7000):
             self.is_open = False
             return self.is_open
 
-    def __init__(self, host, port=502, timeout=0.15, logger=None):
-        self.count = [i*0x7fff/6 for i in range(6)]
-        self.host = host
-        self.port = port
-        # logger config
-        if logger is None:
-            logger = logging.getLogger(__name__)
-        self.logger = logger
-        # defaults
-        self.type = 0
-        self.type_str = '0000'
-        # default ai
-        self.ai_n = 0
-        self.ai_masks = []
-        self.ai_ranges = []
-        self.ai_min = []
-        self.ai_max = []
-        self.ai_units = []
-        # default ao
-        self.ao_n = 0
-        self.ao_masks = []
-        self.ao_ranges = []
-        self.ao_min = []
-        self.ao_max = []
-        self.ao_units = []
-        # default di
-        self.di_n = 0
-        # default do
-        self.do_n = 0
-        # modbus client
-        self.client = FakeET7000._client(host, port, timeout=timeout)
-        self.is_open = self.client.open()
-        if not self.is_open:
-            self.logger.error('ET-7xxx device at %s is offline' % host)
-            return
-        # read module type
-        self.type = self.read_module_type()
-        self.type_str = hex(self.type).replace('0x', '')
-        # ai
-        self.ai_n = self.ai_read_n()
-        self.ai_masks = self.ai_read_masks()
-        self.ai_ranges = self.ai_read_ranges()
-        self.ai_units = [''] * self.ai_n
-        self.ai_convert = [lambda x: x] * self.ai_n
-        self.ai_min = [0.0] * self.ai_n
-        self.ai_max = [0.0] * self.ai_n
-        for i in range(self.ai_n):
-            r = self.ai_ranges[i]
-            self.ai_units[i] = ET7000.ranges[r]['units']
-            self.ai_min[i] = ET7000.ranges[r]['min']
-            self.ai_max[i] = ET7000.ranges[r]['max']
-            self.ai_convert[i] = ET7000.ai_convert_function(r)
-        # ao
-        self.ao_n = self.ao_read_n()
-        self.ao_masks = self.ao_read_masks()
-        self.ao_ranges = self.ao_read_ranges()
-        self.ao_units = [''] * self.ao_n
-        self.ao_min = [0.0] * self.ao_n
-        self.ao_max = [0.0] * self.ao_n
-        self.ao_convert = [lambda x: x] * self.ai_n
-        self.ao_convert_write = [lambda x: 0] * self.ai_n
-        for i in range(self.ao_n):
-            r = self.ai_ranges[i]
-            self.ao_units[i] = ET7000.ranges[r]['units']
-            self.ao_min[i] = ET7000.ranges[r]['min']
-            self.ao_max[i] = ET7000.ranges[r]['max']
-            self.ao_convert[i] = ET7000.ai_convert_function(r)  # !!! ai_convert for reading
-            self.ao_convert_write[i] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
-        # di
-        self.di_n = self.di_read_n()
-        # do
-        self.do_n = self.do_read_n()
-        self.logger.debug('ET-%s at %s has been created' % (self.type_str, host))
+    def __init__(self, host, port=502, timeout=0.15, logger=None, client = _client):
+        super().__init__(host, port=port, timeout=timeout, logger=logger, client = FakeET7000._client)
 
 
 if __name__ == "__main__":
