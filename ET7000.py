@@ -562,6 +562,12 @@ class ET7000:
             pass
         return v
 
+    def ai_write_masks(self, masks):
+        return self.client.write_multiple_coils(595, bool(masks))
+
+    def ai_write_ranges(self, masks):
+        return self.client.write_multiple_registers(427, int(masks))
+
     # AO functions
     def ao_read_n(self):
         regs = self.client.read_input_registers(330, 1)
@@ -619,6 +625,9 @@ class ET7000:
         if result:
             return True
         return False
+
+    def ao_write_ranges(self, masks):
+        return self.client.write_multiple_registers(459, int(masks))
 
     # DI functions
     def di_read_n(self):
@@ -680,6 +689,32 @@ class ET7000:
             return result
         return False
 
+    def read_modbus(self, addr, n):
+        if addr > 40000:
+            return self.client.read_holding_registers(addr - 40000, n)
+        if addr > 30000:
+            return self.client.read_input_registers(addr - 30000, n)
+        if addr > 20000:
+            return None
+        if addr > 10000:
+            return self.client.read_discrete_inputs(addr - 10000, n)
+        if addr > 0:
+            return self.client.read_coils(addr, n)
+        return None
+
+    def write_modbus(self, addr, v):
+        if addr > 40000:
+            return self.client.write_multiple_registers(addr - 40000, v)
+        if addr > 30000:
+            return False
+        if addr > 20000:
+            return False
+        if addr > 10000:
+            return False
+        if addr > 0:
+            return self.client.write_multiple_coils(addr, v)
+        return False
+
 
 class FakeET7000(ET7000):
 
@@ -690,16 +725,18 @@ class FakeET7000(ET7000):
             self.holding_registers = [0] * 6
             self.coils = [True] * 6
             self.data = {
-                40000: 0, 40001: 0, 40002: 0, 40003: 0, 40004: 0, 40005: 0,
-                30000: 0, 30001: 0, 30002: 0, 30003: 0, 30004: 0, 30005: 0,
-                595: True, 596: True, 597: True, 598: True, 599: True, 600: True,
                 40559: 0x7026,
                 30320: 6,
-                0: 0, 1: 0,
-                320: 6,
-                559: 0x7026,
-                427: 4,
-                459: 0x33,
+                595: True, 596: True, 597: True, 598: True, 599: True, 600: True,
+                40427: 4, 40428: 4, 40429: 4, 40430: 4, 40431: 4, 40432: 4,
+                30000: 0, 30001: 1, 30002: 2, 30003: 3, 30004: 4, 30005: 5,
+                30330: 1,
+                40459: 0x33,
+                40000: 0, 40001: 0, 40002: 0, 40003: 0, 40004: 0, 40005: 0,
+                30300: 2,
+                30310: 2,
+                10000: 0, 10001: 1,
+                0: 0, 1: 1,
             }
 
         def new_count(self):
@@ -720,47 +757,52 @@ class FakeET7000(ET7000):
             return True
 
         def read_holding_registers(self, n, m):
-            return self.modbus_read(0x40000, n, m)
+            return self.modbus_read(40000, n, m)
             # if n in self.data:
             #     return [self.data[n]] * m
             # return self.holding_registers[n:n+m]
 
         def read_input_registers(self, n, m):
-            return self.modbus_read(0x30000, n, m)
+            return self.modbus_read(30000, n, m)
             # if n in self.data:
             #     return [self.data[n]] * m
             # return [self.new_count() for i in range(m)]
 
         def read_coils(self, n, m):
-            return self.modbus_read(0x00000, n, m)
+            return self.modbus_read(0, n, m)
             # if n in self.data:
             #     return [self.data[n]] * m
             # return self.coils[:m]
 
-        def write_single_register(self, n, m):
-            if n < 6:
-                self.holding_registers[n] = m
-            return True
+        def write_single_register(self, n, v):
+            return self.modbus_write(40000, n, 1, [v])
+            # if n < 6:
+            #     self.holding_registers[n] = v
+            # return True
 
-        def write_multiple_registers(self, n, m):
-            n2 = n + len(m)
-            if n < 6 and n2 < 6:
-                self.holding_registers[n:n2] = m
-            return True
+        def write_multiple_registers(self, n, v):
+            return self.modbus_write(40000, n, len(v), v)
+            # n2 = n + len(m)
+            # if n < 6 and n2 < 6:
+            #     self.holding_registers[n:n2] = m
+            # return True
 
-        def write_single_coil(self, n, m):
-            if n < 6:
-                self.coils[n] = bool(m)
-            return True
+        def write_single_coil(self, n, v):
+            return self.modbus_write(0, n, 1, [v])
+            # if n < 6:
+            #     self.coils[n] = bool(m)
+            # return True
 
-        def write_multiple_coils(self, n, m):
-            n2 = n + len(m)
-            if n < 6 and n2 < 6:
-                self.coils[n:n2] = m
-            return True
+        def write_multiple_coils(self, n, v):
+            return self.modbus_write(0, n, len(v), v)
+            # n2 = n + len(m)
+            # if n < 6 and n2 < 6:
+            #     self.coils[n:n2] = m
+            # return True
 
         def read_discrete_inputs(self, n, m):
-            return [True] * m
+            return self.modbus_read(10000, n, m)
+            # return [True] * m
 
         def auto_close(self, x):
             return x
