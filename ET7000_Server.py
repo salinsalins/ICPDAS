@@ -8,6 +8,7 @@ import logging
 import math
 from threading import Lock
 
+import numpy
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx
 from tango.server import Device, attribute, command, pipe, device_property
@@ -33,6 +34,16 @@ class ET7000_Server(TangoServerPrototype):
                    access=AttrWriteType.READ,
                    unit="", format="%s",
                    doc="ET7000 device IP address")
+
+    @command(dtype_in=numpy.uint64, dtype_out=numpy.uint64)
+    def read_modbus(self, data):
+        self.logger.debug('%s', data)
+        #a = self.et.read_modbus(0, data)
+        return numpy.zeros(10)
+
+    @command(dtype_in=(int, ), dtype_out=bool)
+    def write_modbus(self, data):
+        return self.et.write_modbus(data[0], data[1:])
 
     def init_device(self):
         if self in ET7000_Server.device_list:
