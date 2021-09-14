@@ -334,9 +334,6 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding AI %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
-                msg = '%d of %d analog inputs initialized' % (nai, self.et.ai_n)
-                self.logger.info(msg)
-                self.info_stream(msg)
                 attr = tango.server.attribute(name='all_ai', dtype=float,
                                               dformat=tango.AttrDataFormat.SPECTRUM,
                                               access=tango.AttrWriteType.READ,
@@ -350,6 +347,9 @@ class ET7000_Server(TangoServerPrototype):
                 # add attr to device
                 self.add_attribute(attr)
                 self.attributes[attr_name] = attr
+                msg = '%d of %d analog inputs initialized' % (nai, self.et.ai_n)
+                self.logger.info(msg)
+                self.info_stream(msg)
             # ao
             nao = 0
             if self.et.ao_n > 0:
@@ -380,6 +380,19 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding AO %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
+                attr = tango.server.attribute(name='all_ao', dtype=float,
+                                              dformat=tango.AttrDataFormat.SPECTRUM,
+                                              access=tango.AttrWriteType.READ,
+                                              max_dim_x=self.et.ao_n, max_dim_y=0,
+                                              fget=self.read_all,
+                                              label=attr_name,
+                                              doc='All analog outputs. ONLY FOR READ',
+                                              unit='',
+                                              display_unit=1.0,
+                                              format='%f')
+                # add attr to device
+                self.add_attribute(attr)
+                self.attributes[attr_name] = attr
                 msg = '%d of %d analog outputs initialized' % (nao, self.et.ao_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -407,6 +420,19 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
+                attr = tango.server.attribute(name='all_di', dtype=bool,
+                                              dformat=tango.AttrDataFormat.SPECTRUM,
+                                              access=tango.AttrWriteType.READ,
+                                              max_dim_x=self.et.di_n, max_dim_y=0,
+                                              fget=self.read_all,
+                                              label=attr_name,
+                                              doc='All digital inputs. ONLY FOR READ',
+                                              unit='',
+                                              display_unit=1.0,
+                                              format='%s')
+                # add attr to device
+                self.add_attribute(attr)
+                self.attributes[attr_name] = attr
                 msg = '%d digital inputs initialized' % ndi
                 self.logger.info(msg)
                 self.info_stream(msg)
@@ -435,6 +461,19 @@ class ET7000_Server(TangoServerPrototype):
                         msg = '%s Exception adding IO channel %s' % (self.get_name(), attr_name)
                         self.logger.warning(msg)
                         self.logger.debug('', exc_info=True)
+                attr = tango.server.attribute(name='all_do', dtype=bool,
+                                              dformat=tango.AttrDataFormat.SPECTRUM,
+                                              access=tango.AttrWriteType.READ,
+                                              max_dim_x=self.et.do_n, max_dim_y=0,
+                                              fget=self.read_all,
+                                              label=attr_name,
+                                              doc='All digital outputs. ONLY FOR READ',
+                                              unit='',
+                                              display_unit=1.0,
+                                              format='%s')
+                # add attr to device
+                self.add_attribute(attr)
+                self.attributes[attr_name] = attr
                 msg = '%d digital outputs initialized' % ndo
                 self.logger.info(msg)
                 self.info_stream(msg)
