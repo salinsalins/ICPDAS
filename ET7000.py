@@ -699,28 +699,28 @@ class ET7000:
         return False
 
     def read_modbus(self, addr, n):
-        if addr > 40000:
+        if addr >= 40000:
             return self.client.read_holding_registers(addr - 40000, n)
-        if addr > 30000:
+        if addr >= 30000:
             return self.client.read_input_registers(addr - 30000, n)
-        if addr > 20000:
+        if addr >= 20000:
             return None
-        if addr > 10000:
+        if addr >= 10000:
             return self.client.read_discrete_inputs(addr - 10000, n)
-        if addr > 0:
+        if addr >= 0:
             return self.client.read_coils(addr, n)
         return None
 
     def write_modbus(self, addr, v):
-        if addr > 40000:
+        if addr >= 40000:
             return self.client.write_multiple_registers(addr - 40000, v)
-        if addr > 30000:
+        if addr >= 30000:
             return False
-        if addr > 20000:
+        if addr >= 20000:
             return False
-        if addr > 10000:
+        if addr >= 10000:
             return False
-        if addr > 0:
+        if addr >= 0:
             return self.client.write_multiple_coils(addr, v)
         return False
 

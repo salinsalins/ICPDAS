@@ -19,6 +19,7 @@ from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import config_logger
 
 
+# noinspection PyBroadException,PyAttributeOutsideInit
 class ET7000_Server(TangoServerPrototype):
     server_version = '3.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
@@ -35,15 +36,37 @@ class ET7000_Server(TangoServerPrototype):
                    unit="", format="%s",
                    doc="ET7000 device IP address")
 
-    @command(dtype_in=numpy.uint64, dtype_out=numpy.uint64)
+    @command(dtype_in=(float,), dtype_out=(float,))
     def read_modbus(self, data):
-        self.logger.debug('%s', data)
-        #a = self.et.read_modbus(0, data)
-        return numpy.zeros(10)
+        n = 1
+        try:
+            n = int(data[1])
+            result = self.et.read_modbus(int(data[0]), n)
+            # self.logger.debug('%s', result)
+            if result:
+                return result
+            return [float('nan')] * n
+        except:
+            self.log_exception('read_modbus exception')
+            return [float('nan')] * n
 
-    @command(dtype_in=(int, ), dtype_out=bool)
+    @command(dtype_in=[float], dtype_out=bool)
     def write_modbus(self, data):
-        return self.et.write_modbus(data[0], data[1:])
+        self.logger.debug('%s', data)
+        v = [0]
+        a = 0
+        try:
+            a = int(data[0])
+            v = [int(d) for d in data[1:]]
+            result = self.et.write_modbus(a, v)
+            # self.logger.debug('%s %s %s ', a, v, result)
+            if result:
+                return result
+            return False
+        except:
+            # self.logger.debug('%s %s', a, v)
+            self.log_exception('write_modbus exception')
+            return False
 
     def init_device(self):
         if self in ET7000_Server.device_list:
@@ -384,8 +407,8 @@ class ET7000_Server(TangoServerPrototype):
 
     # def get_attribute_property(self, attr_name: str, prop_name: str):
     #     device_name = self.get_name()
-    #     databse = self.database
-    #     all_attr_prop = databse.get_device_attribute_property(device_name, attr_name)
+    #     database = self.database
+    #     all_attr_prop = database.get_device_attribute_property(device_name, attr_name)
     #     all_prop = all_attr_prop[attr_name]
     #     if prop_name in all_prop:
     #         prop = all_prop[prop_name][0]
