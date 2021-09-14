@@ -36,23 +36,23 @@ class ET7000_Server(TangoServerPrototype):
                    unit="", format="%s",
                    doc="ET7000 device IP address")
 
-    all_ai = attribute(label="all_ai", dtype=float,
-                       dformat=tango._tango.AttrDataFormat.SPECTRUM,
-                       display_level=DispLevel.OPERATOR,
-                       access=AttrWriteType.READ,
-                       max_dim_x=256,
-                       fget='read_all',
-                       unit="", format="%f",
-                       doc="Read all analog inputs")
-
-    all_ao = attribute(label="all_ao", dtype=float,
-                       dformat=tango._tango.AttrDataFormat.SPECTRUM,
-                       display_level=DispLevel.OPERATOR,
-                       access=AttrWriteType.READ,
-                       max_dim_x=256,
-                       fget='read_all',
-                       unit="", format="%f",
-                       doc="Read all analog outputs")
+    # all_ai = attribute(label="all_ai", dtype=float,
+    #                    dformat=tango._tango.AttrDataFormat.SPECTRUM,
+    #                    display_level=DispLevel.OPERATOR,
+    #                    access=AttrWriteType.READ,
+    #                    max_dim_x=256,
+    #                    fget='read_all',
+    #                    unit="", format="%f",
+    #                    doc="Read all analog inputs")
+    #
+    # all_ao = attribute(label="all_ao", dtype=float,
+    #                    dformat=tango._tango.AttrDataFormat.SPECTRUM,
+    #                    display_level=DispLevel.OPERATOR,
+    #                    access=AttrWriteType.READ,
+    #                    max_dim_x=256,
+    #                    fget='read_all',
+    #                    unit="", format="%f",
+    #                    doc="Read all analog outputs")
 
     @command(dtype_in=(float,), dtype_out=(float,))
     def read_modbus(self, data):
@@ -337,6 +337,19 @@ class ET7000_Server(TangoServerPrototype):
                 msg = '%d of %d analog inputs initialized' % (nai, self.et.ai_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
+                attr = tango.server.attribute(name='all_ai', dtype=float,
+                                              dformat=tango.AttrDataFormat.SPECTRUM,
+                                              access=tango.AttrWriteType.READ,
+                                              max_dim_x=self.et.ai_n, max_dim_y=0,
+                                              fget=self.read_all,
+                                              label=attr_name,
+                                              doc='All analog inputs',
+                                              unit='',
+                                              display_unit=1.0,
+                                              format='%f')
+                # add attr to device
+                self.add_attribute(attr)
+                self.attributes[attr_name] = attr
             # ao
             nao = 0
             if self.et.ao_n > 0:
