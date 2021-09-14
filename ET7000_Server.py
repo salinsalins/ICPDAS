@@ -36,6 +36,24 @@ class ET7000_Server(TangoServerPrototype):
                    unit="", format="%s",
                    doc="ET7000 device IP address")
 
+    all_ai = attribute(label="all_ai", dtype=float,
+                       dformat=tango._tango.AttrDataFormat.SPECTRUM,
+                       display_level=DispLevel.OPERATOR,
+                       access=AttrWriteType.READ,
+                       max_dim_x=256,
+                       fget='read_all',
+                       unit="", format="%f",
+                       doc="Read all analog inputs")
+
+    all_ao = attribute(label="all_ao", dtype=float,
+                       dformat=tango._tango.AttrDataFormat.SPECTRUM,
+                       display_level=DispLevel.OPERATOR,
+                       access=AttrWriteType.READ,
+                       max_dim_x=256,
+                       fget='read_all',
+                       unit="", format="%f",
+                       doc="Read all analog outputs")
+
     @command(dtype_in=(float,), dtype_out=(float,))
     def read_modbus(self, data):
         n = 1
@@ -230,6 +248,42 @@ class ET7000_Server(TangoServerPrototype):
                 self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+
+    def read_all(self, attr: tango.Attribute):
+        attr_name = attr.get_name()
+        if not self.is_connected():
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
+            self.logger.debug(msg)
+            self.debug_stream(msg)
+            return [float('nan')]
+        ad = attr_name[-2:]
+        if ad == 'ai':
+            val = self.et.ai_read()
+        elif ad == 'di':
+            val = self.et.di_read()
+        elif ad == 'do':
+            val = self.et.do_read()
+        elif ad == 'ao':
+            val = self.et.ao_read()
+        else:
+            msg = "%s Read unknown attribute %s" % (self.get_name(), attr_name)
+            self.logger.error(msg)
+            self.error_stream(msg)
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            return [float('nan')]
+        if val is not None:
+            self.time = None
+            self.error_count = 0
+            attr.set_value(val)
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+            return val
+        else:
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            return [float('nan')]
 
     @command
     def reconnect(self):
