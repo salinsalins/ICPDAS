@@ -567,10 +567,10 @@ class ET7000:
         return v
 
     def ai_write_masks(self, masks):
-        return self.client.write_multiple_coils(595, bool(masks))
+        return self.client.write_multiple_coils(595, [bool(m) for m in masks])
 
-    def ai_write_ranges(self, masks):
-        return self.client.write_multiple_registers(427, int(masks))
+    def ai_write_ranges(self, data):
+        return self.client.write_multiple_registers(427, [int(m) for m in data])
 
     # AO functions
     def ao_read_n(self):
@@ -635,8 +635,8 @@ class ET7000:
             return True
         return False
 
-    def ao_write_ranges(self, masks):
-        return self.client.write_multiple_registers(459, int(masks))
+    def ao_write_ranges(self, data):
+        return self.client.write_multiple_registers(459, [int(m) for m in data])
 
     # DI functions
     def di_read_n(self):
