@@ -432,7 +432,7 @@ class ET7000:
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
         return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
-    def __init__(self, host: str, port=502, timeout=0.15, logger=None, client = ModbusClient):
+    def __init__(self, host: str, port=502, timeout=0.15, logger=None, client=ModbusClient):
         self.host = host
         self.port = port
         # logger config
@@ -567,10 +567,10 @@ class ET7000:
         return v
 
     def ai_write_masks(self, masks):
-        return self.client.write_multiple_coils(595, bool(masks))
+        return self.client.write_multiple_coils(595, [bool(m) for m in masks])
 
-    def ai_write_ranges(self, masks):
-        return self.client.write_multiple_registers(427, int(masks))
+    def ai_write_ranges(self, data):
+        return self.client.write_multiple_registers(427, [int(m) for m in data])
 
     # AO functions
     def ao_read_n(self):
@@ -635,8 +635,8 @@ class ET7000:
             return True
         return False
 
-    def ao_write_ranges(self, masks):
-        return self.client.write_multiple_registers(459, int(masks))
+    def ao_write_ranges(self, data):
+        return self.client.write_multiple_registers(459, [int(m) for m in data])
 
     # DI functions
     def di_read_n(self):
@@ -726,7 +726,6 @@ class ET7000:
 
 
 class FakeET7000(ET7000):
-
     class _client:
         def __init__(self, host, *args, **kwargs):
             self.is_open = False
@@ -824,8 +823,8 @@ class FakeET7000(ET7000):
             self.is_open = False
             return self.is_open
 
-    def __init__(self, host, port=502, timeout=0.15, logger=None, client = _client):
-        super().__init__(host, port=port, timeout=timeout, logger=logger, client = FakeET7000._client)
+    def __init__(self, host, port=502, timeout=0.15, logger=None, client=_client):
+        super().__init__(host, port=port, timeout=timeout, logger=logger, client=FakeET7000._client)
 
 
 if __name__ == "__main__":
