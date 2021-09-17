@@ -19,7 +19,6 @@ from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import config_logger
 
 
-# noinspection PyBroadException,PyAttributeOutsideInit
 class ET7000_Server(TangoServerPrototype):
     server_version = '3.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
@@ -36,15 +35,6 @@ class ET7000_Server(TangoServerPrototype):
                    unit="", format="%s",
                    doc="ET7000 device IP address")
 
-    # all_ai = attribute(label="all_ai", dtype=float,
-    #                    dformat=tango._tango.AttrDataFormat.SPECTRUM,
-    #                    display_level=DispLevel.OPERATOR,
-    #                    access=AttrWriteType.READ,
-    #                    max_dim_x=256,
-    #                    fget='read_all',
-    #                    unit="", format="%f",
-    #                    doc="Read all analog inputs")
-    #
     # all_ao = attribute(label="all_ao", dtype=float,
     #                    dformat=tango._tango.AttrDataFormat.SPECTRUM,
     #                    display_level=DispLevel.OPERATOR,
@@ -86,8 +76,18 @@ class ET7000_Server(TangoServerPrototype):
             self.log_exception('write_modbus exception')
             return False
 
+    @command
+    def reconnect(self):
+        self.delete_device()
+        self.init_device()
+        self.add_io()
+        msg = '%s Reconnected' % self.get_name()
+        self.logger.info(msg)
+        self.info_stream(msg)
+
     def init_device(self):
         if self in ET7000_Server.device_list:
+            ET7000_Server.device_list.remove(self)
             self.delete_device()
         super().init_device()
 
@@ -106,9 +106,8 @@ class ET7000_Server(TangoServerPrototype):
         # check if ip is in use
         for d in ET7000_Server.device_list:
             if d.ip == ip:
-                msg = '%s IP address %s is in use' % (self, ip)
+                msg = '%s IP address %s is in use' % (self.get_name(), ip)
                 self.logger.error(msg)
-                self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
         self.ip = ip
@@ -159,7 +158,6 @@ class ET7000_Server(TangoServerPrototype):
             ET7000_Server.device_list.remove(self)
         msg = '%s Device has been deleted' % self.get_name()
         self.logger.info(msg)
-        self.info_stream(msg)
 
     def read_device_type(self):
         return self.et.type_str
@@ -191,12 +189,10 @@ class ET7000_Server(TangoServerPrototype):
             val = self.et.ao_read_channel(chan)
             mask = self.et.ao_masks[chan]
         else:
-            msg = "%s Read unknown attribute %s" % (self.get_name(), attr_name)
+            msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
             self.logger.error(msg)
             self.error_stream(msg)
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            return float('nan')
+            return self.set_error_attribute_value(attr)
         if val is not None and not math.isnan(val):
             self.time = None
             self.error_count = 0
@@ -252,12 +248,9 @@ class ET7000_Server(TangoServerPrototype):
     def read_all(self, attr: tango.Attribute):
         attr_name = attr.get_name()
         if not self.is_connected():
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
             self.logger.debug(msg)
-            self.debug_stream(msg)
-            return [float('nan')]
+            return self.set_error_attribute_value(attr)
         ad = attr_name[-2:]
         if ad == 'ai':
             val = self.et.ai_read()
@@ -268,31 +261,17 @@ class ET7000_Server(TangoServerPrototype):
         elif ad == 'ao':
             val = self.et.ao_read()
         else:
-            msg = "%s Read unknown attribute %s" % (self.get_name(), attr_name)
+            msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
             self.logger.error(msg)
-            self.error_stream(msg)
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            return [float('nan')]
+            return self.set_error_attribute_value(attr)
         if val is not None:
-            self.time = None
+            self.time = 0.0
             self.error_count = 0
             attr.set_value(val)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
             return val
         else:
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            return [float('nan')]
-
-    @command
-    def reconnect(self):
-        self.delete_device()
-        self.init_device()
-        self.add_io()
-        msg = '%s Reconnected' % self.get_name()
-        self.logger.info(msg)
-        self.info_stream(msg)
+            return self.set_error_attribute_value(attr)
 
     def add_io(self):
         try:
@@ -506,10 +485,16 @@ class ET7000_Server(TangoServerPrototype):
         return True
 
     def set_error_attribute_value(self, attr: tango.Attribute):
+        attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+        v = None
         if attr.get_data_format() == tango.DevBoolean:
-            attr.attr.set_value(False)
+            v = False
         elif attr.get_data_format() == tango.DevDouble:
-            attr.set_value(float('nan'))
+            v = float('nan')
+        if attr.get_data_type() == tango.SPECTRUM:
+            v = [v]
+        attr.attr.set_value(v)
+        return v
 
     # def get_attribute_property(self, attr_name: str, prop_name: str):
     #     device_name = self.get_name()
