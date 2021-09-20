@@ -91,6 +91,9 @@ class ET7000_Server(TangoServerPrototype):
             ET7000_Server.device_list.remove(self)
             self.delete_device()
         super().init_device()
+        self.lock = Lock
+        self.io_que = []
+        self.async_time_limit = 0.2
 
     def set_config(self):
         super().set_config()
@@ -166,7 +169,8 @@ class ET7000_Server(TangoServerPrototype):
     def read_IP(self):
         return self.ip
 
-    def _read_attribute(self, attr_name):
+    def _read_attribute(self, attr: tango.Attribute):
+        attr_name = attr.get_name()
         chan = int(attr_name[-2:])
         ad = attr_name[:2]
         mask = True
@@ -189,74 +193,25 @@ class ET7000_Server(TangoServerPrototype):
             self.logger.error(msg)
         return float('nan')
 
-    def read_general(self, attr: tango.Attribute):
-        # self.logger.debug('entry %s %s', self.get_name(), attr_name)
-        attr_name = attr.get_name()
-        if not self.is_connected():
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-            self.logger.debug(msg)
-            self.debug_stream(msg)
-            return float('nan')
-        chan = int(attr_name[-2:])
-        ad = attr_name[:2]
-        mask = True
-        if ad == 'ai':
-            val = self.et.ai_read_channel(chan)
-            mask = self.et.ai_masks[chan]
-        elif ad == 'di':
-            val = self.et.di_read_channel(chan)
-        elif ad == 'do':
-            val = self.et.do_read_channel(chan)
-        elif ad == 'ao':
-            val = self.et.ao_read_channel(chan)
-            mask = self.et.ao_masks[chan]
-        else:
-            msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
-            self.logger.error(msg)
-            self.error_stream(msg)
-            return self.set_error_attribute_value(attr)
-        if val is not None and not math.isnan(val):
-            self.time = None
-            self.error_count = 0
-            attr.set_value(val)
-            attr.set_quality(tango.AttrQuality.ATTR_VALID)
-            return val
-        else:
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            if mask:
-                msg = "%s Error reading %s %s" % (self.get_name(), attr_name, val)
-                self.logger.error(msg)
-                self.error_stream(msg)
-            return float('nan')
-
     def read_general_async(self, attr: tango.Attribute):
-        attr_name = attr.get_name()
-        # self.logger.debug('entry %s %s', self.get_name(), attr_name)
-        if not self.is_connected():
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-            self.logger.debug(msg)
-            return NaN
-        val = self._read_attribute(attr_name)
+        t = self.attributes[attr.get_name()].get_date().to_time()
+        if time.time() - t >= self.async_time_limit:
+            with self.lock:
+                self.io_que.append(attr)
+        return self.attributes[attr.get_name()].get_value()
 
-        if val is not None and not math.isnan(val):
-            self.time = None
-            self.error_count = 0
-            attr.set_value(val)
-            attr.set_quality(tango.AttrQuality.ATTR_VALID)
-            return val
+    def read_general(self, attr: tango.Attribute):
+        # attr_name = attr.get_name()
+        # self.logger.debug('entry %s %s', self.get_name(), attr_name)
+        if self.is_connected():
+            val = self._read_attribute(attr)
         else:
-            self.set_error_attribute_value(attr)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            if mask:
-                msg = "%s Error reading %s %s" % (self.get_name(), attr_name, val)
-                self.logger.error(msg)
-                self.error_stream(msg)
-            return float('nan')
+            val = None
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
+            self.logger.debug(msg)
+        return self.set_attribute_value(attr, val)
+
+
 
     def write_general(self, attr: tango.WAttribute):
         attr_name = attr.get_name()
@@ -546,7 +501,7 @@ class ET7000_Server(TangoServerPrototype):
         attr.set_value(v)
         return v
 
-    def set_attribute_value(self, attr: tango.Attribute, value):
+    def set_attribute_value(self, attr: tango.Attribute, value=None):
         if value is not None and not math.isnan(value):
             self.time = None
             self.error_count = 0
