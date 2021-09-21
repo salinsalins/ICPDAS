@@ -159,7 +159,7 @@ class ET7000_Server(TangoServerPrototype):
     def read_IP(self):
         return self.ip
 
-    def _read_attribute(self, attr: tango.Attribute):
+    def _read_io(self, attr: tango.Attribute):
         attr_name = attr.get_name()
         chan = int(attr_name[-2:])
         ad = attr_name[:2]
@@ -194,7 +194,7 @@ class ET7000_Server(TangoServerPrototype):
         # attr_name = attr.get_name()
         # self.logger.debug('entry %s %s', self.get_name(), attr_name)
         if self.is_connected():
-            val = self._read_attribute(attr)
+            val = self._read_io(attr)
         else:
             val = None
             msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
@@ -478,7 +478,6 @@ class ET7000_Server(TangoServerPrototype):
         return True
 
     def set_error_attribute_value(self, attr: tango.Attribute):
-        attr.set_quality(tango.AttrQuality.ATTR_INVALID)
         v = None
         if attr.get_data_format() == tango.DevBoolean:
             v = False
@@ -487,6 +486,7 @@ class ET7000_Server(TangoServerPrototype):
         if attr.get_data_type() == tango.SPECTRUM:
             v = [v]
         attr.set_value(v)
+        attr.set_quality(tango.AttrQuality.ATTR_INVALID)
         return v
 
     def set_attribute_value(self, attr: tango.Attribute, value=None):
@@ -497,16 +497,7 @@ class ET7000_Server(TangoServerPrototype):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
             return value
         else:
-            v = None
-            if attr.get_data_format() == tango.DevBoolean:
-                v = False
-            elif attr.get_data_format() == tango.DevDouble:
-                v = float('nan')
-            if attr.get_data_type() == tango.SPECTRUM:
-                v = [v]
-            attr.set_value(v)
-            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-            return v
+            return self.set_error_attribute_value(attr)
 
     # def get_attribute_property(self, attr_name: str, prop_name: str):
     #     device_name = self.get_name()
