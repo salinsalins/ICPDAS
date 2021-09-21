@@ -20,6 +20,7 @@ from TangoUtils import config_logger
 
 NaN = float('nan')
 
+
 class ET7000_Server(TangoServerPrototype):
     server_version = '3.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
@@ -232,6 +233,8 @@ class ET7000_Server(TangoServerPrototype):
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             if mask:
+                self.time = time.time()
+                self.error_count += 1
                 msg = "%s Error writing %s" % (self.get_name(), attr_name)
                 self.logger.error(msg)
                 self.error_stream(msg)
@@ -267,13 +270,21 @@ class ET7000_Server(TangoServerPrototype):
             return self.set_error_attribute_value(attr)
 
     def add_io(self):
+        nai = 0
+        nao = 0
+        ndi = 0
+        ndo = 0
         try:
             if self.et.type == 0:
+                self.time = time.time()
+                self.error_count += 1
                 msg = '%s No IO attributes added for unknown device' % self.get_name()
                 self.logger.warning(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
+            self.time = None
+            self.error_count = 0
             self.set_state(DevState.INIT)
             attr_name = ''
             # ai
@@ -451,12 +462,15 @@ class ET7000_Server(TangoServerPrototype):
                 self.info_stream(msg)
             self.set_state(DevState.RUNNING)
         except:
+            self.time = time.time()
+            self.error_count += 1
             msg = '%s Error adding IO channels' % self.get_name()
             self.logger.error(msg)
             self.logger.debug('', exc_info=True)
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
             return
+        return nai + nao + ndi + ndo
 
     def remove_io(self):
         try:
@@ -474,6 +488,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
+            if self.time - time.time() > self.reconnect_timeout:
+                self.reconnect()
             return False
         return True
 
@@ -522,6 +538,7 @@ class ET7000_Server(TangoServerPrototype):
     def initialize_dynamic_attributes(self):
         # self.logger.error('-------- entry -----')
         self.add_io()
+
 
 # def looping():
 #     #ET7000_Server.logger.debug('loop entry')
