@@ -36,15 +36,6 @@ class ET7000_Server(TangoServerPrototype):
                    unit="", format="%s",
                    doc="ET7000 device IP address")
 
-    # all_ao = attribute(label="all_ao", dtype=float,
-    #                    dformat=tango._tango.AttrDataFormat.SPECTRUM,
-    #                    display_level=DispLevel.OPERATOR,
-    #                    access=AttrWriteType.READ,
-    #                    max_dim_x=256,
-    #                    fget='read_all',
-    #                    unit="", format="%f",
-    #                    doc="Read all analog outputs")
-
     @command(dtype_in=(float,), dtype_out=(float,))
     def read_modbus(self, data):
         n = 1
@@ -84,16 +75,15 @@ class ET7000_Server(TangoServerPrototype):
         self.add_io()
         msg = '%s Reconnected' % self.get_name()
         self.logger.info(msg)
-        self.info_stream(msg)
 
     def init_device(self):
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
             self.delete_device()
         super().init_device()
-        self.lock = Lock
-        self.io_que = []
-        self.async_time_limit = 0.2
+        # self.lock = Lock
+        # self.io_que = []
+        # self.async_time_limit = 0.2
 
     def set_config(self):
         super().set_config()
@@ -193,13 +183,13 @@ class ET7000_Server(TangoServerPrototype):
             self.logger.error(msg)
         return float('nan')
 
-    def read_general_async(self, attr: tango.Attribute):
-        t = self.attributes[attr.get_name()].get_date().to_time()
-        if time.time() - t >= self.async_time_limit:
-            with self.lock:
-                self.io_que.append(attr)
-        return self.attributes[attr.get_name()].get_value()
-
+    # def read_general_async(self, attr: tango.Attribute):
+    #     t = self.attributes[attr.get_name()].get_date().to_time()
+    #     if time.time() - t >= self.async_time_limit:
+    #         with self.lock:
+    #             self.io_que.append(attr)
+    #     return self.attributes[attr.get_name()].get_value()
+    #
     def read_general(self, attr: tango.Attribute):
         # attr_name = attr.get_name()
         # self.logger.debug('entry %s %s', self.get_name(), attr_name)
@@ -210,8 +200,6 @@ class ET7000_Server(TangoServerPrototype):
             msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
             self.logger.debug(msg)
         return self.set_attribute_value(attr, val)
-
-
 
     def write_general(self, attr: tango.WAttribute):
         attr_name = attr.get_name()
@@ -544,6 +532,17 @@ class ET7000_Server(TangoServerPrototype):
         # self.logger.error('-------- entry -----')
         self.add_io()
 
+# def looping():
+#     #ET7000_Server.logger.debug('loop entry')
+#     # time.sleep(5.0)
+#     #ET7000_Server.logger.debug('loop 2')
+#     for dev in ET7000_Server.devices:
+#         with dev.lock:
+#             if len(dev.io_que[0]) > 0:
+#                 a = dev.io_que[0]
+#                 dev.read_geteral(a)
+#                 dev.io_que.remove(a)
+#     #ET7000_Server.logger.debug('loop exit')
 
 if __name__ == "__main__":
     ET7000_Server.run_server()
