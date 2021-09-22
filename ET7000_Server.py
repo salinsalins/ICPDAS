@@ -563,8 +563,8 @@ def looping():
     for dev in ET7000_Server.device_list:
         if dev.init_io:
             dev.add_io()
-        if dev.is_connected() and time.time() - dev.error_time > dev.reconnect_timeout:
-            dev.reconnect()
+        # if dev.is_connected() and time.time() - dev.error_time > dev.reconnect_timeout:
+        #     dev.reconnect()
     time.sleep(1.0)
     #ET7000_Server.logger.debug('loop exit')
 
