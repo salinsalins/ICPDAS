@@ -825,7 +825,7 @@ class FakeET7000(ET7000):
 
     def __init__(self, host, port=502, timeout=0.15, logger=None, client=_client):
         super().__init__(host, port=port, timeout=timeout, logger=logger, client=FakeET7000._client)
-
+        self.type_str = 'Emulated ' + self.type_str
 
 if __name__ == "__main__":
     for r in ET7000.ranges:
