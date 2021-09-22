@@ -58,7 +58,7 @@ tp.start()
 # a1 = 559
 # reg_list = c.read_holding_registers(a1, 40)
 # if reg_list:
-#     t = time.time()
+#     t = error_time.error_time()
 #     regs = list(reg_list)
 #
 # n = 0

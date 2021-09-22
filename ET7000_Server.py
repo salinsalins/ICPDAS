@@ -93,7 +93,7 @@ class ET7000_Server(TangoServerPrototype):
         self.et = None
         self.ip = None
         self.error_count = 0
-        self.time = None
+        self.error_time = 0.0
         self.emulate = self.config.get('emulate', False)
         self.reconnect_timeout = self.config.get('reconnect_timeout', 5000.0)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
@@ -106,6 +106,8 @@ class ET7000_Server(TangoServerPrototype):
                 msg = '%s IP address %s is in use' % (self.get_name(), ip)
                 self.logger.error(msg)
                 self.set_state(DevState.FAULT)
+                self.error_count += 1
+                self.error_time = time.time()
                 return
         self.ip = ip
         try:
@@ -121,6 +123,8 @@ class ET7000_Server(TangoServerPrototype):
                 if time.time() - t0 > 5.0:
                     self.logger.error('Device %s is not ready' % self.get_name())
                     self.set_state(DevState.FAULT)
+                    self.error_count += 1
+                    self.error_time = time.time()
                     return
             # add device to list
             ET7000_Server.device_list.append(self)
@@ -142,7 +146,6 @@ class ET7000_Server(TangoServerPrototype):
             self.ip = None
             msg = '%s ERROR init device' % self.get_name()
             self.log_exception(msg)
-            self.error_stream(msg)
             self.set_state(DevState.FAULT)
 
     def delete_device(self):
@@ -191,7 +194,7 @@ class ET7000_Server(TangoServerPrototype):
 
     # def read_general_async(self, attr: tango.Attribute):
     #     t = self.attributes[attr.get_name()].get_date().to_time()
-    #     if time.time() - t >= self.async_time_limit:
+    #     if error_time.error_time() - t >= self.async_time_limit:
     #         with self.lock:
     #             self.io_que.append(attr)
     #     return self.attributes[attr.get_name()].get_value()
@@ -234,12 +237,12 @@ class ET7000_Server(TangoServerPrototype):
             # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
         if result:
-            self.time = None
+            self.error_time = None
             self.error_count = 0
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
             if mask:
-                self.time = time.time()
+                self.error_time = time.time()
                 self.error_count += 1
                 msg = "%s Error writing %s" % (self.get_name(), attr_name)
                 self.logger.error(msg)
@@ -267,7 +270,7 @@ class ET7000_Server(TangoServerPrototype):
             self.logger.error(msg)
             return self.set_error_attribute_value(attr)
         if val is not None:
-            self.time = 0.0
+            self.error_time = 0.0
             self.error_count = 0
             attr.set_value(val)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
@@ -282,14 +285,14 @@ class ET7000_Server(TangoServerPrototype):
         ndo = 0
         try:
             if self.et.type == 0:
-                self.time = time.time()
+                self.error_time = time.time()
                 self.error_count += 1
                 msg = '%s No IO attributes added for unknown device' % self.get_name()
                 self.logger.warning(msg)
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
-            self.time = None
+            self.error_time = None
             self.error_count = 0
             self.set_state(DevState.INIT)
             attr_name = ''
@@ -468,7 +471,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.info_stream(msg)
             self.set_state(DevState.RUNNING)
         except:
-            self.time = time.time()
+            self.error_time = time.time()
             self.error_count += 1
             msg = '%s Error adding IO channels' % self.get_name()
             self.logger.error(msg)
@@ -496,7 +499,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
-            if self.time - time.time() > self.reconnect_timeout:
+            if self.error_time - time.time() > self.reconnect_timeout:
                 self.reconnect()
             return False
         return True
@@ -515,7 +518,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_attribute_value(self, attr: tango.Attribute, value=None):
         if value is not None and not math.isnan(value):
-            self.time = None
+            self.error_time = None
             self.error_count = 0
             attr.set_value(value)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
@@ -548,13 +551,21 @@ class ET7000_Server(TangoServerPrototype):
         self.add_io()
         pass
 
+    def set_fault_state(self, *args, **kwargs):
+        if len(args) + len(kwargs) > 0:
+            self.logger.error( *args, **kwargs)
+        self.error_time = time.time()
+        self.set_state(DevState.FAULT)
+
 
 def looping():
     #ET7000_Server.logger.debug('loop entry')
     for dev in ET7000_Server.device_list:
         if dev.init_io:
             dev.add_io()
-    time.sleep(0.5)
+        if dev.is_connected() and time.time() - dev.error_time > dev.reconnect_timeout:
+            dev.reconnect()
+    time.sleep(1.0)
     #ET7000_Server.logger.debug('loop exit')
 
 # def post_init_callback():

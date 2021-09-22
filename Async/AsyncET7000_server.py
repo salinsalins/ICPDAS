@@ -78,8 +78,8 @@ class ET7000_Server(Device):
                 # add delay for device initiate after possible reboot
                 # dt = self.device_type
                 # print('dt0', dt)
-                # t0 = time.time()
-                # while dt == 0 and time.time() - t0 < 5.0:
+                # t0 = error_time.error_time()
+                # while dt == 0 and error_time.error_time() - t0 < 5.0:
                 #     print('dt ', dt)
                 #     dt= self.et.read_module_name()
                 self.device_type_str = self.et.type_str
