@@ -192,8 +192,8 @@ class ET7000_Server(TangoServerPrototype):
     #     return self.attributes[attr.get_name()].get_value()
     #
     def read_general(self, attr: tango.Attribute):
-        # attr_name = attr.get_name()
-        # self.logger.debug('entry %s %s', self.get_name(), attr_name)
+        attr_name = attr.get_name()
+        self.logger.debug('entry %s %s', self.get_name(), attr_name)
         if self.is_connected():
             val = self._read_io(attr)
         else:
@@ -204,6 +204,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def write_general(self, attr: tango.WAttribute):
         attr_name = attr.get_name()
+        self.logger.debug('entry %s %s', self.get_name(), attr_name)
         if not self.is_connected():
             self.set_error_attribute_value(attr)
             attr.set_quality(tango.AttrQuality.ATTR_INVALID)
@@ -330,7 +331,7 @@ class ET7000_Server(TangoServerPrototype):
                 # add attr to device
                 self.add_attribute(attr)
                 self.attributes[attr_name] = attr
-                msg = '%d of %d analog inputs initialized' % (nai, self.et.ai_n)
+                msg = '%s %d of %d analog inputs initialized' % (self.get_name(), nai, self.et.ai_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
             # ao
@@ -376,7 +377,7 @@ class ET7000_Server(TangoServerPrototype):
                 # add attr to device
                 self.add_attribute(attr)
                 self.attributes[attr_name] = attr
-                msg = '%d of %d analog outputs initialized' % (nao, self.et.ao_n)
+                msg = '%s %d of %d analog outputs initialized' % (self.get_name(), nao, self.et.ao_n)
                 self.logger.info(msg)
                 self.info_stream(msg)
             # di
@@ -416,7 +417,7 @@ class ET7000_Server(TangoServerPrototype):
                 # add attr to device
                 self.add_attribute(attr)
                 self.attributes[attr_name] = attr
-                msg = '%d digital inputs initialized' % ndi
+                msg = '%s %d digital inputs initialized' % (self.get_name(), ndi)
                 self.logger.info(msg)
                 self.info_stream(msg)
             # do
@@ -457,7 +458,7 @@ class ET7000_Server(TangoServerPrototype):
                 # add attr to device
                 self.add_attribute(attr)
                 self.attributes[attr_name] = attr
-                msg = '%d digital outputs initialized' % ndo
+                msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
                 self.logger.info(msg)
                 self.info_stream(msg)
             self.set_state(DevState.RUNNING)

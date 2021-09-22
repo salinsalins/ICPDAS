@@ -831,32 +831,33 @@ if __name__ == "__main__":
     for r in ET7000.ranges:
         f = ET7000.ai_convert_function(r)
         if f(ET7000.ranges[r]['min_code']) != ET7000.ranges[r]['min']:
-            print(hex(r), hex(ET7000.ranges[r]['min_code']), f(ET7000.ranges[r]['min_code']), ET7000.ranges[r]['min'])
+            print(hex(r), hex(ET7000.ranges[r]['min_code']), f(ET7000.ranges[r]['min_code']), '!=', ET7000.ranges[r]['min'])
         if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
-            print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), ET7000.ranges[r]['max'])
+            print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=', ET7000.ranges[r]['max'])
+    #
     ip = '192.168.1.122'
     et = ET7000(ip)
     if et.type == 0:
         print('ET7000 not found at %s' % ip)
     else:
-        print('ET7000 series %s at %s' % (hex(et.type), ip))
+        print('ET7000 series %s at %s' % (et.type_str, ip))
         print('----------------------------------------')
         print('%d ai' % et.ai_n)
-        et.ai_read()
+        v = et.ai_read()
         for k in range(et.ai_n):
-            print(k, hex(et.ai_raw[k]), et.ai_values[k], et.ai_units[k], ' range:', hex(et.ai_ranges[k]))
+            print(k, v[k], et.ai_units[k], ' range:', hex(et.ai_ranges[k]))
         print('----------------------------------------')
         print('%d ao' % et.ao_n)
-        et.ao_read()
+        v = et.ao_read()
         for k in range(et.ao_n):
-            print(k, hex(et.ao_raw[k]), et.ao_values[k], et.ao_units[k], ' range:', hex(et.ao_ranges[k]))
+            print(k, v[k], et.ao_units[k], ' range:', hex(et.ao_ranges[k]))
         print('----------------------------------------')
         print('%d di' % et.di_n)
-        et.di_read()
+        v = et.di_read()
         for k in range(et.di_n):
-            print(k, et.di_values[k])
+            print(k, v[k])
         print('----------------------------------------')
         print('%d do' % et.do_n)
-        et.do_read()
+        v = et.do_read()
         for k in range(et.do_n):
-            print(k, et.do_values[k])
+            print(k, et.v[k])
