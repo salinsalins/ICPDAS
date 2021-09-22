@@ -13,8 +13,8 @@ import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx
 from tango.server import Device, attribute, command, pipe, device_property
 
-from ET7000 import FakeET7000 as ET7000
-# from ET7000 import ET7000
+from ET7000 import FakeET7000
+from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import config_logger
 
@@ -88,11 +88,13 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_config(self):
         super().set_config()
+        self.init_io = True
         self.attributes = {}
         self.et = None
         self.ip = None
         self.error_count = 0
         self.time = None
+        self.emulate = self.config.get('emulate', False)
         self.reconnect_timeout = self.config.get('reconnect_timeout', 5000.0)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
         self.set_state(DevState.INIT)
@@ -100,7 +102,7 @@ class ET7000_Server(TangoServerPrototype):
         ip = self.config.get('ip', '192.168.1.122')
         # check if ip is in use
         for d in ET7000_Server.device_list:
-            if d.ip == ip:
+            if not d.emulate and d.ip == ip:
                 msg = '%s IP address %s is in use' % (self.get_name(), ip)
                 self.logger.error(msg)
                 self.set_state(DevState.FAULT)
@@ -108,7 +110,10 @@ class ET7000_Server(TangoServerPrototype):
         self.ip = ip
         try:
             # create ICP DAS device
-            self.et = ET7000(ip, logger=self.logger)
+            if self.emulate:
+                self.et = FakeET7000(ip, logger=self.logger)
+            else:
+                self.et = ET7000(ip, logger=self.logger)
             self.et.client.auto_close(False)
             # wait for device initiate after possible reboot
             t0 = time.time()
@@ -471,6 +476,7 @@ class ET7000_Server(TangoServerPrototype):
             self.error_stream(msg)
             self.set_state(DevState.FAULT)
             return
+        self.init_io = False
         return nai + nao + ndi + ndo
 
     def remove_io(self):
@@ -480,6 +486,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
             self.attributes = {}
             self.set_state(DevState.UNKNOWN)
+            self.init_io = True
         except:
             msg = '%s Error deleting IO channels' % self.get_name()
             self.logger.error(msg)
@@ -537,21 +544,23 @@ class ET7000_Server(TangoServerPrototype):
     #         pass
 
     def initialize_dynamic_attributes(self):
-        # self.logger.error('-------- entry -----')
+        # self.logger.debug('-------- entry -----')
         self.add_io()
+        pass
 
 
-# def looping():
-#     #ET7000_Server.logger.debug('loop entry')
-#     # time.sleep(5.0)
-#     #ET7000_Server.logger.debug('loop 2')
-#     for dev in ET7000_Server.devices:
-#         with dev.lock:
-#             if len(dev.io_que[0]) > 0:
-#                 a = dev.io_que[0]
-#                 dev.read_geteral(a)
-#                 dev.io_que.remove(a)
-#     #ET7000_Server.logger.debug('loop exit')
+def looping():
+    #ET7000_Server.logger.debug('loop entry')
+    for dev in ET7000_Server.device_list:
+        if dev.init_io:
+            dev.add_io()
+    time.sleep(0.5)
+    #ET7000_Server.logger.debug('loop exit')
+
+# def post_init_callback():
+#     print('post_init_callback')
+#     pass
 
 if __name__ == "__main__":
-    ET7000_Server.run_server()
+    # ET7000_Server.run_server(post_init_callback=post_init_callback)
+    ET7000_Server.run_server(event_loop=looping)
