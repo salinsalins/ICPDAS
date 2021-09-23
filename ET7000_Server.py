@@ -86,7 +86,7 @@ class ET7000_Server(TangoServerPrototype):
         # self.lock = Lock
         # self.io_que = []
         # self.async_time_limit = 0.2
-        self.logger.addHandler(TangoLogHandler(level=self.logger.getEffectiveLevel()))
+        self.logger.addHandler(TangoLogHandler(self, level=self.logger.getEffectiveLevel()))
 
     def set_config(self):
         super().set_config()
