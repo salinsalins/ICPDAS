@@ -16,7 +16,7 @@ from tango.server import Device, attribute, command, pipe, device_property
 from ET7000 import FakeET7000
 from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
-from TangoUtils import config_logger
+from TangoUtils import config_logger, TangoLogHandler
 
 NaN = float('nan')
 
@@ -81,10 +81,12 @@ class ET7000_Server(TangoServerPrototype):
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
             self.delete_device()
+        # call init_device from super, which makes call to self.set_config()
         super().init_device()
         # self.lock = Lock
         # self.io_que = []
         # self.async_time_limit = 0.2
+        self.logger.addHandler(TangoLogHandler(level=self.logger.getEffectiveLevel()))
 
     def set_config(self):
         super().set_config()
@@ -144,6 +146,7 @@ class ET7000_Server(TangoServerPrototype):
         except:
             self.et = None
             self.ip = None
+            self.error_time = time.time()
             msg = '%s ERROR init device' % self.get_name()
             self.log_exception(msg)
             self.set_state(DevState.FAULT)
@@ -554,6 +557,7 @@ class ET7000_Server(TangoServerPrototype):
     def set_fault_state(self, *args, **kwargs):
         if len(args) + len(kwargs) > 0:
             self.logger.error( *args, **kwargs)
+        self.error_count += 1
         self.error_time = time.time()
         self.set_state(DevState.FAULT)
 
@@ -564,7 +568,6 @@ def looping():
         if dev.init_io:
             dev.add_io()
         # if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
-        # if dev.is_connected() and time.time() - dev.error_time > dev.reconnect_timeout:
         #     dev.reconnect()
     time.sleep(1.0)
     #ET7000_Server.logger.debug('loop exit')
