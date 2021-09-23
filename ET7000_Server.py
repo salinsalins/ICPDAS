@@ -237,7 +237,7 @@ class ET7000_Server(TangoServerPrototype):
             # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
             return
         if result:
-            self.error_time = None
+            self.error_time = 0.0
             self.error_count = 0
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
         else:
@@ -292,7 +292,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
-            self.error_time = None
+            self.error_time = 0.0
             self.error_count = 0
             self.set_state(DevState.INIT)
             attr_name = ''
@@ -499,8 +499,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
-            if self.error_time - time.time() > self.reconnect_timeout:
-                self.reconnect()
+            # if self.error_time > 0.0 and self.error_time - time.time() > self.reconnect_timeout:
+            #     self.reconnect()
             return False
         return True
 
@@ -518,7 +518,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_attribute_value(self, attr: tango.Attribute, value=None):
         if value is not None and not math.isnan(value):
-            self.error_time = None
+            self.error_time = 0.0
             self.error_count = 0
             attr.set_value(value)
             attr.set_quality(tango.AttrQuality.ATTR_VALID)
@@ -563,6 +563,7 @@ def looping():
     for dev in ET7000_Server.device_list:
         if dev.init_io:
             dev.add_io()
+        # if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
         # if dev.is_connected() and time.time() - dev.error_time > dev.reconnect_timeout:
         #     dev.reconnect()
     time.sleep(1.0)
