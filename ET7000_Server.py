@@ -95,7 +95,7 @@ class ET7000_Server(TangoServerPrototype):
         self.error_count = 0
         self.error_time = 0.0
         self.emulate = self.config.get('emulate', False)
-        self.reconnect_timeout = self.config.get('reconnect_timeout', 5000.0)
+        self.reconnect_timeout = self.config.get('reconnect_timeout', 10000.0)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
         self.set_state(DevState.INIT)
         # get ip from property
@@ -499,8 +499,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
-            # if self.error_time > 0.0 and self.error_time - time.time() > self.reconnect_timeout:
-            #     self.reconnect()
+            if self.error_time > 0.0 and self.error_time - time.time() > self.reconnect_timeout:
+                self.reconnect()
             return False
         return True
 
