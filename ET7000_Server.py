@@ -22,7 +22,7 @@ NaN = float('nan')
 
 
 class ET7000_Server(TangoServerPrototype):
-    server_version = '3.0'
+    server_version = '4.0'
     server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -78,6 +78,8 @@ class ET7000_Server(TangoServerPrototype):
         self.logger.info(msg)
 
     def init_device(self):
+        self.io_request = None
+        self.io_async = False
         self.lock = Lock()
         with self.lock:
             if self in ET7000_Server.device_list:
@@ -87,6 +89,7 @@ class ET7000_Server(TangoServerPrototype):
             super().init_device()
             # add handler for logging to the tango
             self.logger.addHandler(TangoLogHandler(self, level=self.logger.getEffectiveLevel()))
+
 
     def set_config(self):
         super().set_config()
@@ -99,6 +102,7 @@ class ET7000_Server(TangoServerPrototype):
         self.emulate = self.config.get('emulate', False)
         self.reconnect_timeout = self.config.get('reconnect_timeout', 10000.0)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
+        self.io_async = self.config.get('io_async', False)
         self.set_state(DevState.INIT)
         # get ip from property
         ip = self.config.get('ip', '192.168.1.122')
@@ -208,7 +212,13 @@ class ET7000_Server(TangoServerPrototype):
             attr_name = attr.get_name()
             self.logger.debug('entry %s %s', self.get_name(), attr_name)
             if self.is_connected():
-                val = self._read_io(attr)
+                if self.io_async:
+                    if self.io_request is not None:
+                        val = attr.value
+                    else:
+                        self.io_request = attr
+                else:
+                    val = self._read_io(attr)
             else:
                 val = None
                 msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())

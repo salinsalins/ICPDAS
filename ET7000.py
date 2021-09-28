@@ -835,12 +835,12 @@ if __name__ == "__main__":
         if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=', ET7000.ranges[r]['max'])
     #
-    ip = '192.168.1.122'
+    ip = '192.168.1.133'
     et = ET7000(ip)
     if et.type == 0:
         print('ET7000 not found at %s' % ip)
     else:
-        print('ET7000 series %s at %s' % (et.type_str, ip))
+        print('PET%s at %s' % (et.type_str, ip))
         print('----------------------------------------')
         print('%d ai' % et.ai_n)
         v = et.ai_read()
@@ -860,4 +860,66 @@ if __name__ == "__main__":
         print('%d do' % et.do_n)
         v = et.do_read()
         for k in range(et.do_n):
-            print(k, et.v[k])
+            print(k, v[k])
+
+    # timing benchmarks
+    print(' ')
+
+    from matplotlib import pyplot as plt
+    import numpy as np
+
+    N = 20000
+    y = np.zeros(N)
+    n = 1
+    t = 0.0
+    n1 = 1
+    t1 = 0.0
+    tmin = 1e60
+    tmax = -1.0
+
+    for i in range(N):
+        t0 = time.perf_counter()
+        a = et.do_read_channel(0)
+        dt = (time.perf_counter() - t0) * 1000.0
+        v = a
+        y[i] = dt
+        t += dt
+        n += 1
+        ar = t/n
+        t1 += dt
+        n1 += 1
+        ar1 = t1/n1
+        tmin = min(tmin, dt)
+        tmax = max(tmax, dt)
+        print('\rRead: PET%s/%s = %s; %9.6fms; avg=%6.3fms; avg5=%6.3fms; min=%9.6fms; max=%6.3fms %d'
+              % (et.type_str, ip, v, dt, ar, ar1, tmin, tmax, n), end='')
+        # if dt > 3.0 * ar:
+        #     print('\nLong reading', ar, dt)
+        if t1 > 5000.0:
+            t1 = 0.0
+            n1 = 0.0
+
+    # plot data
+    x = np.arange(N)
+    fig, ax = plt.subplots()
+    ax.plot(x, y)
+    ax.set(xlabel='N', ylabel='time (ms)',
+           title='About as simple as it gets, folks')
+    ax.grid()
+    fig.savefig("test.png")
+    plt.show()
+
+    # the histogram of the data
+    num_bins = 500
+    fig, ax = plt.subplots()
+    n, bins, patches = ax.hist(y, num_bins, density=True)
+    # # add a 'best fit' line
+    # z = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+    #      np.exp(-0.5 * (1 / sigma * (bins - mu))**2))
+    # ax.plot(bins, y, '--')
+    ax.set_xlabel('time (ms)')
+    ax.set_ylabel('Probability density')
+    ax.set_title(r'Histogram of Read timing: $\mu=100$, $\sigma=15$')
+    # Tweak spacing to prevent clipping of ylabel
+    fig.tight_layout()
+    plt.show()
