@@ -912,7 +912,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     ax.plot(x, y)
     ax.set(xlabel='N', ylabel='time (ms)',
-           title='Reading timings')
+           title='Read timings')
     ax.grid()
     # fig.savefig("test.png")
     plt.show()
