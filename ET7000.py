@@ -6,6 +6,12 @@ from pyModbusTCP.client import ModbusClient
 NaN = float('nan')
 
 
+class ModifiedModbusClient(ModbusClient):
+    def _send_mbus(self, arg):
+        super()._send_mbus(arg)
+        time.sleep(0.001)
+
+
 class ET7000:
     ranges = {
         0x00: {
@@ -432,7 +438,7 @@ class ET7000:
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
         return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
-    def __init__(self, host: str, port=502, timeout=0.15, logger=None, client=ModbusClient):
+    def __init__(self, host: str, port=502, timeout=0.15, logger=None, client=ModifiedModbusClient):
         self.host = host
         self.port = port
         # logger config
@@ -827,13 +833,16 @@ class FakeET7000(ET7000):
         super().__init__(host, port=port, timeout=timeout, logger=logger, client=FakeET7000._client)
         self.type_str = 'Emulated ' + self.type_str
 
+
 if __name__ == "__main__":
     for r in ET7000.ranges:
         f = ET7000.ai_convert_function(r)
         if f(ET7000.ranges[r]['min_code']) != ET7000.ranges[r]['min']:
-            print(hex(r), hex(ET7000.ranges[r]['min_code']), f(ET7000.ranges[r]['min_code']), '!=', ET7000.ranges[r]['min'])
+            print(hex(r), hex(ET7000.ranges[r]['min_code']), f(ET7000.ranges[r]['min_code']), '!=',
+                  ET7000.ranges[r]['min'])
         if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
-            print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=', ET7000.ranges[r]['max'])
+            print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=',
+                  ET7000.ranges[r]['max'])
     #
     ip = '192.168.1.133'
     et = ET7000(ip)
@@ -881,7 +890,7 @@ if __name__ == "__main__":
 
     for i in range(N):
         t0 = time.perf_counter()
-        a = et.do_read_channel(0)
+        a = et.ai_read_channel(0)
         dt = (time.perf_counter() - t0) * 1000.0
         v = a
         if a is None:
@@ -890,10 +899,10 @@ if __name__ == "__main__":
         y[i] = dt
         t += dt
         n += 1
-        ar = t/n
+        ar = t / n
         t1 += dt
         n1 += 1
-        ar1 = t1/n1
+        ar1 = t1 / n1
         tmin = min(tmin, dt)
         tmax = max(tmax, dt)
         print('\rRead ai: PET%s/%s = %s; %9.6fms; avg=%6.3fms; avg5=%6.3fms; min=%9.6fms; max=%6.3fms %d'
@@ -924,7 +933,7 @@ if __name__ == "__main__":
     ax.set_xlabel('time (ms)')
     ax.set_ylabel('Probability density')
     ax.set_title(r'Histogram of Read timing')
-    #ax.set_title(r'Histogram of Read timing: $\mu=100$, $\sigma=15$')
+    # ax.set_title(r'Histogram of Read timing: $\mu=100$, $\sigma=15$')
     # Tweak spacing to prevent clipping of ylabel
     fig.tight_layout()
     plt.show()
