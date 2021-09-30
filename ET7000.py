@@ -8,8 +8,10 @@ NaN = float('nan')
 
 class ModifiedModbusClient(ModbusClient):
     def _send_mbus(self, arg):
-        super()._send_mbus(arg)
-        time.sleep(0.001)
+        result = super()._send_mbus(arg)
+        if result is not None:
+            time.sleep(0.001)
+        return result
 
 
 class ET7000:
