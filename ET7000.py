@@ -519,6 +519,8 @@ class ET7000:
         self.logger.debug('ET-%s at %s has been created' % (self.type_str, host))
 
     def read_module_type(self):
+        if not self.is_open:
+            return 0
         regs = self.client.read_holding_registers(559, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -529,6 +531,8 @@ class ET7000:
 
     # AI functions
     def ai_read_n(self):
+        if not self.is_open:
+            return 0
         regs = self.client.read_input_registers(320, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -538,12 +542,16 @@ class ET7000:
         return 0
 
     def ai_read_masks(self):
+        if self.ai_n <= 0:
+            return None
         coils = self.client.read_coils(595, self.ai_n)
         if coils and len(coils) == self.ai_n:
             return coils
         return [False] * self.ai_n
 
     def ai_read_ranges(self):
+        if self.ai_n <= 0:
+            return None
         regs = self.client.read_holding_registers(427, self.ai_n)
         if regs and len(regs) == self.ai_n:
             return regs
@@ -552,37 +560,48 @@ class ET7000:
     def ai_read(self, channel=None):
         if channel is not None:
             return self.ai_read_channel(channel)
-        n = self.ai_n
-        result = self.client.read_input_registers(0, n)
-        if result and len(result) == n:
-            for i in range(n):
+        if self.ai_n <= 0:
+            return None
+        result = self.client.read_input_registers(0, self.ai_n)
+        if result and len(result) == self.ai_n:
+            for i in range(self.ai_n):
                 if self.ai_masks[i]:
                     result[i] = self.ai_convert[i](result[i])
                 else:
                     result[i] = NaN
             return result
         else:
-            return [NaN] * n
+            return [None] * self.ai_n
 
     def ai_read_channel(self, channel: int):
-        v = None
+        if self.ai_n <= 0:
+            return None
         try:
             if self.ai_masks[channel]:
                 regs = self.client.read_input_registers(channel, 1)
                 if regs:
-                    v = self.ai_convert[channel](regs[0])
+                    return self.ai_convert[channel](regs[0])
+                else:
+                    return None
+            else:
+                return NaN
         except:
-            pass
-        return v
+            return None
 
     def ai_write_masks(self, masks):
+        if self.ai_n <= 0:
+            return None
         return self.client.write_multiple_coils(595, [bool(m) for m in masks])
 
     def ai_write_ranges(self, data):
+        if self.ai_n <= 0:
+            return None
         return self.client.write_multiple_registers(427, [int(m) for m in data])
 
     # AO functions
     def ao_read_n(self):
+        if not self.is_open:
+            return 0
         regs = self.client.read_input_registers(330, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -595,6 +614,8 @@ class ET7000:
         return [True] * self.ao_n
 
     def ao_read_ranges(self):
+        if self.ao_n <= 0:
+            return None
         regs = self.client.read_holding_registers(459, self.ao_n)
         if regs and len(regs) == self.ao_n:
             return regs
@@ -603,16 +624,19 @@ class ET7000:
     def ao_read(self, channel=None):
         if channel is not None:
             return self.ao_read_channel(channel)
-        n = self.ao_n
-        regs = self.client.read_holding_registers(0, n)
-        if regs and len(regs) == n:
-            for k in range(n):
+        if self.ao_n <= 0:
+            return None
+        regs = self.client.read_holding_registers(0, self.ao_n)
+        if regs and len(regs) == self.ao_n:
+            for k in range(self.ao_n):
                 regs[k] = self.ao_convert[k](regs[k])
         else:
-            regs = [NaN] * n
+            regs = [None] * self.ao_n
         return regs
 
     def ao_read_channel(self, k: int):
+        if self.ao_n <= 0:
+            return None
         v = None
         try:
             if self.ao_masks[k]:
@@ -627,6 +651,8 @@ class ET7000:
         return v
 
     def ao_write(self, values):
+        if self.ao_n <= 0:
+            return False
         n = len(values)
         if n != self.ao_n:
             return False
@@ -642,6 +668,8 @@ class ET7000:
         return False
 
     def ao_write_channel(self, k: int, value):
+        if self.ao_n <= 0:
+            return False
         value = float(value)
         raw = self.ao_convert_write[k](value)
         result = self.client.write_single_register(k, raw)
@@ -651,10 +679,14 @@ class ET7000:
         return False
 
     def ao_write_ranges(self, data):
+        if self.ao_n <= 0:
+            return False
         return self.client.write_multiple_registers(459, [int(m) for m in data])
 
     # DI functions
     def di_read_n(self):
+        if not self.is_open:
+            return 0
         regs = self.client.read_input_registers(300, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -664,6 +696,8 @@ class ET7000:
         return 0
 
     def di_read(self, channel=None):
+        if self.di_n <= 0:
+            return None
         if channel is not None:
             return self.di_read_channel(channel)
         regs = self.client.read_discrete_inputs(0, self.di_n)
@@ -672,6 +706,8 @@ class ET7000:
         return [None] * self.di_n
 
     def di_read_channel(self, k: int):
+        if self.di_n <= 0:
+            return None
         reg = self.client.read_discrete_inputs(k, 1)
         if reg:
             return reg[0]
@@ -679,6 +715,8 @@ class ET7000:
 
     # DO functions
     def do_read_n(self):
+        if not self.is_open:
+            return 0
         regs = self.client.read_input_registers(310, 1)
         if regs and regs[0] != 0:
             return regs[0]
@@ -688,6 +726,8 @@ class ET7000:
         return 0
 
     def do_read(self, channel=None):
+        if self.do_n <= 0:
+            return None
         if channel is not None:
             return self.do_read_channel(channel)
         regs = self.client.read_coils(0, self.do_n)
@@ -696,24 +736,32 @@ class ET7000:
         return [None] * self.do_n
 
     def do_read_channel(self, k: int):
+        if self.do_n <= 0:
+            return None
         reg = self.client.read_coils(0 + k, 1)
         if reg:
             return reg[0]
         return None
 
     def do_write(self, values):
+        if self.do_n <= 0:
+            return False
         result = self.client.write_multiple_coils(0, values)
         if result:
             return True
         return False
 
     def do_write_channel(self, k: int, value: bool):
+        if self.do_n <= 0:
+            return False
         result = self.client.write_single_coil(0 + k, value)
         if result:
             return result
         return False
 
     def read_modbus(self, addr, n):
+        if not self.is_open:
+            return 0
         if addr >= 40000:
             return self.client.read_holding_registers(addr - 40000, n)
         if addr >= 30000:
@@ -727,6 +775,8 @@ class ET7000:
         return None
 
     def write_modbus(self, addr, v):
+        if not self.is_open:
+            return 0
         if addr >= 40000:
             return self.client.write_multiple_registers(addr - 40000, v)
         if addr >= 30000:
