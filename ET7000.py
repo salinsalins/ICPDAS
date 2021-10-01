@@ -564,10 +564,10 @@ class ET7000:
             return [NaN] * n
 
     def ai_read_channel(self, channel: int):
-        v = NaN
+        v = None
         try:
             if self.ai_masks[channel]:
-                regs = self.client.read_input_registers(0 + channel, 1)
+                regs = self.client.read_input_registers(channel, 1)
                 if regs:
                     v = self.ai_convert[channel](regs[0])
         except:
@@ -612,34 +612,40 @@ class ET7000:
         return regs
 
     def ao_read_channel(self, k: int):
-        v = NaN
+        v = None
         try:
             if self.ao_masks[k]:
-                regs = self.client.read_holding_registers(0 + k, 1)
+                regs = self.client.read_holding_registers(k, 1)
                 if regs:
                     v = self.ao_convert[k](regs[0])
-            if self.ao_correct_output:
-                # self.logger.debug('%s', abs(self.ao_last_written_values[k] - v) / self.ao_quanta[k])
-                if abs(self.ao_last_written_values[k] - v) < self.ao_quanta[k]:
-                    v = self.ao_last_written_values[k]
+                    if self.ao_correct_output:
+                        if abs(self.ao_last_written_values[k] - v) < self.ao_quanta[k]:
+                            v = self.ao_last_written_values[k]
         except:
             pass
         return v
 
     def ao_write(self, values):
-        if len(values) != self.ao_n:
+        n = len(values)
+        if n != self.ao_n:
             return False
-        regs = [self.ao_convert_write[i](v) for i, v in enumerate(values)]
+        regs = [0] * n
+        for i in range(n):
+            values[i] = float(values[i])
+            regs[i] = self.ao_convert_write[i](values[i])
         result = self.client.write_multiple_registers(0, regs)
         if result:
+            for i in range(n):
+                self.ao_last_written_values[i] = values[i]
             return True
         return False
 
     def ao_write_channel(self, k: int, value):
-        raw = self.ao_convert_write[k](float(value))
-        result = self.client.write_single_register(0 + k, raw)
+        value = float(value)
+        raw = self.ao_convert_write[k](value)
+        result = self.client.write_single_register(k, raw)
         if result:
-            self.ao_last_written_values[k] = float(value)
+            self.ao_last_written_values[k] = value
             return True
         return False
 

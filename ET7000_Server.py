@@ -214,13 +214,7 @@ class ET7000_Server(TangoServerPrototype):
             attr_name = attr.get_name()
             # self.logger.debug('entry %s %s', self.get_name(), attr_name)
             if self.is_connected():
-                if self.io_async:
-                    if self.io_request is not None:
-                        val = attr.value
-                    else:
-                        self.io_request = attr
-                else:
-                    val = self._read_io(attr)
+                val = self._read_io(attr)
             else:
                 val = None
                 msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
