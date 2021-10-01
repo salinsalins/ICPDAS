@@ -90,7 +90,6 @@ class ET7000_Server(TangoServerPrototype):
             # add handler for logging to the tango
             self.logger.addHandler(TangoLogHandler(self, level=self.logger.getEffectiveLevel()))
 
-
     def set_config(self):
         super().set_config()
         self.init_io = True
@@ -196,6 +195,8 @@ class ET7000_Server(TangoServerPrototype):
         if val is not None and not math.isnan(val):
             return val
         if mask:
+            self.error_count += 1
+            self.error_time = time.time()
             msg = "%s Error reading %s %s" % (self.get_name(), attr_name, val)
             self.logger.error(msg)
         return float('nan')
@@ -207,10 +208,11 @@ class ET7000_Server(TangoServerPrototype):
     #             self.io_que.append(attr)
     #     return self.attributes[attr.get_name()].get_value()
     #
+
     def read_general(self, attr: tango.Attribute):
         with self.lock:
             attr_name = attr.get_name()
-            self.logger.debug('entry %s %s', self.get_name(), attr_name)
+            # self.logger.debug('entry %s %s', self.get_name(), attr_name)
             if self.is_connected():
                 if self.io_async:
                     if self.io_request is not None:
@@ -572,21 +574,22 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_fault_state(self, *args, **kwargs):
         if len(args) + len(kwargs) > 0:
-            self.logger.error( *args, **kwargs)
+            self.logger.error(*args, **kwargs)
         self.error_count += 1
         self.error_time = time.time()
         self.set_state(DevState.FAULT)
 
 
 def looping():
-    #ET7000_Server.logger.debug('loop entry')
+    # ET7000_Server.logger.debug('loop entry')
     for dev in ET7000_Server.device_list:
         if dev.init_io:
             dev.add_io()
         # if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
         #     dev.reconnect()
     time.sleep(1.0)
-    #ET7000_Server.logger.debug('loop exit')
+    # ET7000_Server.logger.debug('loop exit')
+
 
 # def post_init_callback():
 #     print('post_init_callback')
