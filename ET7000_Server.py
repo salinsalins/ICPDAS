@@ -28,8 +28,8 @@ class ET7000_Server(TangoServerPrototype):
     device_type = attribute(label="device_type", dtype=str,
                             display_level=DispLevel.OPERATOR,
                             access=AttrWriteType.READ,
-                            unit="", format="%s",
-                            doc="ET7000 device type. 0x0000 - unknown or offline")
+                            unit="", format="%4s",
+                            doc="ET7000 device type. '0000' - unknown or offline")
 
     IP = attribute(label="IP", dtype=str,
                    display_level=DispLevel.OPERATOR,
