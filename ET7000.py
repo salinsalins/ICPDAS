@@ -506,7 +506,7 @@ class ET7000:
             self.ao_units[i] = ET7000.ranges[r]['units']
             self.ao_min[i] = ET7000.ranges[r]['min']
             self.ao_max[i] = ET7000.ranges[r]['max']
-            self.ao_convert[i] = ET7000.ai_convert_function(r)  # !!! ai_convert for reading
+            self.ao_convert[i] = ET7000.ai_convert_function(r)  # !!! ao_convert for reading
             self.ao_convert_write[i] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
             self.ao_quanta[i] = abs(self.ao_convert[i](1) - self.ao_convert[i](0))
         self.ao_last_written_values = [0.0] * self.ao_n
@@ -619,7 +619,7 @@ class ET7000:
                 if regs:
                     v = self.ao_convert[k](regs[0])
                     if self.ao_correct_output:
-                        if abs(self.ao_last_written_values[k] - v) < self.ao_quanta[k]:
+                        if abs(self.ao_last_written_values[k] - v) <= self.ao_quanta[k]:
                             v = self.ao_last_written_values[k]
         except:
             pass
@@ -671,7 +671,7 @@ class ET7000:
         return [None] * self.di_n
 
     def di_read_channel(self, k: int):
-        reg = self.client.read_discrete_inputs(0 + k, 1)
+        reg = self.client.read_discrete_inputs(k, 1)
         if reg:
             return reg[0]
         return None
