@@ -9,8 +9,9 @@ NaN = float('nan')
 class ModifiedModbusClient(ModbusClient):
     def _send_mbus(self, arg):
         result = super()._send_mbus(arg)
-        if result is not None:
-            time.sleep(0.001)
+        # sleep for 5 ms (average time to get response from device is 20 ms)
+        # for thread scheduler has opportunity to switch to another thread in multithread application
+        time.sleep(0.005)
         return result
 
 
@@ -931,7 +932,7 @@ if __name__ == "__main__":
             print(k, v[k])
 
     # timing benchmarks
-    print(' ')
+    print('Timing benchmarks')
 
     from matplotlib import pyplot as plt
     import numpy as np
