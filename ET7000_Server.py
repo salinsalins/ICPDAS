@@ -17,8 +17,12 @@ from ET7000 import FakeET7000
 from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import config_logger, TangoLogHandler
+# from ..TangoUtils.TangoUtils import config_logger, TangoLogHandler
+# from ..TangoUtils.TangoServerPrototype import TangoServerPrototype
 
 NaN = float('nan')
+DEFAULT_IP = '192.168.1.122'
+DEFAULT_RECONNECT_TIMEOUT = 10000.0
 
 
 class ET7000_Server(TangoServerPrototype):
@@ -99,12 +103,12 @@ class ET7000_Server(TangoServerPrototype):
         self.error_count = 0
         self.error_time = 0.0
         self.emulate = self.config.get('emulate', False)
-        self.reconnect_timeout = self.config.get('reconnect_timeout', 10000.0)
+        self.reconnect_timeout = self.config.get('reconnect_timeout', DEFAULT_RECONNECT_TIMEOUT)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
         self.io_async = self.config.get('io_async', False)
         self.set_state(DevState.INIT)
         # get ip from property
-        ip = self.config.get('ip', '192.168.1.122')
+        ip = self.config.get('ip', DEFAULT_IP)
         # check if ip is in use
         for d in ET7000_Server.device_list:
             if not d.emulate and d.ip == ip:
@@ -133,24 +137,22 @@ class ET7000_Server(TangoServerPrototype):
                     return
             # add device to list
             ET7000_Server.device_list.append(self)
-            msg = '%s ET-%s at %s has been created' % (self.get_name(), self.et.type_str, ip)
-            self.logger.info(msg)
-            self.info_stream(msg)
-            # check if device type_str is recognized
+            # check if device type is recognized
             if self.et.type != 0:
-                # set state to running
+                # device is recognized
                 self.set_state(DevState.RUNNING)
+                msg = '%s ET-%s at %s has been created' % (self.get_name(), self.et.type_str, ip)
+                self.logger.info(msg)
             else:
-                # unknown device type_str
-                msg = '%s ET-%s ERROR - unknown device type' % (self.get_name(), self.et.type_str)
-                self.logger.error(msg)
-                self.error_stream(msg)
+                # unknown device
                 self.set_state(DevState.FAULT)
+                msg = '%s ET-%s creation error' % (self.get_name(), self.et.type_str)
+                self.logger.error(msg)
         except:
             self.et = None
             self.ip = None
             self.error_time = time.time()
-            msg = '%s ERROR init device' % self.get_name()
+            msg = '%s init exception' % self.get_name()
             self.log_exception(msg)
             self.set_state(DevState.FAULT)
 
