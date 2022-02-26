@@ -188,35 +188,35 @@ class MainWindow(QMainWindow):
         self.t = QtCore.QTime()
         self.t.start()
 
-        # Для АЦП 1 создаем спинбоксы со значениями всех напряжений
-        self.vols = []  # массив всех значений(спинбоксов) с напряжениями
-        for i in range(6):
-            s = QDoubleSpinBox(self)  # число
-            l = QLabel("V" + str(i), self)  # надпись перед ним
-            s.value = 0
-            s.move(1130, 10 + 30 * i)
-            l.move(1110, 10 + 30 * i)
-            s.resize(70, 20)
-            s.setMaximum(666)
-            s.setMinimum(-666)
-            s.setDecimals(3)  # отображать три знака
-            l.resize(120, 20)
-            self.vols.append(s)  # добавляем значение в массив со спинбоксами
-
-        # аналогично для второго ацп
-        self.vols2 = []
-        for i in range(6):
-            s = QDoubleSpinBox(self)
-            l = QLabel("V" + str(i), self)
-            s.value = 0
-            s.move(1130, 190 + 30 * i)
-            l.move(1110, 190 + 30 * i)
-            s.resize(70, 20)
-            s.setMaximum(666)
-            s.setMinimum(-666)
-            s.setDecimals(3)
-            l.resize(120, 20)
-            self.vols2.append(s)
+        # # Для АЦП 1 создаем спинбоксы со значениями всех напряжений
+        # self.vols = []  # массив всех значений(спинбоксов) с напряжениями
+        # for i in range(6):
+        #     s = QDoubleSpinBox(self)  # число
+        #     l = QLabel("V" + str(i), self)  # надпись перед ним
+        #     s.value = 0
+        #     s.move(1130, 10 + 30 * i)
+        #     l.move(1110, 10 + 30 * i)
+        #     s.resize(70, 20)
+        #     s.setMaximum(666)
+        #     s.setMinimum(-666)
+        #     s.setDecimals(3)  # отображать три знака
+        #     l.resize(120, 20)
+        #     self.vols.append(s)  # добавляем значение в массив со спинбоксами
+        #
+        # # аналогично для второго ацп
+        # self.vols2 = []
+        # for i in range(6):
+        #     s = QDoubleSpinBox(self)
+        #     l = QLabel("V" + str(i), self)
+        #     s.value = 0
+        #     s.move(1130, 190 + 30 * i)
+        #     l.move(1110, 190 + 30 * i)
+        #     s.resize(70, 20)
+        #     s.setMaximum(666)
+        #     s.setMinimum(-666)
+        #     s.setDecimals(3)
+        #     l.resize(120, 20)
+        #     self.vols2.append(s)
 
         # большой шрифт для основных значений
         big_font = QtGui.QFont("Times", 12, QtGui.QFont.Bold)
@@ -252,9 +252,10 @@ class MainWindow(QMainWindow):
 
         # добавляем кнопку разворачивания основного окна чтобы показывались значения напряжений ацп
         self.big = False  # развернуто ли окно
-        self.bigbut = QPushButton('volt', self)  # кнопка
-        self.bigbut.move(1050, 187)
-        self.bigbut.resize(40, 20)
+        # self.bigbut = QPushButton('volt', self)  # кнопка
+        # self.bigbut.move(1050, 187)
+        # self.bigbut.resize(40, 20)
+        self.bigbut = self.pushButton
         self.bigbut.clicked.connect(self.bigPress)  # при нажатии срабатывает метод bigPress
 
         # надпись
@@ -338,11 +339,15 @@ class MainWindow(QMainWindow):
 
     # функция вызывается при нажатии на кнопку развернуть окно и увеличивает или уменьшает его размер
     def bigPress(self):
-        if self.big:
-            self.resize(1110, 350)
+        # if self.big:
+        #     self.resize(1110, 350)
+        # else:
+        #     self.resize(1210, 350)
+        # self.big = not self.big
+        if self.pushButton.isChecked():
+            self.listView.show()
         else:
-            self.resize(1210, 350)
-        self.big = not self.big
+            self.listView.hide()
 
     # функция - основной цикл. вызвается раз в секунду
     def cycle(self):
