@@ -510,7 +510,7 @@ class MainWindow(QMainWindow):
             # если история еще пустая, добавляем в нее пустой массив для каждого заголовка
             for i in range(len(headers) - 1): self.hist.append([])
 
-        # добавляем очередное значение, значения должны соотвествовать заголовкам
+        # добавляем очередное значение, значения должны соответствовать заголовкам
         self.hist[0].append(curr)
         self.hist[1].append(vacH)
         self.hist[2].append(Tyarmo)
@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
         self.hist[6].append(vacT)
         self.hist[7].append(vacL)
 
-        # Каждые 10 цилов записываем историю в файл с именем fname которое мы определили выше
+        # Каждые 10 циклов записываем историю в файл с именем fname которое мы определили выше
         self.writeN += 1
         if self.writeN > 10:
             print("write to file")
