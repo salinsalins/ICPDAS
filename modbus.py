@@ -258,10 +258,10 @@ class MainWindow(QMainWindow):
         self.bigbut = self.pushButton
         self.bigbut.clicked.connect(self.bigPress)  # при нажатии срабатывает метод bigPress
 
-        # надпись
-        l = QLabel("Diaphragm Temp", self)
-        l.resize(120, 20)
-        l.move(967, 240)
+        # # надпись
+        # l = QLabel("Diaphragm Temp", self)
+        # l.resize(120, 20)
+        # l.move(967, 240)
 
         # self.Td = [0, 0, 0, 0, 0]  # массив значений температуры диафрагмы, нулевой элемент не используется
         # for i in range(1, 5):  # 1,2,3,4 - по часовой, начало из левого верхнего угла
@@ -395,9 +395,7 @@ class MainWindow(QMainWindow):
 
         # Из напряжений расчитываем основные значения
         curr = -volt2[5] * 1000 / 92.93  # ток пучка mA
-        # curr = (-volt2[0]-10)*1000/92.93/4 #ток пучка mA
         vacH = pow(10, 1.667 * volt2[1] - 11.46)  # вакуум в бочке
-        # vacH = pow(10,1.667*(volt2[1]+10)-11.46)#вакуум в бочке
         vacL = pow(10, volt[5] - 5.625)  # форвакуум
         vacT = pow(10, 1.667 * volt2[0] - 11.46)  # вакуум в трубке
         curr2 = -volt2[5] * 10  # ток 2 mA - хз что это
@@ -457,11 +455,11 @@ class MainWindow(QMainWindow):
 
         # self.T1.setStyleSheet("background-color:red")
 
-        # Предупреждение, если слайдер сдвига графика не в конце то делаем его красным
-        if self.slider.value() != self.slider.maximum():
-            self.slider.setStyleSheet("background-color:red")
-        else:
-            self.slider.setStyleSheet("background-color:white")
+        # # Предупреждение, если слайдер сдвига графика не в конце то делаем его красным
+        # if self.slider.value() != self.slider.maximum():
+        #     self.slider.setStyleSheet("background-color:red")
+        # else:
+        #     self.slider.setStyleSheet("background-color:white")
 
         # задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
         self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset, dt.currentMSecsSinceEpoch() - offset)
@@ -483,7 +481,7 @@ class MainWindow(QMainWindow):
 
         # находим текущую кривую - ту которая выбрана в легенде
         curr_curve = curves[self.legend.currentIndex()]
-        # задаем Y диапозон на графике в соответсвие с этим диапозоном у текущей кривой
+        # задаем Y диапазон на графике в соответствие с этим диапазоном у текущей кривой
         self.plt.setYRange(curr_curve.min, curr_curve.max)
         # self.plt.setXWidth(60*1000)
         # self.plt.AxisItem
@@ -495,7 +493,7 @@ class MainWindow(QMainWindow):
             # добавляем к массиву всех значений данной кривой нормализованное (минимум - 0, максимум - 1) значение даной кривой
             self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
 
-            new_data = []  # массив для отрисовки в соотвествие с текущими осями
+            new_data = []  # массив для отрисовки в соответствие с текущими осями
             for i in range(len(self.data[n])):
                 new_data.append((curr_curve.max - curr_curve.min) * self.data[n][
                     i] + curr_curve.min)  # новый массив это старый (нормализованный) но у которго максимум и минимум не 1 и о а максимум и минимум curr_curve
