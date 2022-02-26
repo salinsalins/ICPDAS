@@ -9,8 +9,12 @@ import time
 import numpy as np
 import os
 
+from ET7000 import *
+from TangoUtils import config_logger
 
-# Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды а время в формате hh:mm), сделано по гайду из интернета
+
+# Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды, а время в формате hh:mm),
+# сделано по гайду из интернета
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,14 +42,14 @@ class Channel:
 
 # класс кривой, представляет кривую на общем графике
 class Curve:
-    def __init__(self, Min, Max, RGB, Name=""):
-        self.min = Min  # минмимальное значение на оси y
-        self.max = Max  # максимальное
-        self.rgb = RGB  # цвет - массив(list) из трез значение [r,g,b]
+    def __init__(self, _min, _max, color, name=""):
+        self.min = _min  # минимальное значение на оси y
+        self.max = _max  # максимальное
+        self.rgb = color  # цвет - массив(list) из трех значений [r,g,b]
         self.value = 0  # текущее значение
-        self.name = Name  # имя для отображения в легенде
+        self.name = name  # имя для отображения в легенде
 
-    def setValue(self, val):  # функция чтобы задать значение
+    def set_value(self, val):  # функция, чтобы задать значение
         self.value = val
 
 
@@ -70,6 +74,30 @@ def toV(b, Min, Max):
 def toT(b):
     return b / 10
 
+
+logger = config_logger()
+
+IP1 = '192.168.0.44'
+IP2 = '192.168.0.45'
+IP3 = '192.168.0.46'
+
+pet1 = ET7000(IP1)
+if pet1.type == 0:
+    print('PET7000 not found at %s' % IP2)
+else:
+    print('PET%s at %s' % (pet1.type_str, IP1))
+
+pet2 = ET7000(IP2)
+if pet2.type == 0:
+    print('ET7000 not found at %s' % IP2)
+else:
+    print('PET%s at %s' % (pet2.type_str, IP2))
+
+pet3 = ET7000(IP3)
+if pet3.type == 0:
+    print('ET7000 not found at %s' % IP3)
+else:
+    print('PET%s at %s' % (pet3.type_str, IP3))
 
 # Создаем три клиента по протоколу модбас - библиотека pyModbusTCP, смотри интернет как пользоваться
 
@@ -421,14 +449,14 @@ class MainWindow(QMainWindow):
         # ax.setTicks([tx, [])
 
         # Задаем желаемое значение для каждой кривой, которую мы добавили в самом верху
-        curves[0].setValue(curr)
-        curves[1].setValue(vacH)
-        curves[2].setValue(Tyarmo)
-        curves[3].setValue(Tplastik)
-        curves[4].setValue(curr2)
-        curves[5].setValue(flow)
-        curves[6].setValue(vacT)
-        curves[7].setValue(vacL)
+        curves[0].set_value(curr)
+        curves[1].set_value(vacH)
+        curves[2].set_value(Tyarmo)
+        curves[3].set_value(Tplastik)
+        curves[4].set_value(curr2)
+        curves[5].set_value(flow)
+        curves[6].set_value(vacT)
+        curves[7].set_value(vacL)
 
         # находим текущую кривую - ту которая выбрана в легенде
         curr_curve = curves[self.legend.currentIndex()]

@@ -25,8 +25,8 @@ import time
 #     print('proc', threading.get_ident(), time.time() - mydata.t0)
 #
 #
-# # loop()
-# # proc(10000)
+# loop()
+# proc(10000)
 #
 # t0 = time.time()
 #
@@ -48,20 +48,16 @@ t0 = time.time()
 
 import socket
 
-HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
+HOST = '127.0.0.1'  # The server's hostname or IP address
+PORT = 65432        # The port used by the server
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    s.listen()
-    conn, addr = s.accept()
-    with conn:
-        print('Connected by', addr)
-        while True:
-            data = conn.recv(1024)
-            print('Received:', data)
-            if not data:
-                break
-            conn.sendall(data)
+    s.connect((HOST, PORT))
+    print(s.send(b'Hello'))
+    print(s.sendall(b'Hello, world'))
+    data = s.recv(1024)
+    print(s.send(b'Hello'))
 
-print('End', time.time() - t0)
+print('Received', repr(data))
+
+print('End', time.time() - t0, 's')

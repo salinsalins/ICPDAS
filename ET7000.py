@@ -790,6 +790,14 @@ class ET7000:
             return self.client.write_multiple_coils(addr, v)
         return False
 
+    def print_connection_state(self) -> bool:
+        if self.type == 0:
+            print('PET70xx not found at %s' % self.host)
+            return False
+        else:
+            print('PET%s at %s' % (self.type_str, self.host))
+            return True
+
 
 # emulate ET7026 device for tests
 class FakeET7000(ET7000):
