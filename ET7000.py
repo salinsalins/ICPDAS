@@ -791,6 +791,7 @@ class ET7000:
         return False
 
 
+# emulate ET7026 device for tests
 class FakeET7000(ET7000):
     class _client:
         def __init__(self, host, *args, **kwargs):
@@ -895,6 +896,7 @@ class FakeET7000(ET7000):
 
 
 if __name__ == "__main__":
+    # check if ranges table correct
     for r in ET7000.ranges:
         f = ET7000.ai_convert_function(r)
         if f(ET7000.ranges[r]['min_code']) != ET7000.ranges[r]['min']:
@@ -903,7 +905,7 @@ if __name__ == "__main__":
         if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=',
                   ET7000.ranges[r]['max'])
-    #
+    # test ET70xx device for operation
     ip = '192.168.1.133'
     et = ET7000(ip)
     if et.type == 0:
