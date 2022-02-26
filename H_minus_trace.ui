@@ -26,7 +26,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../../Sanin/.designer/backup/icon.png</normaloff>../../../Sanin/.designer/backup/icon.png</iconset>
+    <normaloff>../../.designer/backup/icon.png</normaloff>../../.designer/backup/icon.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -110,6 +110,12 @@
         </property>
         <item row="10" column="0">
          <widget class="QLabel" name="label_12">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Plastic</string>
           </property>
@@ -120,6 +126,12 @@
         </item>
         <item row="7" column="0">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_4">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -136,6 +148,12 @@
         </item>
         <item row="10" column="2">
          <widget class="QLabel" name="label_14">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>degC</string>
           </property>
@@ -143,6 +161,12 @@
         </item>
         <item row="9" column="2">
          <widget class="QLabel" name="label_13">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>degC</string>
           </property>
@@ -150,6 +174,12 @@
         </item>
         <item row="9" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_10">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -166,6 +196,12 @@
         </item>
         <item row="10" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_11">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -182,6 +218,12 @@
         </item>
         <item row="0" column="2">
          <widget class="QLabel" name="label_10">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>mA</string>
           </property>
@@ -189,6 +231,12 @@
         </item>
         <item row="4" column="0">
          <widget class="QLabel" name="label_5">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Gas flow</string>
           </property>
@@ -215,6 +263,12 @@
         </item>
         <item row="6" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -231,6 +285,12 @@
         </item>
         <item row="4" column="2">
          <widget class="QLabel" name="label_6">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>a.u.</string>
           </property>
@@ -238,6 +298,12 @@
         </item>
         <item row="3" column="2">
          <widget class="QLabel" name="label_7">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Torr</string>
           </property>
@@ -245,6 +311,12 @@
         </item>
         <item row="2" column="2">
          <widget class="QLabel" name="label_8">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Torr</string>
           </property>
@@ -252,6 +324,12 @@
         </item>
         <item row="1" column="2">
          <widget class="QLabel" name="label_9">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Torr</string>
           </property>
@@ -259,6 +337,12 @@
         </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_1">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Beam current</string>
           </property>
@@ -269,6 +353,12 @@
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_2">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Vacuum High</string>
           </property>
@@ -278,13 +368,33 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="lineEdit_2"/>
+         <widget class="QLineEdit" name="lineEdit_2">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_1"/>
+         <widget class="QLineEdit" name="lineEdit_1">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_4">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Vacuum Low</string>
           </property>
@@ -295,6 +405,12 @@
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_3">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Vacuum Tube</string>
           </property>
@@ -304,16 +420,43 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="lineEdit_4"/>
+         <widget class="QLineEdit" name="lineEdit_4">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="lineEdit_3"/>
+         <widget class="QLineEdit" name="lineEdit_3">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
         </item>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="lineEdit_5"/>
+         <widget class="QLineEdit" name="lineEdit_5">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+         </widget>
         </item>
         <item row="7" column="2">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_6">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -330,6 +473,12 @@
         </item>
         <item row="8" column="0">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_7">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -346,6 +495,12 @@
         </item>
         <item row="8" column="2">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_9">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -372,6 +527,12 @@
         </item>
         <item row="9" column="0">
          <widget class="QLabel" name="label_11">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>Yoke</string>
           </property>
@@ -382,6 +543,12 @@
         </item>
         <item row="8" column="1">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_8">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -398,6 +565,12 @@
         </item>
         <item row="6" column="0">
          <widget class="QDoubleSpinBox" name="doubleSpinBox">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -414,6 +587,12 @@
         </item>
         <item row="6" column="2">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_3">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -453,7 +632,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QListView" name="listView"/>
+       <widget class="QListWidget" name="listWidget"/>
       </item>
      </layout>
     </item>

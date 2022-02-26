@@ -572,7 +572,7 @@ class ET7000:
                     result[i] = NaN
             return result
         else:
-            return [None] * self.ai_n
+            return [NaN] * self.ai_n
 
     def ai_read_channel(self, channel: int):
         if self.ai_n <= 0:
