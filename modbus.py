@@ -147,7 +147,8 @@ class MainWindow(QMainWindow):
         self.plt.showGrid(x=True, y=True, alpha=1)
         # слайдер, что значат методы можно найти в гугле по запросу PyQt QSlider, аналогично с другими Q-элементами
         # self.slider = QSlider(QtCore.Qt.Horizontal, self)
-        self.slider = self.horizontalSlider
+        #self.slider = self.horizontalSlider
+        self.slider = self.horizontalScrollBar
         # self.slider.resize(800, 20)
         # self.slider.move(100, 330)
         # self.slider.setMinimum(0)
@@ -174,21 +175,21 @@ class MainWindow(QMainWindow):
         self.data = []
         for i in range(len(curves)): self.data.append([])  # на каждую кривую добавляем по элементу
 
-        # массив, в котором будет храниться история всех значений, которая будет записываться в файл
+        # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
 
-        # стандартный таймер - функция cycle будет вызыватся каждую секунду
+        # стандартный таймер - функция cycle будет вызываться каждую секунду
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.cycle)
         self.timer.start(1000)
-        self.time = []  # массив времени - по сути сюда записывается время в миллисекундах каждую секунду (ниже). Использвется для построения графика и записи в файл истории
+        self.time = []  # массив времени в миллисекундах раз в секунду
 
         # вроде что-то ненужное, оставил на всякий случай
         self.t = QtCore.QTime()
         self.t.start()
 
-        # Для АЦП 1 создаем спинбоксы со значениями все напряжений
-        self.vols = []  # массив всех значений(спинбоксов) с напряжениями чтобы потом их использовать
+        # Для АЦП 1 создаем спинбоксы со значениями всех напряжений
+        self.vols = []  # массив всех значений(спинбоксов) с напряжениями
         for i in range(6):
             s = QDoubleSpinBox(self)  # число
             l = QLabel("V" + str(i), self)  # надпись перед ним
@@ -218,33 +219,36 @@ class MainWindow(QMainWindow):
             self.vols2.append(s)
 
         # большой шрифт для основных значений
-        bigFont = QtGui.QFont("Times", 11, QtGui.QFont.Bold)
+        big_font = QtGui.QFont("Times", 12, QtGui.QFont.Bold)
 
         # основные значения (ток, давление и т.п)
         self.vals = []  # массив всех значений(тут это текстовые окна лайн едит) чтобы потом их использовать
         self.labels = []  # массив всех подписей чтобы ниже заполнить каждую из них
 
-        # цикл создает 5 значений выстроеных вертикально
-        for i in range(5):
-            s = QLineEdit(self)
-            l = QLabel("channel " + str(i), self)  # изначально они подписаны как channel N, ниже названия меняются
-            s.setText("0")  # изначально значение 0
-            s.move(1020, 10 + 30 * i)
-            l.move(910, 10 + 30 * i)
-            s.resize(85, 25)
-            l.resize(110, 25)
-            l.setFont(bigFont)
-            s.setFont(bigFont)
-            # добавляем значения и подписи в массив
-            self.vals.append(s)
-            self.labels.append(l)
+        # # цикл создает 5 значений выстроенных вертикально
+        # for i in range(5):
+        #     s = QLineEdit(self)
+        #     l = QLabel("channel " + str(i), self)  # изначально они подписаны как channel N, ниже названия меняются
+        #     s.setText("0")  # изначально значение 0
+        #     s.move(1020, 10 + 30 * i)
+        #     l.move(910, 10 + 30 * i)
+        #     s.resize(85, 25)
+        #     l.resize(110, 25)
+        #     l.setFont(big_font)
+        #     s.setFont(big_font)
+        #     # добавляем значения и подписи в массив
+        #     self.vals.append(s)
+        #     self.labels.append(l)
+        #
+        # # меняем названия (подписи) на те что надо
+        # self.labels[0].setText("Beam current")
+        # self.labels[1].setText("Vacuum High")
+        # self.labels[2].setText("Vacuum Tube")
+        # self.labels[3].setText("Vacuum Low")
+        # self.labels[4].setText("Gas flow")
 
-        # меняем названия (подписи) на те что надо
-        self.labels[0].setText("Beam current")
-        self.labels[1].setText("Vacuum High")
-        self.labels[2].setText("Vacuum Tube")
-        self.labels[3].setText("Vacuum Low")
-        self.labels[4].setText("Gas flow")
+        self.labels = [self.label_1, self.label_2, self.label_3, self.label_4, self.label_5]
+        self.vals = [self.lineEdit_1, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5]
 
         # добавляем кнопку разворачивания основного окна чтобы показывались значения напряжений ацп
         self.big = False  # развернуто ли окно
@@ -258,55 +262,60 @@ class MainWindow(QMainWindow):
         l.resize(120, 20)
         l.move(967, 240)
 
-        self.Td = [0, 0, 0, 0, 0]  # массив значений температуры диафрагмы, нулевой элемент не использвется
-        for i in range(1, 5):  # 1,2,3,4 - по часовой, начало из левого верхнего угла
-            self.Td[i] = QDoubleSpinBox(self)
-            self.Td[i].resize(50, 20)
-            self.Td[i].setMaximum(7000)
-            self.Td[i].setReadOnly(True)
-            self.Td[i].setDecimals(0)
-            # располагаются по кругу
-            if i < 3:
-                self.Td[i].move(800 + i * 120, 210)
-            else:
-                self.Td[i].move(1040 - (i - 3) * 120, 270)
+        # self.Td = [0, 0, 0, 0, 0]  # массив значений температуры диафрагмы, нулевой элемент не используется
+        # for i in range(1, 5):  # 1,2,3,4 - по часовой, начало из левого верхнего угла
+        #     self.Td[i] = QDoubleSpinBox(self)
+        #     self.Td[i].resize(50, 20)
+        #     self.Td[i].setMaximum(7000)
+        #     self.Td[i].setReadOnly(True)
+        #     self.Td[i].setDecimals(0)
+        #     # располагаются по кругу
+        #     if i < 3:
+        #         self.Td[i].move(800 + i * 120, 210)
+        #     else:
+        #         self.Td[i].move(1040 - (i - 3) * 120, 270)
+        self.Td = [0, self.doubleSpinBox, self.doubleSpinBox_3, self.doubleSpinBox_9, self.doubleSpinBox_7]
 
-        self.Tds = [0, 0, 0, 0, 0]  # массив средних значений между соседними термопарами
-        for i in range(1, 5):  # 1,2,3,4 - по часовой, начало из левого верхнего угла
-            self.Tds[i] = QDoubleSpinBox(self)
-            self.Tds[i].resize(50, 20)
-            self.Tds[i].setMaximum(7000)
-            self.Tds[i].setReadOnly(True)
-            self.Tds[i].setDecimals(0)
-            if i == 1 or i == 3:
-                self.Tds[i].move(980, 200 + (i - 1) * 38)
-            else:
-                self.Tds[i].move(1050 - (i - 2) * 70, 240)
+        # self.Tds = [0, 0, 0, 0, 0]  # массив средних значений между соседними термопарами
+        # for i in range(1, 5):  # 1,2,3,4 - по часовой, начало из левого верхнего угла
+        #     self.Tds[i] = QDoubleSpinBox(self)
+        #     self.Tds[i].resize(50, 20)
+        #     self.Tds[i].setMaximum(7000)
+        #     self.Tds[i].setReadOnly(True)
+        #     self.Tds[i].setDecimals(0)
+        #     if i == 1 or i == 3:
+        #         self.Tds[i].move(980, 200 + (i - 1) * 38)
+        #     else:
+        #         self.Tds[i].move(1050 - (i - 2) * 70, 240)
+        self.Tds = [0, self.doubleSpinBox_2, self.doubleSpinBox_6, self.doubleSpinBox_8, self.doubleSpinBox_4]
+
         # значение температур ярма с подписью
-        self.T1 = QDoubleSpinBox(self)
-        self.T1.resize(50, 20)
-        self.T1.move(920, 320)
-        self.T1.setMaximum(7000)
-        self.T1.setReadOnly(True)
-        self.T1.setDecimals(0)
-        l = QLabel("Temp Yarmo", self)
-        l.resize(120, 20)
-        l.move(920, 298)
+        # self.T1 = QDoubleSpinBox(self)
+        # self.T1.resize(50, 20)
+        # self.T1.move(920, 320)
+        # self.T1.setMaximum(7000)
+        # self.T1.setReadOnly(True)
+        # self.T1.setDecimals(0)
+        # l = QLabel("Temp Yarmo", self)
+        # l.resize(120, 20)
+        # l.move(920, 298)
+        self.T1 = self.doubleSpinBox_10
 
         # температура пластика
-        self.T2 = QDoubleSpinBox(self)
-        self.T2.resize(50, 20)
-        self.T2.move(1040, 320)
-        self.T2.setMaximum(7000)
-        self.T2.setReadOnly(True)
-        self.T2.setDecimals(0)
-        l = QLabel("Temp Plastik", self)
-        l.resize(120, 20)
-        l.move(1040, 298)
+        # self.T2 = QDoubleSpinBox(self)
+        # self.T2.resize(50, 20)
+        # self.T2.move(1040, 320)
+        # self.T2.setMaximum(7000)
+        # self.T2.setReadOnly(True)
+        # self.T2.setDecimals(0)
+        # l = QLabel("Temp Plastik", self)
+        # l.resize(120, 20)
+        # l.move(1040, 298)
+        self.T2 = self.doubleSpinBox_11
 
-        self.writeN = 0  # счетчик для записи в файл каждые 10 секунд, использвется ниже
+        self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
 
-        # генерация имени фалй для записи истории
+        # генерация имени файла для записи истории
         self.fname = "error"
         d = QtCore.QDate.currentDate()  # текущая дата
         # цикл поиска свободного имени файла
