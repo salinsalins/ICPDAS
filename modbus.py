@@ -130,33 +130,35 @@ class MainWindow(QMainWindow):
         self.move(QPoint(50, 50))                    # position
         self.setWindowTitle(APPLICATION_NAME)        # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
-        # Welcome message
-        print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
         #
         restore_settings(self, file_name=CONFIG_FILE)
-        save_settings(self, file_name=CONFIG_FILE)
-
+        # save_settings(self, file_name=CONFIG_FILE)
+        # Welcome message
+        print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
 
 
         self.setWindowTitle("ICP DAS Measurements")
-        self.setGeometry(0, 690, 1110, 350)
+        # self.setGeometry(0, 690, 1110, 350)
         # создаем элементы для графика: сам график pyqtgraph и слайдер чтобы перемещатся по шкале времени
-        self.graph = pg.GraphicsLayoutWidget(parent=self)
+        #self.graph = pg.GraphicsLayoutWidget(parent=self)
+        self.graph = self.graphicsView
         self.plt = self.graph.addPlot(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
-        self.graph.resize(900, 330)
+        # self.graph.resize(900, 330)
         self.plt.showGrid(x=True, y=True, alpha=1)
-        # слайдер, что знаят методы можно найти в гугле по запросу PyQt QSlider, аналогично с другими Q-элементами
-        self.slider = QSlider(QtCore.Qt.Horizontal, self)
-        self.slider.resize(800, 20)
-        self.slider.move(100, 330)
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(10000)
-        self.slider.setValue(10000)
+        # слайдер, что значат методы можно найти в гугле по запросу PyQt QSlider, аналогично с другими Q-элементами
+        # self.slider = QSlider(QtCore.Qt.Horizontal, self)
+        self.slider = self.horizontalSlider
+        # self.slider.resize(800, 20)
+        # self.slider.move(100, 330)
+        # self.slider.setMinimum(0)
+        # self.slider.setMaximum(10000)
+        # self.slider.setValue(10000)
 
         # легенда для графика
-        self.legend = QComboBox(self)
-        self.legend.move(0, 330)
-        self.legend.resize(100, 20)
+        self.legend = self.comboBox
+        # self.legend = QComboBox(self)
+        # self.legend.move(0, 330)
+        # self.legend.resize(100, 20)
         n = 0
         # для каждой кривой добавляем элемент в легенде
         # также создаем картнку 10х10 нужного цвета и делаем ее иконкой для элемента
@@ -527,10 +529,15 @@ class MainWindow(QMainWindow):
             f.close()
             self.writeN = 0
 
+    def on_quit(self):
+        save_settings(self, file_name=CONFIG_FILE)
+
+
 
 # Стандартный код для  PyQt приложения - создание Qt приложения, окна и запуск
 app = QApplication([])
 window = MainWindow()
+app.aboutToQuit.connect(window.on_quit)
 window.show()
 code = app.exec_()
 client1.close()
