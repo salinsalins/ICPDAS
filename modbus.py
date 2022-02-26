@@ -1,4 +1,5 @@
 # Используемые библиотеки
+from PyQt5.QtCore import QSize, QPoint
 from pyModbusTCP.client import ModbusClient
 
 from PyQt5 import QtCore, uic, QtGui
@@ -10,7 +11,7 @@ import numpy as np
 import os
 
 from ET7000 import *
-from TangoUtils import config_logger
+from TangoUtils import config_logger, restore_settings, save_settings
 
 
 # Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды, а время в формате hh:mm),
@@ -75,29 +76,22 @@ def toT(b):
     return b / 10
 
 
+ORGANIZATION_NAME = 'BINP'
+APPLICATION_NAME = 'H_minus_trace'
+APPLICATION_NAME_SHORT = APPLICATION_NAME
+APPLICATION_VERSION = '0.1'
+CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
+UI_FILE = APPLICATION_NAME_SHORT + '.ui'
+
 logger = config_logger()
 
 IP1 = '192.168.0.44'
 IP2 = '192.168.0.45'
 IP3 = '192.168.0.46'
 
-pet1 = ET7000(IP1)
-if pet1.type == 0:
-    print('PET7000 not found at %s' % IP2)
-else:
-    print('PET%s at %s' % (pet1.type_str, IP1))
-
-pet2 = ET7000(IP2)
-if pet2.type == 0:
-    print('ET7000 not found at %s' % IP2)
-else:
-    print('PET%s at %s' % (pet2.type_str, IP2))
-
-pet3 = ET7000(IP3)
-if pet3.type == 0:
-    print('ET7000 not found at %s' % IP3)
-else:
-    print('PET%s at %s' % (pet3.type_str, IP3))
+pet1 = ET7000(IP1, logger=logger, timeout=0.15)
+pet2 = ET7000(IP2, logger=logger, timeout=0.15)
+pet3 = ET7000(IP3, logger=logger, timeout=0.15)
 
 # Создаем три клиента по протоколу модбас - библиотека pyModbusTCP, смотри интернет как пользоваться
 
@@ -130,9 +124,22 @@ class MainWindow(QMainWindow):
     def __init__(self):
         # окно
         super(MainWindow, self).__init__()
+        self.logger = logger
+        uic.loadUi(UI_FILE, self)
+        self.resize(QSize(480, 640))                 # size
+        self.move(QPoint(50, 50))                    # position
+        self.setWindowTitle(APPLICATION_NAME)        # title
+        self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
+        # Welcome message
+        print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
+        #
+        restore_settings(self, file_name=CONFIG_FILE)
+        save_settings(self, file_name=CONFIG_FILE)
+
+
+
         self.setWindowTitle("ICP DAS Measurements")
         self.setGeometry(0, 690, 1110, 350)
-
         # создаем элементы для графика: сам график pyqtgraph и слайдер чтобы перемещатся по шкале времени
         self.graph = pg.GraphicsLayoutWidget(parent=self)
         self.plt = self.graph.addPlot(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
