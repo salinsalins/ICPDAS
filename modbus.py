@@ -237,37 +237,45 @@ class MainWindow(QMainWindow):
             if pet1.type != 0:
                 volt = pet1.ai_read()
             else:
-                volt = []
-            volt = []
+                volt = [999.] * 5
+            for i in range(len(volt)):
+                if isnan(volt[i]):
+                    volt[i] = 999.
+            #volt = []
             # проходим по всем каналам которые мы добавили в самом верху
-            for chan in chan1:
-                # ! b = client1.read_input_registers(chan.addr,1)#функция считывания байтового значения из ацп по протоколу модбас
-                b = [0, 0]
-                if b is None:  # если вернула None то есть какая-то ошибка - скорее всего нет подключения - тогда задаем значение 666
-                    volt.append(666)
-                    print("chan error1")
-                else:
-                    if len(b) > 0:  # функция вернула массив данных, мы запрашивали один канал так что массив размера один если он меньлше чем один задаем значение 666 - ошибка
-                        volt.append(toV(b[0], chan.min,
-                                        chan.max))  # если нет ошибки, то задаем значение функции toV от первого элемента массива (по идее единственного). toV как раз преобразует байтовое значение в вольты, минимальное и максимальное значение берем из канала
-                    else:
-                        print("chan error2")
-                        volt.append(666)
-
+            # for chan in chan1:
+            #     # ! b = client1.read_input_registers(chan.addr,1)#функция считывания байтового значения из ацп по протоколу модбас
+            #     b = [0, 0]
+            #     if b is None:  # если вернула None то есть какая-то ошибка - скорее всего нет подключения - тогда задаем значение 666
+            #         volt.append(666)
+            #         print("chan error1")
+            #     else:
+            #         if len(b) > 0:  # функция вернула массив данных, мы запрашивали один канал так что массив размера один если он меньлше чем один задаем значение 666 - ошибка
+            #             volt.append(toV(b[0], chan.min,
+            #                             chan.max))  # если нет ошибки, то задаем значение функции toV от первого элемента массива (по идее единственного). toV как раз преобразует байтовое значение в вольты, минимальное и максимальное значение берем из канала
+            #         else:
+            #             print("chan error2")
+            #             volt.append(666)
+            #
             # считываем значения напряжения со второго ацп (третий клиент так как второй это термопары) в массив volt2
-            volt2 = []
-            for chan in chan3:
-                b = client3.read_input_registers(chan.addr, 1)
-                if b is None:
-                    volt2.append(666)
-                    print("chan error3", chan.addr)
-                else:
-                    if len(b) > 0:
-                        volt2.append(toV(b[0], chan.min, chan.max))
-                    else:
-                        print("chan error4", chan.addr)
-                        volt2.append(666)
+            if pet3.type != 0:
+                volt2 = pet3.ai_read()
+            else:
+                volt2 = [999.] * 5
 
+            # volt2 = []
+            # for chan in chan3:
+            #     b = client3.read_input_registers(chan.addr, 1)
+            #     if b is None:
+            #         volt2.append(666)
+            #         print("chan error3", chan.addr)
+            #     else:
+            #         if len(b) > 0:
+            #             volt2.append(toV(b[0], chan.min, chan.max))
+            #         else:
+            #             print("chan error4", chan.addr)
+            #             volt2.append(666)
+            #
             # Заполняем значения напряжений АЦП тем что считали чтобы их увидел пользователь
             # for i in range(6):
             #     self.vols[i].setValue(volt[i])
@@ -279,7 +287,7 @@ class MainWindow(QMainWindow):
             # for i in range(6):
             #     self.vols2[i].setValue(volt2[i])
             #     if volt2[i] == 666: volt2[i] = 0
-            self.listWidget.addItem(IP2)
+            self.listWidget.addItem(IP3)
             for i in range(6):
                 self.listWidget.addItem(str(volt2[i]))
 
@@ -308,18 +316,23 @@ class MainWindow(QMainWindow):
             self.setChannelEng(self.vals[4], flow, 1)
 
             # считываем температуру аналогично напряжению
-            temp = []
-            for chan in chan2:
-                # !            b = client2.read_input_registers(chan.addr,1)
-                b = [0, 0]
-                if b is None:
-                    temp.append(6666)
-                    print("chan error5")
-                else:
-                    if len(b) > 0:
-                        temp.append(toV(b[0], chan.min, chan.max))
-                    else:
-                        temp.append(6666)
+            if pet2.type != 0:
+                temp = pet2.ai_read()
+            else:
+                temp = [999.] * 7
+
+            # temp = []
+            # for chan in chan2:
+            #     # !            b = client2.read_input_registers(chan.addr,1)
+            #     b = [0, 0]
+            #     if b is None:
+            #         temp.append(6666)
+            #         print("chan error5")
+            #     else:
+            #         if len(b) > 0:
+            #             temp.append(toV(b[0], chan.min, chan.max))
+            #         else:
+            #             temp.append(6666)
             # задаем значения температуры диафрагмы для пользователя
             self.Td[1].setValue(temp[1])
             self.Td[2].setValue(temp[6])
