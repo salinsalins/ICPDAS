@@ -282,14 +282,12 @@ class MainWindow(QMainWindow):
             #     if volt[i] == 666: volt[i] = 0
             self.listWidget.clear()
             self.listWidget.addItem(IP1)
-            for i in range(6):
-                self.listWidget.addItem(str(volt[i]))
-            # for i in range(6):
-            #     self.vols2[i].setValue(volt2[i])
-            #     if volt2[i] == 666: volt2[i] = 0
+            for _v in volt:
+                self.listWidget.addItem(str(_v))
+            self.listWidget.addItem(' ')
             self.listWidget.addItem(IP3)
-            for i in range(6):
-                self.listWidget.addItem(str(volt2[i]))
+            for _v in volt2:
+                self.listWidget.addItem(str(_v))
 
             # Из напряжений рассчитываем основные значения
             curr = -volt2[5] * 1000 / 92.93  # ток пучка mA
@@ -320,6 +318,10 @@ class MainWindow(QMainWindow):
                 temp = pet2.ai_read()
             else:
                 temp = [999.] * 7
+            self.listWidget.addItem(' ')
+            self.listWidget.addItem(IP2)
+            for _v in temp:
+                self.listWidget.addItem(str(_v))
 
             # temp = []
             # for chan in chan2:
