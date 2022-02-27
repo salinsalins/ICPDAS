@@ -833,9 +833,19 @@ class FakeET7000(ET7000):
                 40459: 0x33,
                 40559: 0x7026,
             }
+            self.data7015 = {
+                595: True, 596: True, 597: True, 598: True, 599: True, 600: True, 601: True,
+                30000: 0, 30001: 1, 30002: 2, 30003: 3, 30004: 4, 30005: 5, 30006: 6,
+                30320: 7,
+                30330: 1,
+                40427: 0x23, 40428: 0x23, 40429: 0x23, 40430: 0x23, 40431: 0x23, 40432: 0x23, 40432: 0x23,
+                40559: 0x7015,
+            }
             if 'type' in kwargs:
                 if kwargs['type'] == '7026':
                     self.data = self.data7026
+                if kwargs['type'] == '7015':
+                    self.data = self.data7015
 
         def new_count(self):
             self.count += 1
