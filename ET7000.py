@@ -441,7 +441,7 @@ class ET7000:
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
         return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
-    def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=ModifiedModbusClient):
+    def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=None):
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -471,7 +471,10 @@ class ET7000:
         # default do
         self.do_n = 0
         # modbus client
-        self.client = client(host, port, auto_open=True, auto_close=False, timeout=timeout)
+        if client is None:
+            self.client = ModifiedModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
+        else:
+            self.client = client
         self.is_open = self.client.open()
         if not self.is_open:
             self.logger.error('ET-7xxx device at %s is offline' % host)
@@ -836,9 +839,11 @@ class FakeET7000(ET7000):
             self.data7015 = {
                 595: True, 596: True, 597: True, 598: True, 599: True, 600: True, 601: True,
                 30000: 0, 30001: 1, 30002: 2, 30003: 3, 30004: 4, 30005: 5, 30006: 6,
+                30300: 0,
+                30310: 0,
                 30320: 7,
-                30330: 1,
-                40427: 0x23, 40428: 0x23, 40429: 0x23, 40430: 0x23, 40431: 0x23, 40432: 0x23, 40432: 0x23,
+                30330: 0,
+                40427: 0x23, 40428: 0x23, 40429: 0x23, 40430: 0x23, 40431: 0x23, 40432: 0x23, 40433: 0x23,
                 40559: 0x7015,
             }
             if 'type' in kwargs:
@@ -854,10 +859,13 @@ class FakeET7000(ET7000):
             return self.count
 
         def modbus_read(self, prefix, n, m):
-            result = []
-            for i in range(m):
-                result.append(self.data[prefix + n + i])
-            return result
+            try:
+                result = []
+                for i in range(m):
+                    result.append(self.data[prefix + n + i])
+                return result
+            except:
+                return None
 
         def modbus_write(self, prefix, n, m, values):
             for i in range(m):
@@ -899,8 +907,9 @@ class FakeET7000(ET7000):
             self.is_open = False
             return self.is_open
 
-    def __init__(self, host, port=502, timeout=0.15, logger=None, client=_client):
-        super().__init__(host, port=port, timeout=timeout, logger=logger, client=FakeET7000._client)
+    def __init__(self, host, port=502, timeout=0.15, logger=None, **kwargs):
+        client = FakeET7000._client(**kwargs)
+        super().__init__(host, port=port, timeout=timeout, logger=logger, client=client)
         self.type_str = 'Emulated ' + self.type_str
 
 

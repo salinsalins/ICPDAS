@@ -90,9 +90,9 @@ IP1 = '192.168.0.44'
 IP2 = '192.168.0.45'
 IP3 = '192.168.0.46'
 
-pet1 = FakeET7000(IP1, logger=logger, timeout=0.15)
-pet2 = FakeET7000(IP2, logger=logger, timeout=0.15)
-pet3 = FakeET7000(IP3, logger=logger, timeout=0.15)
+pet1 = FakeET7000(IP1, logger=logger, timeout=0.15, type='7026')
+pet2 = FakeET7000(IP2, logger=logger, timeout=0.15, type='7015')
+pet3 = FakeET7000(IP3, logger=logger, timeout=0.15, type='7026')
 
 # Создаем три клиента по протоколу модбас - библиотека pyModbusTCP, смотри интернет как пользоваться
 
