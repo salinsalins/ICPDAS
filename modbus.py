@@ -1,4 +1,5 @@
 # Используемые библиотеки
+import logging
 import os
 import time
 from math import isnan
@@ -12,7 +13,7 @@ import pyqtgraph as pg
 import numpy as np
 
 from ET7000 import *
-from TangoUtils import config_logger, restore_settings, save_settings, log_exception
+from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration
 
 
 # Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды, а время в формате hh:mm),
@@ -131,9 +132,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APPLICATION_NAME)        # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
-        #
+        # restore settings
+        #self.config = Configuration(file_name=CONFIG_FILE)
+        #self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
         restore_settings(self, file_name=CONFIG_FILE)
-        # save_settings(self, file_name=CONFIG_FILE)
+        #
+
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
         # график pyqtgraph и слайдер
@@ -459,6 +463,7 @@ class MainWindow(QMainWindow):
 
     def on_quit(self):
         save_settings(self, file_name=CONFIG_FILE)
+        # self.config.write()
 
 
 
