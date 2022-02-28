@@ -19,6 +19,8 @@
   <property name="font">
    <font>
     <pointsize>12</pointsize>
+    <weight>75</weight>
+    <bold>true</bold>
    </font>
   </property>
   <property name="windowTitle">
@@ -34,6 +36,13 @@
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="topMargin">
@@ -176,9 +185,13 @@
          <widget class="QDoubleSpinBox" name="doubleSpinBox_10">
           <property name="font">
            <font>
+            <pointsize>12</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true"> background-color:white; </string>
           </property>
           <property name="readOnly">
            <bool>true</bool>

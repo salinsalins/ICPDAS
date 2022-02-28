@@ -351,11 +351,11 @@ class MainWindow(QMainWindow):
             # выводим их для пользователя
             self.T1.setValue(Tyarmo)
             self.T2.setValue(Tplastik)
-            self.T1.setStyleSheet("background-color:white")
-            self.T2.setStyleSheet("background-color:white")
+            self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
             # если больше некоторых значений то значение краснеет
-            if self.T1.value() > 120: self.T1.setStyleSheet("background-color:red")
-            if self.T2.value() > 250: self.T2.setStyleSheet("background-color:red")
+            if self.T1.value() > 120: self.T1.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            if self.T2.value() > 250: self.T2.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
 
