@@ -138,6 +138,13 @@ class MainWindow(QMainWindow):
         wsp = self.config.get('main_window', {'size': [800,400], 'position': [0,0]})
         self.resize(QSize(wsp['size'][0], wsp['size'][1]))
         self.move(QPoint(wsp['position'][0], wsp['position'][1]))
+        self.ip1 = self.config.get('ip1', '192.168.0.44')
+        self.ip2 = self.config.get('ip2', '192.168.0.45')
+        self.ip3 = self.config.get('ip3', '192.168.0.46')
+        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
+        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
+        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+
         self.logger.info('Configuration restored from %s', CONFIG_FILE)
         #restore_settings(self, file_name=CONFIG_FILE)
         #
