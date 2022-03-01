@@ -101,15 +101,15 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.logger = logger
         uic.loadUi(UI_FILE, self)
-        self.resize(QSize(480, 640))                 # size
-        self.move(QPoint(50, 50))                    # position
-        self.setWindowTitle(APPLICATION_NAME)        # title
+        self.resize(QSize(480, 640))  # size
+        self.move(QPoint(50, 50))  # position
+        self.setWindowTitle(APPLICATION_NAME)  # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
         # restore settings
         self.config = Configuration(file_name=CONFIG_FILE)
         self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
-        wsp = self.config.get('main_window', {'size': [800,400], 'position': [0,0]})
+        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
         self.resize(QSize(wsp['size'][0], wsp['size'][1]))
         self.move(QPoint(wsp['position'][0], wsp['position'][1]))
         self.ip1 = self.config.get('ip1', '192.168.0.44')
@@ -120,13 +120,13 @@ class MainWindow(QMainWindow):
         self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
 
         self.logger.info('Configuration restored from %s', CONFIG_FILE)
-        #restore_settings(self, file_name=CONFIG_FILE)
+        # restore_settings(self, file_name=CONFIG_FILE)
         #
 
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
         # график pyqtgraph и слайдер
-        #self.graph = pg.GraphicsLayoutWidget(parent=self)
+        # self.graph = pg.GraphicsLayoutWidget(parent=self)
         self.graph = self.graphicsView
         self.plt = self.graph.addPlot(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
         self.plt.showGrid(x=True, y=True, alpha=1)
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         else:
             self.listWidget.hide()
 
-    # Функция - основной цикл. Вызвается раз в секунду
+    # Функция - основной цикл. Вызывается раз в секунду
     def cycle(self):
         # СЧИТЫВАНИЕ И ВЫВОД ЗНАЧЕНИЙ
         try:
@@ -230,45 +230,12 @@ class MainWindow(QMainWindow):
             for i in range(len(volt)):
                 if isnan(volt[i]):
                     volt[i] = 999.
-            #volt = []
-            # проходим по всем каналам которые мы добавили в самом верху
-            # for chan in chan1:
-            #     # ! b = client1.read_input_registers(chan.addr,1)#функция считывания байтового значения из ацп по протоколу модбас
-            #     b = [0, 0]
-            #     if b is None:  # если вернула None то есть какая-то ошибка - скорее всего нет подключения - тогда задаем значение 666
-            #         volt.append(666)
-            #         print("chan error1")
-            #     else:
-            #         if len(b) > 0:  # функция вернула массив данных, мы запрашивали один канал так что массив размера один если он меньлше чем один задаем значение 666 - ошибка
-            #             volt.append(toV(b[0], chan.min,
-            #                             chan.max))  # если нет ошибки, то задаем значение функции toV от первого элемента массива (по идее единственного). toV как раз преобразует байтовое значение в вольты, минимальное и максимальное значение берем из канала
-            #         else:
-            #             print("chan error2")
-            #             volt.append(666)
-            #
             # считываем значения напряжения со второго ацп (третий клиент так как второй это термопары) в массив volt2
             if self.pet3.type != 0:
                 volt2 = self.pet3.ai_read()
             else:
                 volt2 = [999.] * 5
 
-            # volt2 = []
-            # for chan in chan3:
-            #     b = client3.read_input_registers(chan.addr, 1)
-            #     if b is None:
-            #         volt2.append(666)
-            #         print("chan error3", chan.addr)
-            #     else:
-            #         if len(b) > 0:
-            #             volt2.append(toV(b[0], chan.min, chan.max))
-            #         else:
-            #             print("chan error4", chan.addr)
-            #             volt2.append(666)
-            #
-            # Заполняем значения напряжений АЦП тем что считали чтобы их увидел пользователь
-            # for i in range(6):
-            #     self.vols[i].setValue(volt[i])
-            #     if volt[i] == 666: volt[i] = 0
             self.listWidget.clear()
             self.listWidget.addItem(self.ip1)
             for _v in volt:
@@ -312,18 +279,6 @@ class MainWindow(QMainWindow):
             for _v in temp:
                 self.listWidget.addItem(str(_v))
 
-            # temp = []
-            # for chan in chan2:
-            #     # !            b = client2.read_input_registers(chan.addr,1)
-            #     b = [0, 0]
-            #     if b is None:
-            #         temp.append(6666)
-            #         print("chan error5")
-            #     else:
-            #         if len(b) > 0:
-            #             temp.append(toV(b[0], chan.min, chan.max))
-            #         else:
-            #             temp.append(6666)
             # задаем значения температуры диафрагмы для пользователя
             self.Td[1].setValue(temp[1])
             self.Td[2].setValue(temp[6])
@@ -343,8 +298,10 @@ class MainWindow(QMainWindow):
             self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
             self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
             # если больше некоторых значений то значение краснеет
-            if self.T1.value() > 120: self.T1.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            if self.T2.value() > 250: self.T2.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            if self.T1.value() > 120: self.T1.setStyleSheet(
+                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            if self.T2.value() > 250: self.T2.setStyleSheet(
+                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
 
@@ -365,7 +322,8 @@ class MainWindow(QMainWindow):
             #     self.slider.setStyleSheet("background-color:white")
 
             # задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
-            self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset, dt.currentMSecsSinceEpoch() - offset)
+            self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
+                               dt.currentMSecsSinceEpoch() - offset)
             # print(self.plt.getXRange)
             # ax = self.plt.getAxis('bottom')
             # strt = int( (dt.currentMSecsSinceEpoch()-15*60*1000-offset)/60000 )
@@ -455,13 +413,12 @@ class MainWindow(QMainWindow):
         self.logger.info('Configuration saved to %s', CONFIG_FILE)
 
 
-
 # Стандартный код для  PyQt приложения - создание Qt приложения, окна и запуск
 app = QApplication([])
 window = MainWindow()
 app.aboutToQuit.connect(window.on_quit)
 window.show()
 code = app.exec_()
-client1.close()
-client2.close()
+# client1.close()
+# client2.close()
 exit(code)
