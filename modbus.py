@@ -91,27 +91,27 @@ IP1 = '192.168.0.44'
 IP2 = '192.168.0.45'
 IP3 = '192.168.0.46'
 
-pet1 = FakeET7000(IP1, logger=logger, timeout=0.15, type='7026')
-pet2 = FakeET7000(IP2, logger=logger, timeout=0.15, type='7015')
-pet3 = FakeET7000(IP3, logger=logger, timeout=0.15, type='7026')
+#pet1 = FakeET7000(IP1, logger=logger, timeout=0.15, type='7026')
+#pet2 = FakeET7000(IP2, logger=logger, timeout=0.15, type='7015')
+#pet3 = FakeET7000(IP3, logger=logger, timeout=0.15, type='7026')
 
 # Создаем три клиента по протоколу модбас - библиотека pyModbusTCP, смотри интернет как пользоваться
 
 # первый клиент для первого АЦП, указывается айпи, порт
-client1 = ModbusClient(host='192.168.0.44', port=502, auto_open=True, auto_close=True, timeout=0.15)
+#client1 = ModbusClient(host='192.168.0.44', port=502, auto_open=True, auto_close=True, timeout=0.15)
 # массив его каналов, всего пять
-chan1 = [Channel(0, -10, 10), Channel(1, -10, 10), Channel(2, -10, 10), Channel(3, -10, 10), Channel(4, -10, 10),
-         Channel(5, -10, 10)]
+#chan1 = [Channel(0, -10, 10), Channel(1, -10, 10), Channel(2, -10, 10), Channel(3, -10, 10), Channel(4, -10, 10),
+#         Channel(5, -10, 10)]
 
 # аналогично для второго ацп, термопары
-client2 = ModbusClient(host='192.168.0.46', port=502, auto_open=True, auto_close=True, timeout=0.15)
-chan2 = [Channel(0, -600, 600), Channel(1, -600, 600), Channel(2, -600, 600), Channel(3, -600, 600),
-         Channel(4, -600, 600), Channel(5, -600, 600), Channel(6, -600, 600)]
+#client2 = ModbusClient(host='192.168.0.46', port=502, auto_open=True, auto_close=True, timeout=0.15)
+#chan2 = [Channel(0, -600, 600), Channel(1, -600, 600), Channel(2, -600, 600), Channel(3, -600, 600),
+#         Channel(4, -600, 600), Channel(5, -600, 600), Channel(6, -600, 600)]
 
 # третьего
-client3 = ModbusClient(host='192.168.0.45', port=502, auto_open=True, auto_close=True, timeout=0.15)
-chan3 = [Channel(0, -10, 10), Channel(1, -10, 10), Channel(2, -10, 10), Channel(3, -10, 10), Channel(4, -10, 10),
-         Channel(5, -10, 10)]
+#client3 = ModbusClient(host='192.168.0.45', port=502, auto_open=True, auto_close=True, timeout=0.15)
+#chan3 = [Channel(0, -10, 10), Channel(1, -10, 10), Channel(2, -10, 10), Channel(3, -10, 10), Channel(4, -10, 10),
+#         Channel(5, -10, 10)]
 
 # создаем массив кривых которые будут отображаться на графике
 curves = [Curve(0, 20, [255, 0, 0], "beam current"), Curve(0, 8e-5, [255, 255, 0], "vacuum high"),
