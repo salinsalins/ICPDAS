@@ -249,8 +249,8 @@ class MainWindow(QMainWindow):
         # СЧИТЫВАНИЕ И ВЫВОД ЗНАЧЕНИЙ
         try:
             # считываем значения напряжения с первого ацп в массив volt
-            if pet1.type != 0:
-                volt = pet1.ai_read()
+            if self.pet1.type != 0:
+                volt = self.pet1.ai_read()
             else:
                 volt = [999.] * 5
             for i in range(len(volt)):
@@ -273,8 +273,8 @@ class MainWindow(QMainWindow):
             #             volt.append(666)
             #
             # считываем значения напряжения со второго ацп (третий клиент так как второй это термопары) в массив volt2
-            if pet3.type != 0:
-                volt2 = pet3.ai_read()
+            if self.pet3.type != 0:
+                volt2 = self.pet3.ai_read()
             else:
                 volt2 = [999.] * 5
 
@@ -329,8 +329,8 @@ class MainWindow(QMainWindow):
             self.setChannelEng(self.vals[4], flow, 1)
 
             # считываем температуру аналогично напряжению
-            if pet2.type != 0:
-                temp = pet2.ai_read()
+            if self.pet2.type != 0:
+                temp = self.pet2.ai_read()
             else:
                 temp = [999.] * 7
             self.listWidget.addItem(' ')
