@@ -133,9 +133,13 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
         # restore settings
-        #self.config = Configuration(file_name=CONFIG_FILE)
-        #self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
-        restore_settings(self, file_name=CONFIG_FILE)
+        self.config = Configuration(file_name=CONFIG_FILE)
+        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
+        wsp = self.config.get('main_window', {'size': [800,400], 'position': [0,0]})
+        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
+        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
+        self.logger.info('Configuration restored from %s', CONFIG_FILE)
+        #restore_settings(self, file_name=CONFIG_FILE)
         #
 
         # welcome message
@@ -462,8 +466,12 @@ class MainWindow(QMainWindow):
             log_exception(self)
 
     def on_quit(self):
-        save_settings(self, file_name=CONFIG_FILE)
-        # self.config.write()
+        # save_settings(self, file_name=CONFIG_FILE)
+        p = self.pos()
+        s = self.size()
+        self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
+        self.config.write()
+        self.logger.info('Configuration saved to %s', CONFIG_FILE)
 
 
 
