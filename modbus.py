@@ -106,23 +106,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APPLICATION_NAME)  # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
-        # restore settings
-        self.config = Configuration(file_name=CONFIG_FILE)
-        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
-        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
-        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
-        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
-        self.ip1 = self.config.get('ip1', '192.168.0.44')
-        self.ip2 = self.config.get('ip2', '192.168.0.45')
-        self.ip3 = self.config.get('ip3', '192.168.0.46')
-        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
-        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
-
-        self.logger.info('Configuration restored from %s', CONFIG_FILE)
-        # restore_settings(self, file_name=CONFIG_FILE)
-        #
-
+        self.restore_settings()
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
         # график pyqtgraph и слайдер
@@ -202,6 +186,21 @@ class MainWindow(QMainWindow):
                     "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
                 self.fname = name
                 break
+
+    def restore_settings(self, file_name=CONFIG_FILE):
+        self.config = Configuration(file_name=file_name)
+        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
+        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
+        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
+        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
+        self.ip1 = self.config.get('ip1', '192.168.0.44')
+        self.ip2 = self.config.get('ip2', '192.168.0.45')
+        self.ip3 = self.config.get('ip3', '192.168.0.46')
+        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
+        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
+        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+        self.logger.info('Configuration restored from %s', CONFIG_FILE)
+        return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
     def setChannelSci(self, chan, val):
