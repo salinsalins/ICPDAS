@@ -100,38 +100,21 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.logger = logger
+        self.config = Configuration()
         uic.loadUi(UI_FILE, self)
         self.resize(QSize(480, 640))  # size
         self.move(QPoint(50, 50))  # position
         self.setWindowTitle(APPLICATION_NAME)  # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
-        # restore settings
-        self.config = Configuration(file_name=CONFIG_FILE)
-        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
-        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
-        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
-        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
-        self.ip1 = self.config.get('ip1', '192.168.0.44')
-        self.ip2 = self.config.get('ip2', '192.168.0.45')
-        self.ip3 = self.config.get('ip3', '192.168.0.46')
-        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
-        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-        self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
-
-        self.logger.info('Configuration restored from %s', CONFIG_FILE)
-        # restore_settings(self, file_name=CONFIG_FILE)
-        #
-
+        self.restore_settings()
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
         # график pyqtgraph и слайдер
-        # self.graph = pg.GraphicsLayoutWidget(parent=self)
         self.graph = self.graphicsView
         self.plt = self.graph.addPlot(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
         self.plt.showGrid(x=True, y=True, alpha=1)
         self.slider = self.horizontalScrollBar
-
         # легенда для графика
         self.legend = self.comboBox
         n = 0
@@ -144,50 +127,35 @@ class MainWindow(QMainWindow):
             self.legend.addItem(curve.name)
             self.legend.setItemIcon(n, i)
             n += 1
-
         # создаем пустой массив в котором будут храниться все точки графиков
         self.data = []
         for i in range(len(curves)):
             self.data.append([])  # на каждую кривую добавляем по элементу
-
         # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
         # массив времени в миллисекундах раз в секунду
         self.time = []
-
         # стандартный таймер - функция cycle будет вызываться каждую секунду
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.cycle)
         self.timer.start(1000)
-
-        # вроде что-то ненужное, оставил на всякий случай
-        self.t = QtCore.QTime()
-        self.t.start()
-
-        # большой шрифт для основных значений
-        big_font = QtGui.QFont("Times", 12, QtGui.QFont.Bold)
-
         # основные значения (ток, давление и т.п)
         self.vals = [self.lineEdit_1, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5]
-
         # добавляем кнопку разворачивания окна со значениями напряжений ацп
         self.bigbut = self.pushButton
         self.bigbut.clicked.connect(self.bigPress)  # при нажатии срабатывает метод bigPress
         self.listWidget.hide()
-
         # массив значений температуры диафрагмы, нулевой элемент не используется
         # 1,2,3,4 - по часовой, начало из левого верхнего угла
         self.Td = [0, self.doubleSpinBox, self.doubleSpinBox_3, self.doubleSpinBox_9, self.doubleSpinBox_7]
-
         # массив средних значений между соседними термопарами
         # 1,2,3,4 - по часовой, начало из левого верхнего угла
         self.Tds = [0, self.doubleSpinBox_2, self.doubleSpinBox_6, self.doubleSpinBox_8, self.doubleSpinBox_4]
-
         # температура ярма
         self.T1 = self.doubleSpinBox_10
         # температура пластика
         self.T2 = self.doubleSpinBox_11
-
+        #
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
 
         # генерация имени файла для записи истории
@@ -202,6 +170,21 @@ class MainWindow(QMainWindow):
                     "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
                 self.fname = name
                 break
+
+    def restore_settings(self, file_name=CONFIG_FILE):
+        self.config = Configuration(file_name=file_name)
+        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
+        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
+        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
+        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
+        self.ip1 = self.config.get('ip1', '192.168.0.44')
+        self.ip2 = self.config.get('ip2', '192.168.0.45')
+        self.ip3 = self.config.get('ip3', '192.168.0.46')
+        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
+        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
+        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+        self.logger.info('Configuration restored from %s', CONFIG_FILE)
+        return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
     def setChannelSci(self, chan, val):
