@@ -441,7 +441,7 @@ class ET7000:
         # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
         return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
-    def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=None):
+    def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=None, **kwargs):
         self.host = host
         self.port = port
         self.timeout = timeout

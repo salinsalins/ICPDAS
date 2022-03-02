@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         self.ip3 = self.config.get('ip3', '192.168.0.46')
         self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
         self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+        self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
 
         self.logger.info('Configuration restored from %s', CONFIG_FILE)
         # restore_settings(self, file_name=CONFIG_FILE)
