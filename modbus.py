@@ -38,14 +38,6 @@ class TimeAxisItem(pg.AxisItem):
         return sign
 
 
-# Класс канала, представляет канал АЦП
-class Channel:
-    def __init__(self, Addr, Min, Max):
-        self.addr = Addr  # номер канала на АЦП
-        self.min = Min  # минимальное значение в вольтах
-        self.max = Max  # максимальное
-
-
 # класс кривой, представляет кривую на общем графике
 class Curve:
     def __init__(self, _min, _max, color, name=""):
@@ -122,6 +114,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APPLICATION_NAME)  # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
+        #
         self.restore_settings()
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
