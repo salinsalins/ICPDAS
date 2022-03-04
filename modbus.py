@@ -157,8 +157,8 @@ class MainWindow(QMainWindow):
         # основные значения (ток, давление и т.п)
         self.vals = [self.lineEdit_1, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5]
         # добавляем кнопку разворачивания окна со значениями напряжений ацп
-        self.bigbut = self.pushButton
-        self.bigbut.clicked.connect(self.bigPress)  # при нажатии срабатывает метод bigPress
+        # self.bigbut = self.pushButton
+        self.pushButton.clicked.connect(self.toggle_list)  # при нажатии срабатывает метод bigPress
         self.listWidget.hide()
         # массив значений температуры диафрагмы, нулевой элемент не используется
         # 1,2,3,4 - по часовой, начало из левого верхнего угла
@@ -174,17 +174,17 @@ class MainWindow(QMainWindow):
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
 
         # генерация имени файла для записи истории
-        self.fname = "error"
-        d = QtCore.QDate.currentDate()  # текущая дата
+        # self.fname = "error"
+        # d = QtCore.QDate.currentDate()  # текущая дата
         # цикл поиска свободного имени файла
-        for i in range(100):
-            name = str(d.day()) + "-" + str(d.month()) + "-" + str(d.year())  # имя файла в виде день-месяц-год
-            if i > 0: name += " " + str(i)  # если цикл не первый, прибавляем к имени файла цифру
-            name += ".txt"  # добавляем формат
-            if not os.path.isfile(
-                    "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
-                self.fname = name
-                break
+        # for i in range(100):
+        #     name = str(d.day()) + "-" + str(d.month()) + "-" + str(d.year())  # имя файла в виде день-месяц-год
+        #     if i > 0: name += " " + str(i)  # если цикл не первый, прибавляем к имени файла цифру
+        #     name += ".txt"  # добавляем формат
+        #     if not os.path.isfile(
+        #             "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
+        #         self.fname = name
+        #         break
 
     def restore_settings(self, file_name=CONFIG_FILE):
         self.config = Configuration(file_name=file_name)
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
         chan.setText(("{:." + str(N) + "f}").format(val))
 
     # функция вызывается при нажатии на кнопку развернуть окно и увеличивает или уменьшает его размер
-    def bigPress(self):
+    def toggle_list(self):
         if self.pushButton.isChecked():
             self.listWidget.show()
         else:
