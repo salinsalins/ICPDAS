@@ -1,7 +1,9 @@
 # Используемые библиотеки
+import datetime
 import logging
 import os
 import time
+import zipfile
 from math import isnan
 
 from PyQt5.QtCore import QSize, QPoint
@@ -100,6 +102,18 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.logger = logger
+        #
+        self.out_root = '.\\D:\\data\\'
+        self.ip1 = '192.168.0.44'
+        self.ip2 = '192.168.0.45'
+        self.ip3 = '192.168.0.46'
+        self.pet1 = None
+        self.pet2 = None
+        self.pet3 = None
+        self.data_folder = None
+        self.data_file_name = None
+        self.data_file = None
+        #
         self.config = Configuration()
         uic.loadUi(UI_FILE, self)
         self.resize(QSize(480, 640))  # size
@@ -183,6 +197,9 @@ class MainWindow(QMainWindow):
         self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
         self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
         self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+        self.out_root = self.config.get('out_root', '.\\D:\\data\\')
+        self.make_data_folder()
+        self.data_file = self.open_data_file()
         self.logger.info('Configuration restored from %s', CONFIG_FILE)
         return self.config
 
@@ -270,7 +287,8 @@ class MainWindow(QMainWindow):
             # считаем средние значения и выводим их для пользователя
             for i in range(1, 5):
                 j = i + 1
-                if j > 4: j = 1
+                if j > 4:
+                    j = 1
                 self.Tds[i].setValue((self.Td[i].value() + self.Td[j].value()) / 2)
             # задаем температуры ярма и пластика
             Tyarmo = temp[5]
@@ -304,7 +322,7 @@ class MainWindow(QMainWindow):
             # else:
             #     self.slider.setStyleSheet("background-color:white")
 
-            # задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
+            # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
             self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
                                dt.currentMSecsSinceEpoch() - offset)
             # print(self.plt.getXRange)
@@ -368,21 +386,25 @@ class MainWindow(QMainWindow):
             self.writeN += 1
             if self.writeN > 10:
                 print("write to file")
-                f = open("logs\\" + self.fname, "w")
-                for h in headers: f.write(h + "\t")  # запись заголовков
-                f.write("\n")
+                # self.close_data_file()
+                #f = open("logs\\" + self.fname, "w")
+                #f = self.open_data_file()
+                f = self.data_file
+                # for h in headers: f.write(h + "\t")  # запись заголовков
                 t = QtCore.QDateTime()
-                for i in range(len(self.time)):  # цикл для каждого момента времени
+                #for i in range(len(self.time)):  # цикл для каждого момента времени
+                for i in range(10):  # цикл для каждого момента времени
                     # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                    t.setTime_t(self.time[i] / 1000)
+                    t.setTime_t(self.time[i-10] / 1000)
                     f.write(t.toString('hh:mm:ss') + '\t')
                     for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                        if self.hist[j][i] == 666 or self.hist[j][i] == 6666:
+                        if self.hist[j][i-10] == 666 or self.hist[j][i-10] == 6666:
                             f.write(str('0\t'))
                         else:
-                            f.write(str(self.hist[j][i]) + '\t')
+                            f.write(str(self.hist[j][i-10]) + '\t')
                     f.write('\n')
-                f.close()
+                #f.close()
+                f.flush()
                 self.writeN = 0
         except:
             log_exception(self)
@@ -394,6 +416,71 @@ class MainWindow(QMainWindow):
         self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
         self.config.write()
         self.logger.info('Configuration saved to %s', CONFIG_FILE)
+        self.close_data_file()
+
+    def make_data_folder(self):
+        of = os.path.join(self.out_root, self.get_data_folder())
+        try:
+            if not os.path.exists(of):
+                os.makedirs(of)
+            if os.path.exists(of):
+                self.data_folder = of
+                self.logger.debug("Output folder %s has been created", self.data_folder)
+                return True
+            else:
+                raise FileNotFoundError('Can not create output folder %s' % of)
+        except:
+            self.data_folder = None
+            self.logger.error("Can not create output folder %s", self.data_folder)
+            return False
+
+    def get_data_folder(self):
+        ydf = datetime.datetime.today().strftime('%Y')
+        mdf = datetime.datetime.today().strftime('%Y-%m')
+        ddf = datetime.datetime.today().strftime('%Y-%m-%d')
+        folder = os.path.join(ydf, mdf, ddf)
+        return folder
+
+    def open_data_file(self, flags='a'):
+        self.data_file_name = os.path.join(self.data_folder, self.get_data_file_name())
+        write_headers = not (os.path.exists(self.data_file_name) and flags == 'a')
+        self.close_data_file()
+        self.data_file = open(self.data_file_name, flags)
+        if write_headers:
+            self.write_headers(self.data_file)
+        self.logger.debug("Output file %s has been opened", self.data_file_name)
+        return self.data_file
+
+    def close_data_file(self, folder=''):
+        try:
+            if not self.data_file.closed:
+                self.data_file.close()
+        except:
+            pass
+
+    def get_data_file_name(self):
+        data_file_name = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S.txt')
+        return data_file_name
+
+    def date_time_stamp(self):
+        return datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+
+    def time_stamp(self):
+        return datetime.datetime.today().strftime('%H:%M:%S')
+
+    def open_zip_file(self, folder):
+        fn = datetime.datetime.today().strftime('%Y-%m-%d_%H%M%S.zip')
+        zip_file_name = os.path.join(folder, fn)
+        zip_file = zipfile.ZipFile(zip_file_name, 'a', compression=zipfile.ZIP_DEFLATED)
+        return zip_file
+
+    def write_headers(self, f):
+        # запись заголовков
+        headers = ['time', 'beam_current', 'vacuum_high', 'T_yarmo', 'T_plastik', 'current_2', 'gas_flow',
+                   'vacuum_tube', 'vacuum_low']
+        for h in headers:
+            f.write(h + "\t")
+        f.write("\n")
 
 
 # Стандартный код для  PyQt приложения - создание Qt приложения, окна и запуск
