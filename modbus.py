@@ -15,7 +15,8 @@ import pyqtgraph as pg
 import numpy as np
 
 from ET7000 import *
-from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration
+from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration, \
+    LOG_FORMAT_STRING_SHORT
 
 
 # Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды, а время в формате hh:mm),
@@ -87,7 +88,7 @@ APPLICATION_VERSION = '0.1'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
-logger = config_logger()
+logger = config_logger(format_string=LOG_FORMAT_STRING_SHORT)
 
 # создаем массив кривых которые будут отображаться на графике
 curves = [Curve(0, 20, [255, 0, 0], "beam current"), Curve(0, 8e-5, [255, 255, 0], "vacuum high"),
