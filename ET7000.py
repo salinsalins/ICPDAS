@@ -635,7 +635,7 @@ class ET7000:
             for k in range(self.ao_n):
                 regs[k] = self.ao_convert[k](regs[k])
         else:
-            regs = [None] * self.ao_n
+            regs = [NaN] * self.ao_n
         return regs
 
     def ao_read_channel(self, k: int):
