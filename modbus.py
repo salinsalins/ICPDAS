@@ -6,6 +6,7 @@ import time
 import zipfile
 from math import isnan
 
+import numpy
 from PyQt5.QtCore import QSize, QPoint
 from pyModbusTCP.client import ModbusClient
 from PyQt5 import QtCore, uic, QtGui
@@ -135,10 +136,13 @@ class MainWindow(QMainWindow):
             self.legend.addItem(curve.name)
             self.legend.setItemIcon(n, i)
             n += 1
-        # создаем пустой массив в котором будут храниться все точки графиков
+        self.legend.setCurrentIndex(1)
+        # создаем массив для графиков
         self.data = []
+        self.data_index = 0
         for i in range(len(curves)):
-            self.data.append([])  # на каждую кривую добавляем по элементу
+            #self.data.append([])  # на каждую кривую добавляем по элементу
+            self.data.append(numpy.zeros(12*3600))
         # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
         # массив времени в миллисекундах раз в секунду
@@ -165,19 +169,6 @@ class MainWindow(QMainWindow):
         self.T2 = self.doubleSpinBox_11
         #
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
-
-        # генерация имени файла для записи истории
-        # self.fname = "error"
-        # d = QtCore.QDate.currentDate()  # текущая дата
-        # цикл поиска свободного имени файла
-        # for i in range(100):
-        #     name = str(d.day()) + "-" + str(d.month()) + "-" + str(d.year())  # имя файла в виде день-месяц-год
-        #     if i > 0: name += " " + str(i)  # если цикл не первый, прибавляем к имени файла цифру
-        #     name += ".txt"  # добавляем формат
-        #     if not os.path.isfile(
-        #             "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
-        #         self.fname = name
-        #         break
 
     def restore_settings(self, file_name=CONFIG_FILE):
         self.config = Configuration(file_name=file_name)
@@ -290,42 +281,28 @@ class MainWindow(QMainWindow):
             # выводим их для пользователя
             self.T1.setValue(Tyarmo)
             self.T2.setValue(Tplastik)
-            self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            # если больше некоторых значений то значение краснеет
-            if self.T1.value() > 120: self.T1.setStyleSheet(
-                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            if self.T2.value() > 250: self.T2.setStyleSheet(
-                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            # если больше некоторых значений, то значение краснеет
+            if self.T1.value() > 120:
+                self.T1.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            else:
+                self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            if self.T2.value() > 250:
+                self.T2.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            else:
+                self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
-            self.time.append(
-                dt.currentMSecsSinceEpoch())  # каждый цикл добавляем в этот массив значение времени в миллисекундах
-
-            # рассчитываем значение отступа по времени в зависимости от положения слайдера чтобы можно было перемещатся по графику
+            # каждый цикл добавляем значение времени в миллисекундах
+            self.time.append(dt.currentMSecsSinceEpoch())
+            # рассчитываем отступ по времени в зависимости от положения слайдера
             offset = (dt.currentMSecsSinceEpoch() - self.time[0]) * (10000 - self.slider.value()) / 10000
-
-            # self.T1.setStyleSheet("background-color:red")
-
-            # # Предупреждение, если слайдер сдвига графика не в конце то делаем его красным
-            # if self.slider.value() != self.slider.maximum():
-            #     self.slider.setStyleSheet("background-color:red")
-            # else:
-            #     self.slider.setStyleSheet("background-color:white")
-
             # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
             self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
                                dt.currentMSecsSinceEpoch() - offset)
-            # print(self.plt.getXRange)
-            # ax = self.plt.getAxis('bottom')
-            # strt = int( (dt.currentMSecsSinceEpoch()-15*60*1000-offset)/60000 )
-            # tx = [(value*60000,str(value*60000)) for value in range(strt,strt+16) ]
-            # ax.setTicks([tx, [])
-
-            # Задаем желаемое значение для каждой кривой, которую мы добавили в самом верху
+            # Задаем желаемое значение для каждой кривой
             curves[0].set_value(curr)
             curves[1].set_value(vacH)
             curves[2].set_value(Tyarmo)
@@ -337,25 +314,25 @@ class MainWindow(QMainWindow):
 
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
-            # задаем Y диапазон на графике в соответствие с этим диапазоном у текущей кривой
+            # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
             self.plt.setYRange(curr_curve.min, curr_curve.max)
-            # self.plt.setXWidth(60*1000)
-            # self.plt.AxisItem
             self.plt.clear()  # очистка графика
-
             # цикл отрисовки всех кривых
+            self.data_index += 1
             n = 0
             for curve in curves:
-                # добавляем к массиву всех значений данной кривой нормализованное (минимум - 0, максимум - 1) значение даной кривой
-                self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
+                # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
+                # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
+                self.data[n][self.data_index] = curve.value
+                plot_data = self.data[n][:self.data_index] * ((curve.value - curve.min) / \
+                            (curve.max - curve.min) * (curr_curve.max - curr_curve.min)) + curr_curve.min
 
-                new_data = []  # массив для отрисовки в соответствие с текущими осями
-                for i in range(len(self.data[n])):
-                    new_data.append((curr_curve.max - curr_curve.min) * self.data[n][
-                        i] + curr_curve.min)  # новый массив это старый (нормализованный) но у которго максимум и минимум не 1 и о а максимум и минимум curr_curve
-
-                # отрисовываем данную кривую
-                self.plt.plot(self.time, new_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
+                # for i in range(len(self.data[n])):
+                #     # новый массив из нормализованного
+                #     new_data.append((curr_curve.max - curr_curve.min) *
+                #                     self.data[n][i] + curr_curve.min)
+                # рисуем кривую
+                self.plt.plot(self.time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
 
             # запись истории в файл
@@ -364,8 +341,8 @@ class MainWindow(QMainWindow):
                        'vacuum tube', 'vacuum low']
             if len(self.hist) == 0:
                 # если история еще пустая, добавляем в нее пустой массив для каждого заголовка
-                for i in range(len(headers) - 1): self.hist.append([])
-
+                for i in range(len(headers) - 1):
+                    self.hist.append([])
             # добавляем очередное значение, значения должны соответствовать заголовкам
             self.hist[0].append(curr)
             self.hist[1].append(vacH)
