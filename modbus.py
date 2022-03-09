@@ -171,21 +171,25 @@ class MainWindow(QMainWindow):
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
 
     def restore_settings(self, file_name=CONFIG_FILE):
-        self.config = Configuration(file_name=file_name)
-        self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
-        wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
-        self.resize(QSize(wsp['size'][0], wsp['size'][1]))
-        self.move(QPoint(wsp['position'][0], wsp['position'][1]))
-        self.ip1 = self.config.get('ip1', '192.168.0.44')
-        self.ip2 = self.config.get('ip2', '192.168.0.45')
-        self.ip3 = self.config.get('ip3', '192.168.0.46')
-        self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
-        self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-        self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
-        self.out_root = self.config.get('out_root', '.\\D:\\data\\')
-        self.make_data_folder()
-        self.data_file = self.open_data_file()
-        self.logger.info('Configuration restored from %s', CONFIG_FILE)
+        try:
+            self.config = Configuration(file_name=file_name)
+            self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
+            wsp = self.config.get('main_window', {'size': [800, 400], 'position': [0, 0]})
+            self.resize(QSize(wsp['size'][0], wsp['size'][1]))
+            self.move(QPoint(wsp['position'][0], wsp['position'][1]))
+            self.ip1 = self.config.get('ip1', '192.168.0.44')
+            self.ip2 = self.config.get('ip2', '192.168.0.45')
+            self.ip3 = self.config.get('ip3', '192.168.0.46')
+            self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
+            self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
+            self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+            self.out_root = self.config.get('out_root', '.\\D:\\data\\')
+            self.make_data_folder()
+            self.data_file = self.open_data_file()
+            self.logger.info('Configuration restored from %s', CONFIG_FILE)
+        except:
+            self.logger.info('Configuration restore error from %s', CONFIG_FILE)
+            log_exception(self)
         return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
