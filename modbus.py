@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
             self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
-            self.out_root = self.config.get('out_root', '.\\D:\\data\\')
+            self.out_root = self.config.get('out_root', '.\\.\\data\\')
             self.make_data_folder()
             self.data_file = self.open_data_file()
             self.logger.info('Configuration restored from %s', CONFIG_FILE)
