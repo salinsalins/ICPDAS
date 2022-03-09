@@ -2,6 +2,7 @@
 import datetime
 import logging
 import os
+import sys
 import time
 import zipfile
 from math import isnan
@@ -16,6 +17,7 @@ import pyqtgraph as pg
 import numpy as np
 
 from ET7000 import *
+sys.path.append('../TangoUtils')
 from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration, \
     LOG_FORMAT_STRING_SHORT
 
