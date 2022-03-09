@@ -1,9 +1,12 @@
 # Используемые библиотеки
+import datetime
 import logging
 import os
 import time
+import zipfile
 from math import isnan
 
+import numpy
 from PyQt5.QtCore import QSize, QPoint
 from pyModbusTCP.client import ModbusClient
 from PyQt5 import QtCore, uic, QtGui
@@ -13,7 +16,8 @@ import pyqtgraph as pg
 import numpy as np
 
 from ET7000 import *
-from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration
+from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration, \
+    LOG_FORMAT_STRING_SHORT
 
 
 # Класс, отвечающий за отображение оси времени (чтобы были не миллисекунды, а время в формате hh:mm),
@@ -33,14 +37,6 @@ class TimeAxisItem(pg.AxisItem):
             t.setTime_t(int(value / 1000))
             sign.append(t.toString('hh:mm'))
         return sign
-
-
-# Класс канала, представляет канал АЦП
-class Channel:
-    def __init__(self, Addr, Min, Max):
-        self.addr = Addr  # номер канала на АЦП
-        self.min = Min  # минимальное значение в вольтах
-        self.max = Max  # максимальное
 
 
 # класс кривой, представляет кривую на общем графике
@@ -85,7 +81,7 @@ APPLICATION_VERSION = '0.1'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
-logger = config_logger()
+logger = config_logger(format_string=LOG_FORMAT_STRING_SHORT)
 
 # создаем массив кривых которые будут отображаться на графике
 curves = [Curve(0, 20, [255, 0, 0], "beam current"), Curve(0, 8e-5, [255, 255, 0], "vacuum high"),
@@ -100,6 +96,18 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.logger = logger
+        #
+        self.out_root = '.\\D:\\data\\'
+        self.ip1 = '192.168.0.44'
+        self.ip2 = '192.168.0.45'
+        self.ip3 = '192.168.0.46'
+        self.pet1 = None
+        self.pet2 = None
+        self.pet3 = None
+        self.data_folder = None
+        self.data_file_name = None
+        self.data_file = None
+        #
         self.config = Configuration()
         uic.loadUi(UI_FILE, self)
         self.resize(QSize(480, 640))  # size
@@ -107,6 +115,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APPLICATION_NAME)  # title
         self.setWindowIcon(QtGui.QIcon('icon.png'))  # icon
         self.setWindowTitle("ICP DAS Measurements")
+        #
         self.restore_settings()
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
@@ -127,10 +136,13 @@ class MainWindow(QMainWindow):
             self.legend.addItem(curve.name)
             self.legend.setItemIcon(n, i)
             n += 1
-        # создаем пустой массив в котором будут храниться все точки графиков
+        self.legend.setCurrentIndex(1)
+        # создаем массив для графиков
         self.data = []
+        self.data_index = 0
         for i in range(len(curves)):
-            self.data.append([])  # на каждую кривую добавляем по элементу
+            #self.data.append([])  # на каждую кривую добавляем по элементу
+            self.data.append(numpy.zeros(12*3600))
         # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
         # массив времени в миллисекундах раз в секунду
@@ -142,8 +154,8 @@ class MainWindow(QMainWindow):
         # основные значения (ток, давление и т.п)
         self.vals = [self.lineEdit_1, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5]
         # добавляем кнопку разворачивания окна со значениями напряжений ацп
-        self.bigbut = self.pushButton
-        self.bigbut.clicked.connect(self.bigPress)  # при нажатии срабатывает метод bigPress
+        # self.bigbut = self.pushButton
+        self.pushButton.clicked.connect(self.toggle_list)  # при нажатии срабатывает метод bigPress
         self.listWidget.hide()
         # массив значений температуры диафрагмы, нулевой элемент не используется
         # 1,2,3,4 - по часовой, начало из левого верхнего угла
@@ -158,19 +170,6 @@ class MainWindow(QMainWindow):
         #
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
 
-        # генерация имени файла для записи истории
-        self.fname = "error"
-        d = QtCore.QDate.currentDate()  # текущая дата
-        # цикл поиска свободного имени файла
-        for i in range(100):
-            name = str(d.day()) + "-" + str(d.month()) + "-" + str(d.year())  # имя файла в виде день-месяц-год
-            if i > 0: name += " " + str(i)  # если цикл не первый, прибавляем к имени файла цифру
-            name += ".txt"  # добавляем формат
-            if not os.path.isfile(
-                    "logs\\" + name):  # если такого файла нет, то выходим из цикла и сохраняем имя, если нет то продолжаем (цифра увеличится на единицу)
-                self.fname = name
-                break
-
     def restore_settings(self, file_name=CONFIG_FILE):
         self.config = Configuration(file_name=file_name)
         self.logger.setLevel(self.config.get('log_level', logging.DEBUG))
@@ -183,6 +182,9 @@ class MainWindow(QMainWindow):
         self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
         self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
         self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+        self.out_root = self.config.get('out_root', '.\\D:\\data\\')
+        self.make_data_folder()
+        self.data_file = self.open_data_file()
         self.logger.info('Configuration restored from %s', CONFIG_FILE)
         return self.config
 
@@ -195,7 +197,7 @@ class MainWindow(QMainWindow):
         chan.setText(("{:." + str(N) + "f}").format(val))
 
     # функция вызывается при нажатии на кнопку развернуть окно и увеличивает или уменьшает его размер
-    def bigPress(self):
+    def toggle_list(self):
         if self.pushButton.isChecked():
             self.listWidget.show()
         else:
@@ -270,7 +272,8 @@ class MainWindow(QMainWindow):
             # считаем средние значения и выводим их для пользователя
             for i in range(1, 5):
                 j = i + 1
-                if j > 4: j = 1
+                if j > 4:
+                    j = 1
                 self.Tds[i].setValue((self.Td[i].value() + self.Td[j].value()) / 2)
             # задаем температуры ярма и пластика
             Tyarmo = temp[5]
@@ -278,42 +281,28 @@ class MainWindow(QMainWindow):
             # выводим их для пользователя
             self.T1.setValue(Tyarmo)
             self.T2.setValue(Tplastik)
-            self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            # если больше некоторых значений то значение краснеет
-            if self.T1.value() > 120: self.T1.setStyleSheet(
-                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
-            if self.T2.value() > 250: self.T2.setStyleSheet(
-                'background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            # если больше некоторых значений, то значение краснеет
+            if self.T1.value() > 120:
+                self.T1.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            else:
+                self.T1.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            if self.T2.value() > 250:
+                self.T2.setStyleSheet('background-color:red; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
+            else:
+                self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
-            self.time.append(
-                dt.currentMSecsSinceEpoch())  # каждый цикл добавляем в этот массив значение времени в миллисекундах
-
-            # рассчитываем значение отступа по времени в зависимости от положения слайдера чтобы можно было перемещатся по графику
+            # каждый цикл добавляем значение времени в миллисекундах
+            self.time.append(dt.currentMSecsSinceEpoch())
+            # рассчитываем отступ по времени в зависимости от положения слайдера
             offset = (dt.currentMSecsSinceEpoch() - self.time[0]) * (10000 - self.slider.value()) / 10000
-
-            # self.T1.setStyleSheet("background-color:red")
-
-            # # Предупреждение, если слайдер сдвига графика не в конце то делаем его красным
-            # if self.slider.value() != self.slider.maximum():
-            #     self.slider.setStyleSheet("background-color:red")
-            # else:
-            #     self.slider.setStyleSheet("background-color:white")
-
-            # задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
+            # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
             self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
                                dt.currentMSecsSinceEpoch() - offset)
-            # print(self.plt.getXRange)
-            # ax = self.plt.getAxis('bottom')
-            # strt = int( (dt.currentMSecsSinceEpoch()-15*60*1000-offset)/60000 )
-            # tx = [(value*60000,str(value*60000)) for value in range(strt,strt+16) ]
-            # ax.setTicks([tx, [])
-
-            # Задаем желаемое значение для каждой кривой, которую мы добавили в самом верху
+            # Задаем желаемое значение для каждой кривой
             curves[0].set_value(curr)
             curves[1].set_value(vacH)
             curves[2].set_value(Tyarmo)
@@ -325,25 +314,25 @@ class MainWindow(QMainWindow):
 
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
-            # задаем Y диапазон на графике в соответствие с этим диапазоном у текущей кривой
+            # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
             self.plt.setYRange(curr_curve.min, curr_curve.max)
-            # self.plt.setXWidth(60*1000)
-            # self.plt.AxisItem
             self.plt.clear()  # очистка графика
-
             # цикл отрисовки всех кривых
+            self.data_index += 1
             n = 0
             for curve in curves:
-                # добавляем к массиву всех значений данной кривой нормализованное (минимум - 0, максимум - 1) значение даной кривой
-                self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
+                # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
+                # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
+                self.data[n][self.data_index] = curve.value
+                plot_data = self.data[n][:self.data_index] * ((curve.value - curve.min) / \
+                            (curve.max - curve.min) * (curr_curve.max - curr_curve.min)) + curr_curve.min
 
-                new_data = []  # массив для отрисовки в соответствие с текущими осями
-                for i in range(len(self.data[n])):
-                    new_data.append((curr_curve.max - curr_curve.min) * self.data[n][
-                        i] + curr_curve.min)  # новый массив это старый (нормализованный) но у которго максимум и минимум не 1 и о а максимум и минимум curr_curve
-
-                # отрисовываем данную кривую
-                self.plt.plot(self.time, new_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
+                # for i in range(len(self.data[n])):
+                #     # новый массив из нормализованного
+                #     new_data.append((curr_curve.max - curr_curve.min) *
+                #                     self.data[n][i] + curr_curve.min)
+                # рисуем кривую
+                self.plt.plot(self.time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
 
             # запись истории в файл
@@ -352,8 +341,8 @@ class MainWindow(QMainWindow):
                        'vacuum tube', 'vacuum low']
             if len(self.hist) == 0:
                 # если история еще пустая, добавляем в нее пустой массив для каждого заголовка
-                for i in range(len(headers) - 1): self.hist.append([])
-
+                for i in range(len(headers) - 1):
+                    self.hist.append([])
             # добавляем очередное значение, значения должны соответствовать заголовкам
             self.hist[0].append(curr)
             self.hist[1].append(vacH)
@@ -368,21 +357,25 @@ class MainWindow(QMainWindow):
             self.writeN += 1
             if self.writeN > 10:
                 print("write to file")
-                f = open("logs\\" + self.fname, "w")
-                for h in headers: f.write(h + "\t")  # запись заголовков
-                f.write("\n")
+                # self.close_data_file()
+                #f = open("logs\\" + self.fname, "w")
+                #f = self.open_data_file()
+                f = self.data_file
+                # for h in headers: f.write(h + "\t")  # запись заголовков
                 t = QtCore.QDateTime()
-                for i in range(len(self.time)):  # цикл для каждого момента времени
+                #for i in range(len(self.time)):  # цикл для каждого момента времени
+                for i in range(10):  # цикл для каждого момента времени
                     # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                    t.setTime_t(self.time[i] / 1000)
+                    t.setTime_t(self.time[i-10] / 1000)
                     f.write(t.toString('hh:mm:ss') + '\t')
                     for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                        if self.hist[j][i] == 666 or self.hist[j][i] == 6666:
+                        if self.hist[j][i-10] == 666 or self.hist[j][i-10] == 6666:
                             f.write(str('0\t'))
                         else:
-                            f.write(str(self.hist[j][i]) + '\t')
+                            f.write(str(self.hist[j][i-10]) + '\t')
                     f.write('\n')
-                f.close()
+                #f.close()
+                f.flush()
                 self.writeN = 0
         except:
             log_exception(self)
@@ -394,6 +387,71 @@ class MainWindow(QMainWindow):
         self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
         self.config.write()
         self.logger.info('Configuration saved to %s', CONFIG_FILE)
+        self.close_data_file()
+
+    def make_data_folder(self):
+        of = os.path.join(self.out_root, self.get_data_folder())
+        try:
+            if not os.path.exists(of):
+                os.makedirs(of)
+            if os.path.exists(of):
+                self.data_folder = of
+                self.logger.debug("Output folder %s has been created", self.data_folder)
+                return True
+            else:
+                raise FileNotFoundError('Can not create output folder %s' % of)
+        except:
+            self.data_folder = None
+            self.logger.error("Can not create output folder %s", self.data_folder)
+            return False
+
+    def get_data_folder(self):
+        ydf = datetime.datetime.today().strftime('%Y')
+        mdf = datetime.datetime.today().strftime('%Y-%m')
+        ddf = datetime.datetime.today().strftime('%Y-%m-%d')
+        folder = os.path.join(ydf, mdf, ddf)
+        return folder
+
+    def open_data_file(self, flags='a'):
+        self.data_file_name = os.path.join(self.data_folder, self.get_data_file_name())
+        write_headers = not (os.path.exists(self.data_file_name) and flags == 'a')
+        self.close_data_file()
+        self.data_file = open(self.data_file_name, flags)
+        if write_headers:
+            self.write_headers(self.data_file)
+        self.logger.debug("Output file %s has been opened", self.data_file_name)
+        return self.data_file
+
+    def close_data_file(self, folder=''):
+        try:
+            if not self.data_file.closed:
+                self.data_file.close()
+        except:
+            pass
+
+    def get_data_file_name(self):
+        data_file_name = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S.txt')
+        return data_file_name
+
+    def date_time_stamp(self):
+        return datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+
+    def time_stamp(self):
+        return datetime.datetime.today().strftime('%H:%M:%S')
+
+    def open_zip_file(self, folder):
+        fn = datetime.datetime.today().strftime('%Y-%m-%d_%H%M%S.zip')
+        zip_file_name = os.path.join(folder, fn)
+        zip_file = zipfile.ZipFile(zip_file_name, 'a', compression=zipfile.ZIP_DEFLATED)
+        return zip_file
+
+    def write_headers(self, f):
+        # запись заголовков
+        headers = ['time', 'beam_current', 'vacuum_high', 'T_yarmo', 'T_plastik', 'current_2', 'gas_flow',
+                   'vacuum_tube', 'vacuum_low']
+        for h in headers:
+            f.write(h + "\t")
+        f.write("\n")
 
 
 # Стандартный код для  PyQt приложения - создание Qt приложения, окна и запуск

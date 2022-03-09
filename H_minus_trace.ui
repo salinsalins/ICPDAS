@@ -117,6 +117,12 @@
         <property name="rightMargin">
          <number>0</number>
         </property>
+        <property name="horizontalSpacing">
+         <number>6</number>
+        </property>
+        <property name="verticalSpacing">
+         <number>0</number>
+        </property>
         <item row="10" column="0">
          <widget class="QLabel" name="label_12">
           <property name="font">
