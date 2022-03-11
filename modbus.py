@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
             self.ip3 = self.config.get('ip3', '192.168.0.46')
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-            self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
+            self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
             self.out_root = self.config.get('out_root', '.\\.\\data\\')
             self.make_data_folder()
             self.open_data_file()
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
             if self.pet1.type != 0:
                 volt = self.pet1.ai_read()
             else:
-                volt = [999.] * 5
+                volt = [999.] * 6
             for i in range(len(volt)):
                 if isnan(volt[i]):
                     volt[i] = 999.
@@ -228,7 +228,7 @@ class MainWindow(QMainWindow):
             if self.pet3.type != 0:
                 volt2 = self.pet3.ai_read()
             else:
-                volt2 = [999.] * 5
+                volt2 = [999.] * 6
 
             self.listWidget.clear()
             self.listWidget.addItem(self.ip1)
