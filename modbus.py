@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
             self.pet3 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7026')
             self.out_root = self.config.get('out_root', '.\\.\\data\\')
             self.make_data_folder()
-            self.data_file = self.open_data_file()
+            self.open_data_file()
             self.logger.info('Configuration restored from %s', CONFIG_FILE)
         except:
             self.logger.info('Configuration restore error from %s', CONFIG_FILE)
@@ -419,21 +419,28 @@ class MainWindow(QMainWindow):
         return folder
 
     def open_data_file(self, flags='a'):
-        self.data_file_name = os.path.join(self.data_folder, self.get_data_file_name())
-        write_headers = not (os.path.exists(self.data_file_name) and flags == 'a')
-        self.close_data_file()
-        self.data_file = open(self.data_file_name, flags)
-        if write_headers:
-            self.write_headers(self.data_file)
-        self.logger.debug("Output file %s has been opened", self.data_file_name)
+        try:
+            self.data_file_name = os.path.join(self.data_folder, self.get_data_file_name())
+            write_headers = not (os.path.exists(self.data_file_name) and flags == 'a')
+            self.close_data_file()
+            self.data_file = open(self.data_file_name, flags)
+            if write_headers:
+                self.write_headers(self.data_file)
+            self.logger.debug("Output file %s has been opened", self.data_file_name)
+        except:
+            self.data_file = None
+            log_exception(self, 'Output file open error' )
         return self.data_file
 
-    def close_data_file(self, folder=''):
+    def close_data_file(self):
+        if self.data_file is None:
+            return
         try:
             if not self.data_file.closed:
                 self.data_file.close()
+            self.data_file = None
         except:
-            pass
+            self.data_file = None
 
     def get_data_file_name(self):
         data_file_name = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S.txt')
@@ -458,6 +465,7 @@ class MainWindow(QMainWindow):
         for h in headers:
             f.write(h + "\t")
         f.write("\n")
+        f.flush()
 
 
 # Стандартный код для  PyQt приложения - создание Qt приложения, окна и запуск
