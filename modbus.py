@@ -121,6 +121,9 @@ class MainWindow(QMainWindow):
         self.restore_settings()
         # welcome message
         print(APPLICATION_NAME + ' version ' + APPLICATION_VERSION + ' started')
+        if self.data_file is None:
+            self.logger.error('Output file can not be created')
+            sys.exit(-12)
         # график pyqtgraph и слайдер
         self.graph = self.graphicsView
         self.plt = self.graph.addPlot(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
