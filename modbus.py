@@ -155,7 +155,6 @@ class MainWindow(QMainWindow):
         # стандартный таймер - функция cycle будет вызываться каждую секунду
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.cycle)
-        self.timer.start(1000)
         # основные значения (ток, давление и т.п)
         self.vals = [self.lineEdit_1, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5]
         # добавляем кнопку разворачивания окна со значениями напряжений ацп
@@ -174,6 +173,7 @@ class MainWindow(QMainWindow):
         self.T2 = self.doubleSpinBox_11
         #
         self.writeN = 0  # счетчик для записи в файл каждые 10 секунд
+        self.timer.start(1000)
 
     def restore_settings(self, file_name=CONFIG_FILE):
         try:
@@ -365,27 +365,28 @@ class MainWindow(QMainWindow):
             # Каждые 10 циклов записываем историю в файл с именем fname которое мы определили выше
             self.writeN += 1
             if self.writeN > 10:
-                print("write to file")
-                # self.close_data_file()
-                #f = open("logs\\" + self.fname, "w")
-                #f = self.open_data_file()
-                f = self.data_file
-                # for h in headers: f.write(h + "\t")  # запись заголовков
-                t = QtCore.QDateTime()
-                #for i in range(len(self.time)):  # цикл для каждого момента времени
-                for i in range(10):  # цикл для каждого момента времени
-                    # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                    t.setTime_t(self.time[i-10] / 1000)
-                    f.write(t.toString('hh:mm:ss') + '\t')
-                    for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                        if self.hist[j][i-10] == 666 or self.hist[j][i-10] == 6666:
-                            f.write(str('0\t'))
-                        else:
-                            f.write(str(self.hist[j][i-10]) + '\t')
-                    f.write('\n')
-                #f.close()
-                f.flush()
                 self.writeN = 0
+                if self.data_file is not None:
+                    print("write to file")
+                    # self.close_data_file()
+                    #f = open("logs\\" + self.fname, "w")
+                    #f = self.open_data_file()
+                    f = self.data_file
+                    # for h in headers: f.write(h + "\t")  # запись заголовков
+                    t = QtCore.QDateTime()
+                    #for i in range(len(self.time)):  # цикл для каждого момента времени
+                    for i in range(10):  # цикл для каждого момента времени
+                        # преобразуем миллисекунды в час:минута:секунда и записываем в файл
+                        t.setTime_t(self.time[i-10] / 1000)
+                        f.write(t.toString('hh:mm:ss') + '\t')
+                        for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
+                            if self.hist[j][i-10] == 666 or self.hist[j][i-10] == 6666:
+                                f.write(str('0\t'))
+                            else:
+                                f.write(str(self.hist[j][i-10]) + '\t')
+                        f.write('\n')
+                    #f.close()
+                    f.flush()
         except:
             log_exception(self)
 
