@@ -341,7 +341,8 @@ class MainWindow(QMainWindow):
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
             # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
-            self.plt.setYRange(curr_curve.min, curr_curve.max)
+            if not self.config.get('autoscale', False):
+                self.plt.setYRange(curr_curve.min, curr_curve.max)
             self.plt.clear()  # очистка графика
             # цикл отрисовки всех кривых
             n = 0

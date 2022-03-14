@@ -851,6 +851,12 @@ class FakeET7000(ET7000):
                     self.data = self.data7026
                 if kwargs['type'] == '7015':
                     self.data = self.data7015
+            self.random = 0.0
+            if 'random' in kwargs:
+                self.random = kwargs['random']
+            self.sin = 0.0
+            if 'sin' in kwargs:
+                self.sin = kwargs['sin']
 
         def new_count(self):
             self.count += 1
