@@ -188,13 +188,12 @@ class MainWindow(QMainWindow):
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
             self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
-            self.out_root = self.config.get('out_root', '.\\.\\data\\')
+            self.out_root = self.config.get('out_root', '.\\data\\')
             self.make_data_folder()
             self.open_data_file()
             self.logger.info('Configuration restored from %s', CONFIG_FILE)
         except:
-            self.logger.info('Configuration restore error from %s', CONFIG_FILE)
-            log_exception(self)
+            log_exception(self, 'Configuration restore error from %s', CONFIG_FILE, level=logging.INFO)
         return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
@@ -256,7 +255,7 @@ class MainWindow(QMainWindow):
             curr2 = -volt2[5] * 10  # ток 2 mA - хз что это
             flow = ((-volt2[3] * 1000 / 102) - 4) * 100 / 16  # поток газа
 
-            # Теперь записываем основные значения чтобы их увидел пользователь
+            # записываем основные значения чтобы их увидел пользователь
             self.setChannelEng(self.vals[0], curr, 3)
             self.setChannelSci(self.vals[1], vacH)
             self.setChannelSci(self.vals[2], vacT)
@@ -301,6 +300,24 @@ class MainWindow(QMainWindow):
                 self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
+            self.data_index += 1
+            # check for data array overflow - switch for new file
+            if self.data_index >= len(self.data[0]):
+                self.logger.warning('Data array is full, index reset to zero')
+                self.data_index = 0
+                self.close_data_file()
+                self.make_data_folder()
+                self.open_data_file()
+                self.time = []
+            # check for date change - switch for new file
+            cfn = self.get_data_file_name()
+            if cfn[:9] != self.data_file_shot[:9]:
+                self.logger.warning('Date changed, switch for new file')
+                self.data_index = 0
+                self.close_data_file()
+                self.make_data_folder()
+                self.open_data_file()
+                self.time = []
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
@@ -327,7 +344,6 @@ class MainWindow(QMainWindow):
             self.plt.setYRange(curr_curve.min, curr_curve.max)
             self.plt.clear()  # очистка графика
             # цикл отрисовки всех кривых
-            self.data_index += 1
             n = 0
             for curve in curves:
                 # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
@@ -418,6 +434,7 @@ class MainWindow(QMainWindow):
 
     def open_data_file(self, flags='a'):
         try:
+            self.data_file_shot = self.get_data_file_name()
             self.data_file_name = os.path.join(self.data_folder, self.get_data_file_name())
             write_headers = not (os.path.exists(self.data_file_name) and flags == 'a')
             self.close_data_file()
