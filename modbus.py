@@ -228,7 +228,12 @@ class MainWindow(QMainWindow):
                 volt2 = self.pet3.ai_read()
             else:
                 volt2 = [999.] * 6
-
+            # считываем температуру аналогично напряжению
+            if self.pet2.type != 0:
+                temp = self.pet2.ai_read()
+            else:
+                temp = [999.] * 7
+            # fill list widget with raw data
             self.listWidget.clear()
             self.listWidget.addItem(self.ip1)
             for _v in volt:
@@ -237,47 +242,42 @@ class MainWindow(QMainWindow):
             self.listWidget.addItem(self.ip3)
             for _v in volt2:
                 self.listWidget.addItem(str(_v))
-
-            # Из напряжений рассчитываем основные значения
-            curr = -volt2[5] * 1000 / 92.93  # ток пучка mA
-            if volt2[1] >= 666:
-                vacH = 0.0  # вакуум в бочке
-            else:
-                vacH = pow(10, 1.667 * volt2[1] - 11.46)  # вакуум в бочке
-            if volt[5] >= 666:
-                vacL = 0.0  # вакуум в бочке
-            else:
-                vacL = pow(10, volt[5] - 5.625)  # форвакуум
-            if volt2[0] >= 666:
-                vacT = 0.0  # вакуум в бочке
-            else:
-                vacT = pow(10, 1.667 * volt2[0] - 11.46)  # вакуум в трубке
-            curr2 = -volt2[5] * 10  # ток 2 mA - хз что это
-            flow = ((-volt2[3] * 1000 / 102) - 4) * 100 / 16  # поток газа
-
-            # записываем основные значения чтобы их увидел пользователь
-            self.setChannelEng(self.vals[0], curr, 3)
-            self.setChannelSci(self.vals[1], vacH)
-            self.setChannelSci(self.vals[2], vacT)
-            self.setChannelSci(self.vals[3], vacL)
-            self.setChannelEng(self.vals[4], flow, 1)
-
-            # считываем температуру аналогично напряжению
-            if self.pet2.type != 0:
-                temp = self.pet2.ai_read()
-            else:
-                temp = [999.] * 7
             self.listWidget.addItem(' ')
             self.listWidget.addItem(self.ip2)
             for _v in temp:
                 self.listWidget.addItem(str(_v))
 
-            # задаем значения температуры диафрагмы для пользователя
+            # Из напряжений рассчитываем основные значения
+            beam_current = -volt2[5] * 1000 / 92.93  # ток пучка mA
+            intercepted_current = -volt2[5] * 10  # ток 2 mA - хз что это
+            flow = ((-volt2[3] * 1000 / 102) - 4) * 100 / 16  # поток газа
+            # vacuum
+            if volt2[1] >= 666:
+                vac_chamber = 0.0  # вакуум в бочке
+            else:
+                vac_chamber = pow(10, 1.667 * volt2[1] - 11.46)  # вакуум в бочке
+            if volt[5] >= 666:
+                vac_fore = 0.0  # форвакуум
+            else:
+                vac_fore = pow(10, volt[5] - 5.625)
+            if volt2[0] >= 666:
+                vac_tube = 0.0  # вакуум в канале транспортировки
+            else:
+                vac_tube = pow(10, 1.667 * volt2[0] - 11.46)  # вакуум в трубке
+
+            # записываем основные значения чтобы их увидел пользователь
+            self.setChannelEng(self.vals[0], beam_current, 3)
+            self.setChannelSci(self.vals[1], vac_chamber)
+            self.setChannelSci(self.vals[2], vac_tube)
+            self.setChannelSci(self.vals[3], vac_fore)
+            self.setChannelEng(self.vals[4], flow, 1)
+
+            # выводим значения температуры диафрагмы
             self.Td[1].setValue(temp[1])
             self.Td[2].setValue(temp[6])
             self.Td[3].setValue(temp[3])
             self.Td[4].setValue(temp[2])
-            # считаем средние значения и выводим их для пользователя
+            # считаем и выводим средние значения температур
             for i in range(1, 5):
                 j = i + 1
                 if j > 4:
@@ -300,6 +300,7 @@ class MainWindow(QMainWindow):
                 self.T2.setStyleSheet('background-color:white; font: 75 12pt "MS Shell Dlg 2"; font: bold;')
 
             # ГРАФИК И ИСТОРИЯ
+            # new point index
             self.data_index += 1
             # check for data array overflow - switch for new file
             if self.data_index >= len(self.data[0]):
@@ -329,14 +330,14 @@ class MainWindow(QMainWindow):
             self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
                                dt.currentMSecsSinceEpoch() - offset)
             # Задаем желаемое значение для каждой кривой
-            curves[0].set_value(curr)
-            curves[1].set_value(vacH)
+            curves[0].set_value(beam_current)
+            curves[1].set_value(vac_chamber)
             curves[2].set_value(Tyarmo)
             curves[3].set_value(Tplastik)
-            curves[4].set_value(curr2)
+            curves[4].set_value(intercepted_current)
             curves[5].set_value(flow)
-            curves[6].set_value(vacT)
-            curves[7].set_value(vacL)
+            curves[6].set_value(vac_tube)
+            curves[7].set_value(vac_fore)
 
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
@@ -370,14 +371,14 @@ class MainWindow(QMainWindow):
                 for i in range(len(headers) - 1):
                     self.hist.append([])
             # добавляем очередное значение, значения должны соответствовать заголовкам
-            self.hist[0].append(curr)
-            self.hist[1].append(vacH)
+            self.hist[0].append(beam_current)
+            self.hist[1].append(vac_chamber)
             self.hist[2].append(Tyarmo)
             self.hist[3].append(Tplastik)
-            self.hist[4].append(curr2)
+            self.hist[4].append(intercepted_current)
             self.hist[5].append(flow)
-            self.hist[6].append(vacT)
-            self.hist[7].append(vacL)
+            self.hist[6].append(vac_tube)
+            self.hist[7].append(vac_fore)
 
             # Каждые 10 циклов записываем историю в файл с именем fname которое мы определили выше
             self.writeN += 1
@@ -389,7 +390,7 @@ class MainWindow(QMainWindow):
                     t = QtCore.QDateTime()
                     for i in range(10):  # цикл для каждого момента времени
                         # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                        t.setTime_t(self.time[i-10] / 1000)
+                        t.setTime_t(int(self.time[i-10] / 1000))
                         f.write(t.toString('hh:mm:ss') + '\t')
                         for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
                             if self.hist[j][i-10] >= 666 or self.hist[j][i-10] >= 6666:
