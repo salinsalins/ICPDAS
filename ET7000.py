@@ -917,6 +917,7 @@ class FakeET7000(ET7000):
         client = FakeET7000._client(**kwargs)
         super().__init__(host, port=port, timeout=timeout, logger=logger, client=client)
         self.type_str = 'Emulated ' + self.type_str
+        self.logger.debug('%s at %s has been created' % (self.type_str, host))
 
 
 if __name__ == "__main__":
