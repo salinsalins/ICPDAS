@@ -183,8 +183,8 @@ class MainWindow(QMainWindow):
             self.resize(QSize(wsp['size'][0], wsp['size'][1]))
             self.move(QPoint(wsp['position'][0], wsp['position'][1]))
             self.ip1 = self.config.get('ip1', '192.168.0.44')
-            self.ip2 = self.config.get('ip2', '192.168.0.45')
-            self.ip3 = self.config.get('ip3', '192.168.0.46')
+            self.ip2 = self.config.get('ip2', '192.168.0.46')
+            self.ip3 = self.config.get('ip3', '192.168.0.45')
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
             self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
             self.open_data_file()
             self.logger.info('Configuration restored from %s', CONFIG_FILE)
         except:
-            log_exception(self, 'Configuration restore error from %s', CONFIG_FILE, level=logging.INFO)
+            log_exception(self, 'Error configuration restore from %s', CONFIG_FILE, level=logging.INFO)
         return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         # СЧИТЫВАНИЕ И ВЫВОД ЗНАЧЕНИЙ
         try:
             # считываем значения напряжения с первого ацп в массив volt
-            if self.pet1.type != 0:
+            if self.pet1.type == 0x7026:
                 volt = self.pet1.ai_read()
             else:
                 volt = [999.] * 6
@@ -224,12 +224,12 @@ class MainWindow(QMainWindow):
                 if isnan(volt[i]):
                     volt[i] = 999.
             # считываем значения напряжения со второго ацп (третий клиент так как второй это термопары) в массив volt2
-            if self.pet3.type != 0:
+            if self.pet3.type == 0x7026:
                 volt2 = self.pet3.ai_read()
             else:
                 volt2 = [999.] * 6
             # считываем температуру аналогично напряжению
-            if self.pet2.type != 0:
+            if self.pet2.type == 0x7015:
                 temp = self.pet2.ai_read()
             else:
                 temp = [999.] * 7
