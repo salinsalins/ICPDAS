@@ -406,6 +406,7 @@ class MainWindow(QMainWindow):
         # save_settings(self, file_name=CONFIG_FILE)
         p = self.pos()
         s = self.size()
+        #self.config['curves'] = curves
         self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
         self.config.write()
         self.logger.info('Configuration saved to %s', CONFIG_FILE)
