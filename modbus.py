@@ -17,6 +17,7 @@ import pyqtgraph as pg
 import numpy as np
 
 from ET7000 import *
+
 sys.path.append('../TangoUtils')
 from TangoUtils import config_logger, restore_settings, save_settings, log_exception, Configuration, \
     LOG_FORMAT_STRING_SHORT
@@ -99,7 +100,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.logger = logger
         #
-        self.out_root = '.\\D:\\data\\'
+        self.out_root = '.\\data\\'
         self.ip1 = '192.168.0.44'
         self.ip2 = '192.168.0.45'
         self.ip3 = '192.168.0.46'
@@ -109,6 +110,7 @@ class MainWindow(QMainWindow):
         self.data_folder = None
         self.data_file_name = None
         self.data_file = None
+        self.curves = []
         #
         self.config = Configuration()
         uic.loadUi(UI_FILE, self)
@@ -146,8 +148,8 @@ class MainWindow(QMainWindow):
         self.data = []
         self.data_index = 0
         for i in range(len(curves)):
-            #self.data.append([])  # на каждую кривую добавляем по элементу
-            self.data.append(numpy.zeros(12*3600))
+            # self.data.append([])  # на каждую кривую добавляем по элементу
+            self.data.append(numpy.zeros(12 * 3600))
         # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
         # массив времени в миллисекундах раз в секунду
@@ -183,17 +185,24 @@ class MainWindow(QMainWindow):
             self.resize(QSize(wsp['size'][0], wsp['size'][1]))
             self.move(QPoint(wsp['position'][0], wsp['position'][1]))
             self.ip1 = self.config.get('ip1', '192.168.0.44')
-            self.ip2 = self.config.get('ip2', '192.168.0.45')
-            self.ip3 = self.config.get('ip3', '192.168.0.46')
+            self.ip2 = self.config.get('ip2', '192.168.0.46')
+            self.ip3 = self.config.get('ip3', '192.168.0.45')
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
             self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
             self.out_root = self.config.get('out_root', '.\\data\\')
+            self.checkBox.setChecked(self.config.get('autoscale', False))
+            self.curves = self.config.get('curves', [])
+            for i, curve in enumerate(self.curves):
+                if i < len(curves):
+                    curves[i] = Curve(curve[0], curve[1], curve[2], curve[3])
+                if i >= len(curves):
+                    curves.append(Curve(curve[0], curve[1], curve[2], curve[3]))
             self.make_data_folder()
             self.open_data_file()
             self.logger.info('Configuration restored from %s', CONFIG_FILE)
         except:
-            log_exception(self, 'Configuration restore error from %s', CONFIG_FILE, level=logging.INFO)
+            log_exception(self, 'Error configuration restore from %s', CONFIG_FILE, level=logging.INFO)
         return self.config
 
     # функция устанавливает значение канала(LineEdit) в виде числа со степенью
@@ -216,7 +225,7 @@ class MainWindow(QMainWindow):
         # СЧИТЫВАНИЕ И ВЫВОД ЗНАЧЕНИЙ
         try:
             # считываем значения напряжения с первого ацп в массив volt
-            if self.pet1.type != 0:
+            if self.pet1.type == 0x7026:
                 volt = self.pet1.ai_read()
             else:
                 volt = [999.] * 6
@@ -224,12 +233,12 @@ class MainWindow(QMainWindow):
                 if isnan(volt[i]):
                     volt[i] = 999.
             # считываем значения напряжения со второго ацп (третий клиент так как второй это термопары) в массив volt2
-            if self.pet3.type != 0:
+            if self.pet3.type == 0x7026:
                 volt2 = self.pet3.ai_read()
             else:
                 volt2 = [999.] * 6
             # считываем температуру аналогично напряжению
-            if self.pet2.type != 0:
+            if self.pet2.type == 0x7015:
                 temp = self.pet2.ai_read()
             else:
                 temp = [999.] * 7
@@ -342,7 +351,7 @@ class MainWindow(QMainWindow):
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
             # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
-            if not self.config.get('autoscale', False):
+            if not self.checkBox.isChecked():
                 self.plt.setYRange(curr_curve.min, curr_curve.max)
             self.plt.clear()  # очистка графика
             # цикл отрисовки всех кривых
@@ -351,8 +360,9 @@ class MainWindow(QMainWindow):
                 # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
                 # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
                 self.data[n][self.data_index] = curve.value
-                plot_data = self.data[n][:self.data_index] * ((curve.value - curve.min) / \
-                            (curve.max - curve.min) * (curr_curve.max - curr_curve.min)) + curr_curve.min
+                plot_data = self.data[n][:self.data_index] * ((curve.value - curve.min) /
+                                                              (curve.max - curve.min) * (
+                                                                          curr_curve.max - curr_curve.min)) + curr_curve.min
 
                 # for i in range(len(self.data[n])):
                 #     # новый массив из нормализованного
@@ -390,13 +400,13 @@ class MainWindow(QMainWindow):
                     t = QtCore.QDateTime()
                     for i in range(10):  # цикл для каждого момента времени
                         # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                        t.setTime_t(int(self.time[i-10] / 1000))
+                        t.setTime_t(int(self.time[i - 10] / 1000))
                         f.write(t.toString('hh:mm:ss') + '\t')
                         for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                            if self.hist[j][i-10] >= 666 or self.hist[j][i-10] >= 6666:
+                            if self.hist[j][i - 10] >= 666 or self.hist[j][i - 10] >= 6666:
                                 f.write(str('0\t'))
                             else:
-                                f.write(str(self.hist[j][i-10]) + '\t')
+                                f.write(str(self.hist[j][i - 10]) + '\t')
                         f.write('\n')
                     f.flush()
         except:
@@ -408,6 +418,7 @@ class MainWindow(QMainWindow):
         s = self.size()
         #self.config['curves'] = curves
         self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
+        self.config['autoscale'] = self.checkBox.isChecked()
         self.config.write()
         self.logger.info('Configuration saved to %s', CONFIG_FILE)
         self.close_data_file()
@@ -447,7 +458,7 @@ class MainWindow(QMainWindow):
             self.logger.debug("Output file %s has been opened", self.data_file_name)
         except:
             self.data_file = None
-            log_exception(self, 'Output file open error' )
+            log_exception(self, 'Output file open error')
         return self.data_file
 
     def close_data_file(self):
