@@ -69,7 +69,7 @@
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="1,5">
+         <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="1,0,5">
           <item>
            <widget class="QComboBox" name="comboBox">
             <property name="sizePolicy">
@@ -77,6 +77,13 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox">
+            <property name="text">
+             <string>Auto</string>
             </property>
            </widget>
           </item>
