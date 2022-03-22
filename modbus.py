@@ -87,12 +87,17 @@ UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 logger = config_logger(format_string=LOG_FORMAT_STRING_SHORT)
 
 # создаем массив кривых которые будут отображаться на графике
-curves = [Curve(0, 20, [255, 0, 0], "beam current"), Curve(0, 8e-5, [255, 255, 0], "vacuum high"),
-          Curve(0, 150, [200, 200, 0], "T yarmo"), Curve(0, 300, [200, 100, 0], "T plastik"),
-          Curve(0, 20, [250, 100, 100], "current 2"), Curve(0, 125, [100, 100, 250], "gas flow"),
+curves = [Curve(0, 20, [255, 0, 0], "beam current"),
+          Curve(0, 8e-5, [255, 255, 0], "vacuum high"),
+          Curve(0, 150, [200, 200, 0], "T yarmo"),
+          Curve(0, 300, [200, 100, 0], "T plastik"),
+          Curve(0, 20, [250, 100, 100], "current 2"),
+          Curve(0, 125, [100, 100, 250], "gas flow"),
           Curve(0, 8e-5, [0, 255, 255], "vacuum tube"),
-          Curve(0, 1e-1, [0, 150, 130], "vacuum low")]  # , Curve(0,1e-2,[100,100,100])
+          Curve(0, 1e-1, [0, 150, 130], "vacuum low")]
 
+
+# , Curve(0,1e-2,[100,100,100])
 
 # основной класс окна, используется библиотека PyQt
 class MainWindow(QMainWindow):
@@ -319,6 +324,7 @@ class MainWindow(QMainWindow):
                 self.make_data_folder()
                 self.open_data_file()
                 self.time = []
+                self.hist = []
             # check for date change - switch for new file
             cfn = self.get_data_file_name()
             if cfn[:9] != self.data_file_shot[:9]:
@@ -328,6 +334,7 @@ class MainWindow(QMainWindow):
                 self.make_data_folder()
                 self.open_data_file()
                 self.time = []
+                self.hist = []
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
@@ -360,21 +367,23 @@ class MainWindow(QMainWindow):
                 # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
                 # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
                 self.data[n][self.data_index] = curve.value
-                plot_data = self.data[n][:self.data_index] * ((curve.value - curve.min) /
-                                                              (curve.max - curve.min) * (
-                                                                          curr_curve.max - curr_curve.min)) + curr_curve.min
+                plot_data = self.data[n][:self.data_index] * \
+                            ((curve.value - curve.min) / (curve.max - curve.min) *
+                             (curr_curve.max - curr_curve.min)) + curr_curve.min
 
                 # for i in range(len(self.data[n])):
                 #     # новый массив из нормализованного
                 #     new_data.append((curr_curve.max - curr_curve.min) *
                 #                     self.data[n][i] + curr_curve.min)
                 # рисуем кривую
-                self.plt.plot(self.time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
+                self.plt.plot(self.time, plot_data, pen=(curve.rgb[0],
+                                                         curve.rgb[1], curve.rgb[2]))
                 n += 1
 
             # запись истории в файл
             # массив заголовков - названия всех записываемых значений, первое всегда время
-            headers = ['time', 'beam current', 'vacuum high', 'T yarmo', 'T plastik', 'current 2', 'gas flow',
+            headers = ['time', 'beam current', 'vacuum high', 'T yarmo',
+                       'T plastik', 'current 2', 'gas flow',
                        'vacuum tube', 'vacuum low']
             if len(self.hist) == 0:
                 # если история еще пустая, добавляем в нее пустой массив для каждого заголовка
@@ -390,12 +399,13 @@ class MainWindow(QMainWindow):
             self.hist[6].append(vac_tube)
             self.hist[7].append(vac_fore)
 
-            # Каждые 10 циклов записываем историю в файл с именем fname которое мы определили выше
+            # Каждые 10 циклов записываем историю в файл с именем fname,
+            # которое мы определили выше
             self.writeN += 1
             if self.writeN > 10:
                 self.writeN = 0
                 if self.data_file is not None:
-                    print("write to file")
+                    # print("write to file")
                     f = self.data_file
                     t = QtCore.QDateTime()
                     for i in range(10):  # цикл для каждого момента времени
@@ -416,7 +426,7 @@ class MainWindow(QMainWindow):
         # save_settings(self, file_name=CONFIG_FILE)
         p = self.pos()
         s = self.size()
-        #self.config['curves'] = curves
+        # self.config['curves'] = curves
         self.config['main_window'] = {'size': (s.width(), s.height()), 'position': (p.x(), p.y())}
         self.config['autoscale'] = self.checkBox.isChecked()
         self.config.write()
