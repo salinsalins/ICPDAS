@@ -1,6 +1,8 @@
 # Используемые библиотеки
 import time
 import logging
+from math import sin
+
 from pyModbusTCP.client import ModbusClient
 
 NaN = float('nan')
@@ -918,6 +920,12 @@ class FakeET7000(ET7000):
         super().__init__(host, port=port, timeout=timeout, logger=logger, client=client)
         self.type_str = 'Emulated ' + self.type_str
         self.logger.debug('%s at %s has been created' % (self.type_str, host))
+
+    def ai_read(self, channel=None):
+        if self.ai_n > 0 and self.client.sin > 0.0:
+            return [self.client.sin * sin(time.time() + i) for i in range(self.ai_n)]
+        return super().ai_read(channel)
+
 
 
 if __name__ == "__main__":

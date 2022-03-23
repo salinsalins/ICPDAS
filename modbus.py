@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
             self.ip3 = self.config.get('ip3', '192.168.0.45')
             self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
             self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-            self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026')
+            self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026', sin=1.0)
             self.out_root = self.config.get('out_root', '.\\data\\')
             self.checkBox.setChecked(self.config.get('autoscale', False))
             self.curves = self.config.get('curves', [])
