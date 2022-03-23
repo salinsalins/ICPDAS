@@ -151,14 +151,15 @@ class MainWindow(QMainWindow):
         self.legend.setCurrentIndex(1)
         # создаем массив для графиков
         self.data = []
-        self.data_index = 0
+        self.data_index = -1
+        data_array_length = 12 * 3600
         for i in range(len(curves)):
             # self.data.append([])  # на каждую кривую добавляем по элементу
-            self.data.append(numpy.zeros(12 * 3600))
+            self.data.append(numpy.zeros(data_array_length))
+        # массив времени в миллисекундах раз в секунду
+        self.time = numpy.zeros(data_array_length)
         # массив, в котором будет храниться история всех значений для записи в файл
         self.hist = []
-        # массив времени в миллисекундах раз в секунду
-        self.time = []
         # стандартный таймер - функция cycle будет вызываться каждую секунду
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.cycle)
@@ -338,13 +339,17 @@ class MainWindow(QMainWindow):
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
+            dt_ms = dt.currentMSecsSinceEpoch()
             # каждый цикл добавляем значение времени в миллисекундах
-            self.time.append(dt.currentMSecsSinceEpoch())
+            #self.time.append(dt_ms)
+            self.time[self.data_index] = dt_ms
             # рассчитываем отступ по времени в зависимости от положения слайдера
-            offset = (dt.currentMSecsSinceEpoch() - self.time[0]) * (10000 - self.slider.value()) / 10000
+            offset = (dt_ms - self.time[0]) * (self.slider.maximum() - self.slider.value()) / self.slider.maximum()
             # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
-            self.plt.setXRange(dt.currentMSecsSinceEpoch() - 15 * 60 * 1000 - offset,
-                               dt.currentMSecsSinceEpoch() - offset)
+            self.plt.setXRange(dt_ms - 15 * 60 * 1000 - offset, dt_ms - offset)
+            first_index = max(int((dt_ms - self.time[0] - 15 * 60 * 1000 - offset) * 1000), 0)
+            last_index = min(int((dt_ms - self.time[0] - offset) * 1000), len(self.time) - 1)
+
             # Задаем желаемое значение для каждой кривой
             curves[0].set_value(beam_current)
             curves[1].set_value(vac_chamber)
@@ -358,26 +363,22 @@ class MainWindow(QMainWindow):
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
             # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
+            self.plt.clear()  # очистка графика
             if not self.checkBox.isChecked():
                 self.plt.setYRange(curr_curve.min, curr_curve.max)
-            self.plt.clear()  # очистка графика
             # цикл отрисовки всех кривых
             n = 0
             for curve in curves:
                 # добавляем к массиву нормализованное (минимум - 0, максимум - 1) значение
                 # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
                 self.data[n][self.data_index] = curve.value
-                plot_data = self.data[n][:self.data_index] * \
-                            ((curve.value - curve.min) / (curve.max - curve.min) *
-                             (curr_curve.max - curr_curve.min)) + curr_curve.min
-
-                # for i in range(len(self.data[n])):
-                #     # новый массив из нормализованного
-                #     new_data.append((curr_curve.max - curr_curve.min) *
-                #                     self.data[n][i] + curr_curve.min)
-                # рисуем кривую
-                self.plt.plot(self.time, plot_data, pen=(curve.rgb[0],
-                                                         curve.rgb[1], curve.rgb[2]))
+                if last_index > 0:
+                    plot_data = self.data[n][first_index:self.data_index] * \
+                                ((curve.value - curve.min) / (curve.max - curve.min) *
+                                 (curr_curve.max - curr_curve.min)) + curr_curve.min
+                    plot_time = self.time[first_index:self.data_index]
+                    # рисуем кривую
+                    self.plt.plot(plot_time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
 
             # запись истории в файл
