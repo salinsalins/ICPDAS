@@ -363,6 +363,7 @@ class MainWindow(QMainWindow):
 
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
+            # self.logger.debug('Base plot "%s" max: %s min: %s', curr_curve.name, curr_curve.max, curr_curve.min)
             # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
             self.plt.clear()  # очистка графика
             if not self.checkBox.isChecked():
@@ -374,11 +375,14 @@ class MainWindow(QMainWindow):
                 # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
                 self.data[n][self.data_index] = curve.value
                 if last_index > 0:
-                    plot_data = self.data[n][first_index:last_index] * \
-                                ((curve.value - curve.min) / (curve.max - curve.min) *
-                                 (curr_curve.max - curr_curve.min)) + curr_curve.min
+                    scale = 1.0 / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)
+                    plot_data = (self.data[n][first_index:last_index] - curve.min) * scale + curr_curve.min
                     plot_time = self.time[first_index:last_index]
                     # рисуем кривую
+                    # c_max = curve.max / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)
+                    # c_min = curve.min / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)
+                    # c_val = (curve.value - curve.min) / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)  + curr_curve.min
+                    # self.logger.debug('Plotting "%s" max: %s min: %s val: %s', curve.name, c_max, c_min, c_val)
                     self.plt.plot(plot_time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
 
