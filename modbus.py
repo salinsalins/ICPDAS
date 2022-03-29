@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
             slider_relative = 1.0 - (self.slider.maximum() - self.slider.value()) / self.slider.maximum()
             offset = (dt_ms - self.time[0]) * (self.slider.maximum() - self.slider.value()) / self.slider.maximum()
             # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
-            self.plt.setXRange(dt_ms - 15 * 60 * 1000 - offset, dt_ms - offset)
+            #self.plt.setXRange(dt_ms - 15 * 60 * 1000 - offset, dt_ms - offset)
             last_index = int(slider_relative * self.data_index)
             first_index = max(last_index - (15 * 60), 0)
 
