@@ -324,7 +324,7 @@ class MainWindow(QMainWindow):
                 self.close_data_file()
                 self.make_data_folder()
                 self.open_data_file()
-                self.time = []
+                #self.time = []
                 self.hist = []
             # check for date change - switch for new file
             cfn = self.get_data_file_name()
@@ -334,7 +334,7 @@ class MainWindow(QMainWindow):
                 self.close_data_file()
                 self.make_data_folder()
                 self.open_data_file()
-                self.time = []
+                #self.time = []
                 self.hist = []
 
             # Шкала времени
@@ -415,10 +415,11 @@ class MainWindow(QMainWindow):
                         t.setTime_t(int(self.time[i - 10] / 1000))
                         f.write(t.toString('hh:mm:ss') + '\t')
                         for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                            if self.hist[j][i - 10] >= 666 or self.hist[j][i - 10] >= 6666:
+                            v = self.hist[j][i - 10]
+                            if v >= 666 or v >= 6666:
                                 f.write(str('0\t'))
                             else:
-                                f.write(str(self.hist[j][i - 10]) + '\t')
+                                f.write(str(v) + '\t')
                         f.write('\n')
                     f.flush()
         except:
