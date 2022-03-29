@@ -344,11 +344,12 @@ class MainWindow(QMainWindow):
             #self.time.append(dt_ms)
             self.time[self.data_index] = dt_ms
             # рассчитываем отступ по времени в зависимости от положения слайдера
+            slider_relative = 1.0 - (self.slider.maximum() - self.slider.value()) / self.slider.maximum()
             offset = (dt_ms - self.time[0]) * (self.slider.maximum() - self.slider.value()) / self.slider.maximum()
             # Задаем границы оси Х графика (время) с учетом отступа. Ширина 15 минут
             self.plt.setXRange(dt_ms - 15 * 60 * 1000 - offset, dt_ms - offset)
-            first_index = max(int((dt_ms - self.time[0] - 15 * 60 * 1000 - offset) * 1000), 0)
-            last_index = min(int((dt_ms - self.time[0] - offset) * 1000), len(self.time) - 1)
+            last_index = int(slider_relative * self.data_index)
+            first_index = max(last_index - (15 * 60), 0)
 
             # Задаем желаемое значение для каждой кривой
             curves[0].set_value(beam_current)
@@ -373,10 +374,10 @@ class MainWindow(QMainWindow):
                 # self.data[n].append((curve.value - curve.min) / (curve.max - curve.min))
                 self.data[n][self.data_index] = curve.value
                 if last_index > 0:
-                    plot_data = self.data[n][first_index:self.data_index] * \
+                    plot_data = self.data[n][first_index:last_index] * \
                                 ((curve.value - curve.min) / (curve.max - curve.min) *
                                  (curr_curve.max - curr_curve.min)) + curr_curve.min
-                    plot_time = self.time[first_index:self.data_index]
+                    plot_time = self.time[first_index:last_index]
                     # рисуем кривую
                     self.plt.plot(plot_time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
