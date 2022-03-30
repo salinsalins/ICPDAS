@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         # массив времени в миллисекундах раз в секунду
         self.time = numpy.zeros(data_array_length)
         # массив, в котором будет храниться история всех значений для записи в файл
-        self.hist = []
+        self.hist = [0.0] * (len(headers) - 1)
         # стандартный таймер - функция cycle будет вызываться каждую секунду
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.cycle)
@@ -302,8 +302,6 @@ class MainWindow(QMainWindow):
                 self.close_data_file()
                 self.make_data_folder()
                 self.open_data_file()
-                #self.time = []
-                self.hist = []
             # check for date change - switch for new file
             cfn = self.get_data_file_name()
             if cfn[:9] != self.data_file_shot[:9]:
@@ -312,8 +310,6 @@ class MainWindow(QMainWindow):
                 self.close_data_file()
                 self.make_data_folder()
                 self.open_data_file()
-                #self.time = []
-                self.hist = []
 
             # Шкала времени
             dt = QtCore.QDateTime.currentDateTime()
@@ -380,7 +376,7 @@ class MainWindow(QMainWindow):
                 # print("write to file")
                 t = QtCore.QDateTime()
                 # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                self.data_file.setTime_t(int(self.time[i - 10] / 1000))
+                t.setTime_t(int(self.time[self.data_index] / 1000))
                 self.data_file.write(t.toString('hh:mm:ss') + '\t')
                 for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
                     v = self.hist[j]
