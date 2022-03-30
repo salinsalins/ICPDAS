@@ -447,7 +447,7 @@ class ET7000:
         self.host = host
         self.port = port
         self.timeout = timeout
-        # logger config
+        # LOGGER config
         if logger is None:
             logger = logging.getLogger(__name__)
         self.logger = logger

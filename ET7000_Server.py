@@ -47,7 +47,7 @@ class ET7000_Server(TangoServerPrototype):
         try:
             n = int(data[1])
             result = self.et.read_modbus(int(data[0]), n)
-            # self.logger.debug('%s', result)
+            # self.LOGGER.debug('%s', result)
             if result:
                 return result
             return [float('nan')] * n
@@ -64,12 +64,12 @@ class ET7000_Server(TangoServerPrototype):
             a = int(data[0])
             v = [int(d) for d in data[1:]]
             result = self.et.write_modbus(a, v)
-            # self.logger.debug('%s %s %s ', a, v, result)
+            # self.LOGGER.debug('%s %s %s ', a, v, result)
             if result:
                 return result
             return False
         except:
-            # self.logger.debug('%s %s', a, v)
+            # self.LOGGER.debug('%s %s', a, v)
             self.log_exception('write_modbus exception')
             return False
 
@@ -214,7 +214,7 @@ class ET7000_Server(TangoServerPrototype):
     def read_general(self, attr: tango.Attribute):
         with self.lock:
             attr_name = attr.get_name()
-            # self.logger.debug('entry %s %s', self.get_name(), attr_name)
+            # self.LOGGER.debug('entry %s %s', self.get_name(), attr_name)
             if self.is_connected():
                 val = self._read_io(attr)
             else:
@@ -560,11 +560,11 @@ class ET7000_Server(TangoServerPrototype):
     #         pn = int(p)
     #         self.dp.poll_attribute(attr_name, pn)
     #     except:
-    #         #self.logger.warning('', exc_info=True)
+    #         #self.LOGGER.warning('', exc_info=True)
     #         pass
 
     def initialize_dynamic_attributes(self):
-        # self.logger.debug('-------- entry -----')
+        # self.LOGGER.debug('-------- entry -----')
         self.add_io()
         pass
 
@@ -577,14 +577,14 @@ class ET7000_Server(TangoServerPrototype):
 
 
 def looping():
-    # ET7000_Server.logger.debug('loop entry')
+    # ET7000_Server.LOGGER.debug('loop entry')
     for dev in ET7000_Server.device_list:
         if dev.init_io:
             dev.add_io()
         # if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
         #     dev.reconnect()
     time.sleep(1.0)
-    # ET7000_Server.logger.debug('loop exit')
+    # ET7000_Server.LOGGER.debug('loop exit')
 
 
 # def post_init_callback():

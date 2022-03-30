@@ -1,4 +1,3 @@
-# Используемые библиотеки
 import datetime
 import logging
 import os
@@ -44,37 +43,16 @@ class TimeAxisItem(pg.AxisItem):
 
 # класс кривой, представляет кривую на общем графике
 class Curve:
-    def __init__(self, _min, _max, color, name=""):
+    def __init__(self, _min, _max, color=(255,255,255), name="", plot=True):
         self.min = _min  # минимальное значение на оси y
         self.max = _max  # максимальное
         self.rgb = color  # цвет - массив(list) из трех значений [r,g,b]
         self.value = 0  # текущее значение
         self.name = name  # имя для отображения в легенде
+        self.plot = plot
 
     def set_value(self, val):  # функция, чтобы задать значение
         self.value = val
-
-
-# преобразования байтового значения которое выдает АЦП (по сути целочисленное) в значение напряжения
-def toV(b, Min, Max):
-    # обрабатывается всего 2 случая - минимум нулевой
-    if Min == 0 and Max > 0:
-        return Max * b / 0xffff
-        # и минимум по модулю равен максимуму
-    if Min == -Max and Max > 0:
-        one = 0xffff / 2
-        if b <= one:
-            return Max * b / one
-        else:
-            return -Max * (0xffff - b) / one
-    # в других случаях ошибка
-    print('wrong borders')
-    return 666
-
-
-# ненужная функция, на всякий случай не стал удалять
-def toT(b):
-    return b / 10
 
 
 ORGANIZATION_NAME = 'BINP'
@@ -84,7 +62,7 @@ APPLICATION_VERSION = '0.1'
 CONFIG_FILE = APPLICATION_NAME_SHORT + '.json'
 UI_FILE = APPLICATION_NAME_SHORT + '.ui'
 
-logger = config_logger(format_string=LOG_FORMAT_STRING_SHORT)
+LOGGER = config_logger(format_string=LOG_FORMAT_STRING_SHORT)
 
 # создаем массив кривых которые будут отображаться на графике
 curves = [Curve(0, 20, [255, 0, 0], "beam current"),
@@ -95,15 +73,15 @@ curves = [Curve(0, 20, [255, 0, 0], "beam current"),
           Curve(0, 125, [100, 100, 250], "gas flow"),
           Curve(0, 8e-5, [0, 255, 255], "vacuum tube"),
           Curve(0, 1e-1, [0, 150, 130], "vacuum low")]
+headers = ['time', 'beam_current', 'vacuum_high', 'T_yarmo', 'T_plastik', 'current_2', 'gas_flow',
+           'vacuum_tube', 'vacuum_low']
 
-
-# , Curve(0,1e-2,[100,100,100])
 
 # основной класс окна, используется библиотека PyQt
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.logger = logger
+        self.logger = LOGGER
         #
         self.out_root = '.\\data\\'
         self.ip1 = '192.168.0.44'
@@ -193,9 +171,9 @@ class MainWindow(QMainWindow):
             self.ip1 = self.config.get('ip1', '192.168.0.44')
             self.ip2 = self.config.get('ip2', '192.168.0.46')
             self.ip3 = self.config.get('ip3', '192.168.0.45')
-            self.pet1 = FakeET7000(self.ip1, logger=logger, timeout=0.15, type='7026')
-            self.pet2 = FakeET7000(self.ip2, logger=logger, timeout=0.15, type='7015')
-            self.pet3 = FakeET7000(self.ip3, logger=logger, timeout=0.15, type='7026', sin=1.0)
+            self.pet1 = FakeET7000(self.ip1, logger=LOGGER, timeout=0.15, type='7026')
+            self.pet2 = FakeET7000(self.ip2, logger=LOGGER, timeout=0.15, type='7015')
+            self.pet3 = FakeET7000(self.ip3, logger=LOGGER, timeout=0.15, type='7026', sin=1.0)
             self.out_root = self.config.get('out_root', '.\\data\\')
             self.checkBox.setChecked(self.config.get('autoscale', False))
             self.curves = self.config.get('curves', [])
@@ -363,7 +341,7 @@ class MainWindow(QMainWindow):
 
             # находим текущую кривую - ту которая выбрана в легенде
             curr_curve = curves[self.legend.currentIndex()]
-            # self.logger.debug('Base plot "%s" max: %s min: %s', curr_curve.name, curr_curve.max, curr_curve.min)
+            # self.LOGGER.debug('Base plot "%s" max: %s min: %s', curr_curve.name, curr_curve.max, curr_curve.min)
             # задаем Y диапазон на графике в соответствие с диапазоном у текущей кривой
             self.plt.clear()  # очистка графика
             if not self.checkBox.isChecked():
@@ -382,50 +360,36 @@ class MainWindow(QMainWindow):
                     # c_max = curve.max / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)
                     # c_min = curve.min / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)
                     # c_val = (curve.value - curve.min) / (curve.max - curve.min) * (curr_curve.max - curr_curve.min)  + curr_curve.min
-                    # self.logger.debug('Plotting "%s" max: %s min: %s val: %s', curve.name, c_max, c_min, c_val)
+                    # self.LOGGER.debug('Plotting "%s" max: %s min: %s val: %s', curve.name, c_max, c_min, c_val)
                     self.plt.plot(plot_time, plot_data, pen=(curve.rgb[0], curve.rgb[1], curve.rgb[2]))
                 n += 1
 
             # запись истории в файл
-            # массив заголовков - названия всех записываемых значений, первое всегда время
-            headers = ['time', 'beam current', 'vacuum high', 'T yarmo',
-                       'T plastik', 'current 2', 'gas flow',
-                       'vacuum tube', 'vacuum low']
-            if len(self.hist) == 0:
-                # если история еще пустая, добавляем в нее пустой массив для каждого заголовка
-                for i in range(len(headers) - 1):
-                    self.hist.append([])
             # добавляем очередное значение, значения должны соответствовать заголовкам
-            self.hist[0].append(beam_current)
-            self.hist[1].append(vac_chamber)
-            self.hist[2].append(Tyarmo)
-            self.hist[3].append(Tplastik)
-            self.hist[4].append(intercepted_current)
-            self.hist[5].append(flow)
-            self.hist[6].append(vac_tube)
-            self.hist[7].append(vac_fore)
+            self.hist[0] = beam_current
+            self.hist[1] = vac_chamber
+            self.hist[2] = Tyarmo
+            self.hist[3] = Tplastik
+            self.hist[4] = intercepted_current
+            self.hist[5] = flow
+            self.hist[6] = vac_tube
+            self.hist[7] = vac_fore
 
-            # Каждые 10 циклов записываем историю в файл с именем fname,
-            # которое мы определили выше
-            self.writeN += 1
-            if self.writeN > 10:
-                self.writeN = 0
-                if self.data_file is not None:
-                    # print("write to file")
-                    f = self.data_file
-                    t = QtCore.QDateTime()
-                    for i in range(10):  # цикл для каждого момента времени
-                        # преобразуем миллисекунды в час:минута:секунда и записываем в файл
-                        t.setTime_t(int(self.time[i - 10] / 1000))
-                        f.write(t.toString('hh:mm:ss') + '\t')
-                        for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
-                            v = self.hist[j][i - 10]
-                            if v >= 666 or v >= 6666:
-                                f.write(str('0\t'))
-                            else:
-                                f.write(str(v) + '\t')
-                        f.write('\n')
-                    f.flush()
+            # запись в файл
+            if self.data_file is not None:
+                # print("write to file")
+                t = QtCore.QDateTime()
+                # преобразуем миллисекунды в час:минута:секунда и записываем в файл
+                self.data_file.setTime_t(int(self.time[i - 10] / 1000))
+                self.data_file.write(t.toString('hh:mm:ss') + '\t')
+                for j in range(len(self.hist)):  # следом записываем все соответсвующий значения истории
+                    v = self.hist[j]
+                    if v >= 666 or v >= 6666:
+                        self.data_file.write(str('0\t'))
+                    else:
+                        self.data_file.write(str(v) + '\t')
+                self.data_file.write('\n')
+                self.data_file.flush()
         except:
             log_exception(self)
 
@@ -506,8 +470,6 @@ class MainWindow(QMainWindow):
 
     def write_headers(self, f):
         # запись заголовков
-        headers = ['time', 'beam_current', 'vacuum_high', 'T_yarmo', 'T_plastik', 'current_2', 'gas_flow',
-                   'vacuum_tube', 'vacuum_low']
         for h in headers:
             f.write(h + "\t")
         f.write("\n")
