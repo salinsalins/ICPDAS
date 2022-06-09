@@ -26,8 +26,8 @@ DEFAULT_RECONNECT_TIMEOUT = 10000.0
 
 
 class ET7000_Server(TangoServerPrototype):
-    server_version = '4.0'
-    server_name = 'Tango Server for ICP DAS ET-7000 Series Devices'
+    server_version_value = '4.0'
+    server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
                             display_level=DispLevel.OPERATOR,
