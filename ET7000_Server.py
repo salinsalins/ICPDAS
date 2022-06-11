@@ -539,17 +539,6 @@ class ET7000_Server(TangoServerPrototype):
         else:
             return self.set_error_attribute_value(attr)
 
-    # def get_attribute_property(self, attr_name: str, prop_name: str):
-    #     device_name = self.get_name()
-    #     database = self.database
-    #     all_attr_prop = database.get_device_attribute_property(device_name, attr_name)
-    #     all_prop = all_attr_prop[attr_name]
-    #     if prop_name in all_prop:
-    #         prop = all_prop[prop_name][0]
-    #     else:
-    #         prop = ''
-    #     return prop
-
     # def restore_polling(self, attr_name: str):
     #     try:
     #         p = self.get_attribute_property(attr_name, 'polling')
@@ -563,13 +552,6 @@ class ET7000_Server(TangoServerPrototype):
         # self.debug('----- entry -----')
         self.add_io()
         pass
-
-    def set_fault_state(self, *args, **kwargs):
-        if len(args) + len(kwargs) > 0:
-            self.logger.error(*args, **kwargs)
-        self.error_count += 1
-        self.error_time = time.time()
-        self.set_state(DevState.FAULT)
 
 
 def looping():
@@ -589,4 +571,5 @@ def looping():
 
 if __name__ == "__main__":
     # ET7000_Server.run_server(post_init_callback=post_init_callback)
-    ET7000_Server.run_server(event_loop=looping)
+    # ET7000_Server.run_server(event_loop=looping)
+    ET7000_Server.run_server()
