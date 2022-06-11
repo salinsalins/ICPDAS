@@ -560,7 +560,7 @@ class ET7000_Server(TangoServerPrototype):
     #         pass
 
     def initialize_dynamic_attributes(self):
-        # self.LOGGER.debug('-------- entry -----')
+        # self.debug('----- entry -----')
         self.add_io()
         pass
 
