@@ -2,23 +2,19 @@
 
 """
 ICP DAS ET7000 tango device server"""
-
+import sys; sys.path.append('../TangoUtils')
 import time
-import logging
 import math
 from threading import Lock
 
-import numpy
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx
-from tango.server import Device, attribute, command, pipe, device_property
+from tango.server import Device, attribute, command\
 
 from ET7000 import FakeET7000
 from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import config_logger, TangoLogHandler
-# from ..TangoUtils.TangoUtils import config_logger, TangoLogHandler
-# from ..TangoUtils.TangoServerPrototype import TangoServerPrototype
 
 NaN = float('nan')
 DEFAULT_IP = '192.168.1.122'
