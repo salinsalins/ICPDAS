@@ -87,8 +87,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.delete_device()
             # call init_device from super, which makes call to self.set_config()
             super().init_device()
-            # add handler for logging to the tango
-            self.logger.addHandler(TangoLogHandler(self, level=self.logger.getEffectiveLevel()))
+            self.configure_tango_logging()
 
     def set_config(self):
         super().set_config()
