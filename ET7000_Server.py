@@ -222,13 +222,13 @@ class ET7000_Server(TangoServerPrototype):
     def write_general(self, attr: tango.WAttribute):
         with self.lock:
             attr_name = attr.get_name()
-            self.logger.debug('entry %s %s', self.get_name(), attr_name)
+            # self.logger.debug('entry %s %s', self.get_name(), attr_name)
             if not self.is_connected():
                 self.set_error_attribute_value(attr)
                 attr.set_quality(tango.AttrQuality.ATTR_INVALID)
                 msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
                 self.logger.debug(msg)
-                self.debug_stream(msg)
+                # self.debug_stream(msg)
                 return
             value = attr.get_write_value()
             chan = int(attr_name[-2:])
@@ -242,7 +242,7 @@ class ET7000_Server(TangoServerPrototype):
             else:
                 msg = "%s Write to unknown attribute %s" % (self.get_name(), attr_name)
                 self.logger.error(msg)
-                self.error_stream(msg)
+                # self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
                 return
@@ -256,7 +256,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.error_count += 1
                     msg = "%s Error writing %s" % (self.get_name(), attr_name)
                     self.logger.error(msg)
-                    self.error_stream(msg)
+                    # self.error_stream(msg)
                     self.set_error_attribute_value(attr)
                     # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
 
@@ -301,7 +301,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.error_count += 1
                     msg = '%s No IO attributes added for unknown device' % self.get_name()
                     self.logger.warning(msg)
-                    self.error_stream(msg)
+                    # self.error_stream(msg)
                     self.set_state(DevState.FAULT)
                     return
                 self.error_time = 0.0
@@ -353,7 +353,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.attributes[attr_name] = attr
                     msg = '%s %d of %d analog inputs initialized' % (self.get_name(), nai, self.et.ai_n)
                     self.logger.info(msg)
-                    self.info_stream(msg)
+                    # self.info_stream(msg)
                 # ao
                 nao = 0
                 if self.et.ao_n > 0:
@@ -399,7 +399,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.attributes[attr_name] = attr
                     msg = '%s %d of %d analog outputs initialized' % (self.get_name(), nao, self.et.ao_n)
                     self.logger.info(msg)
-                    self.info_stream(msg)
+                    # self.info_stream(msg)
                 # di
                 ndi = 0
                 if self.et.di_n > 0:
@@ -439,7 +439,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.attributes[attr_name] = attr
                     msg = '%s %d digital inputs initialized' % (self.get_name(), ndi)
                     self.logger.info(msg)
-                    self.info_stream(msg)
+                    # self.info_stream(msg)
                 # do
                 ndo = 0
                 if self.et.do_n > 0:
@@ -480,7 +480,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.attributes[attr_name] = attr
                     msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
                     self.logger.info(msg)
-                    self.info_stream(msg)
+                    # self.info_stream(msg)
                 self.set_state(DevState.RUNNING)
             except:
                 self.error_time = time.time()
@@ -488,7 +488,7 @@ class ET7000_Server(TangoServerPrototype):
                 msg = '%s Error adding IO channels' % self.get_name()
                 self.logger.error(msg)
                 self.logger.debug('', exc_info=True)
-                self.error_stream(msg)
+                # self.error_stream(msg)
                 self.set_state(DevState.FAULT)
                 return
             self.init_io = False
@@ -507,7 +507,7 @@ class ET7000_Server(TangoServerPrototype):
                 msg = '%s Error deleting IO channels' % self.get_name()
                 self.logger.error(msg)
                 self.logger.debug('', exc_info=True)
-                self.error_stream(msg)
+                # self.error_stream(msg)
                 # self.set_state(DevState.FAULT)
 
     def is_connected(self):
