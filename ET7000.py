@@ -410,6 +410,8 @@ class ET7000:
             v_max = ET7000.ranges[r]['max']
             c_min = ET7000.ranges[r]['min_code']
             c_max = ET7000.ranges[r]['max_code']
+        except KeyboardInterrupt:
+            raise
         except:
             pass
         if c_min < c_max:
@@ -591,6 +593,8 @@ class ET7000:
                     return None
             else:
                 return NaN
+        except KeyboardInterrupt:
+            raise
         except:
             return None
 
@@ -652,6 +656,8 @@ class ET7000:
                     if self.ao_correct_output:
                         if abs(self.ao_last_written_values[k] - v) <= self.ao_quanta[k]:
                             v = self.ao_last_written_values[k]
+        except KeyboardInterrupt:
+            raise
         except:
             pass
         return v
@@ -872,6 +878,8 @@ class FakeET7000(ET7000):
                 for i in range(m):
                     result.append(self.data[prefix + n + i])
                 return result
+            except KeyboardInterrupt:
+                raise
             except:
                 return None
 
