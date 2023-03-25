@@ -116,24 +116,30 @@ class ET7000_Server(TangoServerPrototype):
             self.set_state(DevState.FAULT, msg)
 
     def delete_device(self):
-        with self.lock:
-            self.save_polling_state()
-            self.stop_polling()
-            self.remove_io()
-            try:
-                self.et.client.close()
-            except KeyboardInterrupt:
-                raise
-            except:
-                log_exception(self.logger)
-            self.et = None
-            self.ip = None
-            tango.Database().delete_device_property(self.get_name(), 'polled_attr')
-            super().delete_device()
-            if self in ET7000_Server.device_list:
-                ET7000_Server.device_list.remove(self)
-            msg = '%s Device has been deleted' % self.get_name()
-            self.logger.info(msg)
+        # # with self.lock:
+        # self.save_polling_state()
+        # self.logger.debug('%s ********', self.get_name())
+        # self.stop_polling()
+        # self.logger.debug('%s ********', self.get_name())
+        # self.remove_io()
+        # self.logger.debug('%s ********', self.get_name())
+        # try:
+        #     self.et.client.close()
+        # # except KeyboardInterrupt:
+        # #     raise
+        # except:
+        #     log_exception(self.logger)
+        # self.et = None
+        # self.ip = None
+        # self.logger.debug('%s ********', self.get_name())
+        super().delete_device()
+        # self.logger.debug('%s ********', self.get_name())
+        # if self in ET7000_Server.device_list:
+        #     ET7000_Server.device_list.remove(self)
+        # self.logger.debug('%s ********', self.get_name())
+        # tango.Database().delete_device_property(self.get_name(), 'polled_attr')
+        msg = '%s Device has been deleted' % self.get_name()
+        self.logger.info(msg)
 
     # ************* Attribute R/W routines *****************
     def read_device_type(self):
@@ -507,7 +513,9 @@ class ET7000_Server(TangoServerPrototype):
             return nai + nao + ndi + ndo
 
     def remove_io(self):
+        self.logger.debug('%s ********', self.get_name())
         with self.lock:
+            self.logger.debug('%s ********', self.get_name())
             try:
                 removed = []
                 for attr_name in self.created_attributes:
@@ -523,6 +531,7 @@ class ET7000_Server(TangoServerPrototype):
                 raise
             except:
                 log_exception(self.logger, '%s Error deleting IO channels' % self.get_name())
+        self.logger.debug('%s ********', self.get_name())
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
