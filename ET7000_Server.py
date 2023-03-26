@@ -23,7 +23,7 @@ DEFAULT_RECONNECT_TIMEOUT = 10000.0
 
 
 class ET7000_Server(TangoServerPrototype):
-    server_version_value = '4.0'
+    server_version_value = '5.0'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -120,13 +120,8 @@ class ET7000_Server(TangoServerPrototype):
         self.save_polling_state()
         self.stop_polling()
         self.remove_io()
+        del self.et
         self.init_io = True
-        try:
-            self.et.client.close()
-        except KeyboardInterrupt:
-            raise
-        except:
-            log_exception(self.logger)
         self.et = None
         self.ip = None
         super().delete_device()
@@ -517,21 +512,22 @@ class ET7000_Server(TangoServerPrototype):
 
     def remove_io(self):
         # with self.lock:
-        try:
-            removed = []
-            for attr_name in self.created_attributes:
+        removed = []
+        for attr_name in self.created_attributes:
+            try:
                 self.remove_attribute(attr_name)
                 self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
                 removed.append(attr_name)
-            for attr_name in removed:
-                self.created_attributes.pop(attr_name, None)
-            self.set_state(DevState.UNKNOWN)
-            self.init_io = True
-            self.init_po = False
-        except KeyboardInterrupt:
-            raise
-        except:
-            log_exception(self.logger, '%s Error deleting attribute' % self.get_name())
+            except KeyboardInterrupt:
+                raise
+            except:
+                log_exception(self.logger, '%s Error deleting attribute' % self.get_name())
+        # for attr_name in removed:
+        #     self.created_attributes.pop(attr_name, None)
+        self.created_attributes = {}
+        self.set_state(DevState.UNKNOWN)
+        self.init_io = True
+        self.init_po = False
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
@@ -587,6 +583,6 @@ def post_init_callback():
 
 
 if __name__ == "__main__":
-    ET7000_Server.run_server(post_init_callback=post_init_callback)
-    # ET7000_Server.run_server(event_loop=looping)
+    # ET7000_Server.run_server(post_init_callback=post_init_callback)
+    ET7000_Server.run_server(event_loop=looping, post_init_callback=post_init_callback)
     # ET7000_Server.run_server()
