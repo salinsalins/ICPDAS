@@ -43,13 +43,13 @@ class ET7000_Server(TangoServerPrototype):
         self.io_request = None
         self.io_async = False
         self.lock = RLock()
-        with self.lock:
-            if self in ET7000_Server.device_list:
-                ET7000_Server.device_list.remove(self)
-                self.delete_device()
-            # call init_device from super, which makes call to self.set_config()
-            super().init_device()
-            self.configure_tango_logging()
+        # with self.lock:
+        if self in ET7000_Server.device_list:
+            ET7000_Server.device_list.remove(self)
+            self.delete_device()
+        # call init_device from super, which makes call to self.set_config()
+        super().init_device()
+        # self.configure_tango_logging()
 
     def set_config(self):
         super().set_config()
@@ -116,28 +116,28 @@ class ET7000_Server(TangoServerPrototype):
             self.set_state(DevState.FAULT, msg)
 
     def delete_device(self):
-        # # with self.lock:
-        # self.save_polling_state()
-        # self.logger.debug('%s ********', self.get_name())
-        # self.stop_polling()
-        # self.logger.debug('%s ********', self.get_name())
-        # self.remove_io()
-        # self.logger.debug('%s ********', self.get_name())
-        # try:
-        #     self.et.client.close()
-        # # except KeyboardInterrupt:
-        # #     raise
-        # except:
-        #     log_exception(self.logger)
+        # with self.lock:
+        self.save_polling_state()
+        self.logger.debug('%s ********', self.get_name())
+        self.stop_polling()
+        self.logger.debug('%s ********', self.get_name())
+        self.remove_io()
+        self.logger.debug('%s ********', self.get_name())
+        try:
+            self.et.client.close()
+        except KeyboardInterrupt:
+            raise
+        except:
+            log_exception(self.logger)
         # self.et = None
         # self.ip = None
-        # self.logger.debug('%s ********', self.get_name())
+        self.logger.debug('%s ********', self.get_name())
         super().delete_device()
-        # self.logger.debug('%s ********', self.get_name())
-        # if self in ET7000_Server.device_list:
-        #     ET7000_Server.device_list.remove(self)
-        # self.logger.debug('%s ********', self.get_name())
-        # tango.Database().delete_device_property(self.get_name(), 'polled_attr')
+        self.logger.debug('%s ********', self.get_name())
+        if self in ET7000_Server.device_list:
+            ET7000_Server.device_list.remove(self)
+        self.logger.debug('%s ********', self.get_name())
+        tango.Database().delete_device_property(self.get_name(), 'polled_attr')
         msg = '%s Device has been deleted' % self.get_name()
         self.logger.info(msg)
 
@@ -152,86 +152,86 @@ class ET7000_Server(TangoServerPrototype):
         return self.ip
 
     def read_all(self, attr: tango.Attribute):
-        with self.lock:
-            attr_name = attr.get_name()
-            if not self.is_connected():
-                msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-                self.logger.debug(msg)
-                return self.set_error_attribute_value(attr)
-            ad = attr_name[-2:]
-            if ad == 'ai':
-                val = self.et.ai_read()
-            elif ad == 'di':
-                val = self.et.di_read()
-            elif ad == 'do':
-                val = self.et.do_read()
-            elif ad == 'ao':
-                val = self.et.ao_read()
-            else:
-                msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
-                self.logger.error(msg)
-                return self.set_error_attribute_value(attr)
-            if val is not None:
-                self.error_time = 0.0
-                self.error_count = 0
-                attr.set_value(val)
-                attr.set_quality(tango.AttrQuality.ATTR_VALID)
-                return val
-            else:
-                return self.set_error_attribute_value(attr)
+        # with self.lock:
+        attr_name = attr.get_name()
+        if not self.is_connected():
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
+            self.logger.debug(msg)
+            return self.set_error_attribute_value(attr)
+        ad = attr_name[-2:]
+        if ad == 'ai':
+            val = self.et.ai_read()
+        elif ad == 'di':
+            val = self.et.di_read()
+        elif ad == 'do':
+            val = self.et.do_read()
+        elif ad == 'ao':
+            val = self.et.ao_read()
+        else:
+            msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
+            self.logger.error(msg)
+            return self.set_error_attribute_value(attr)
+        if val is not None:
+            self.error_time = 0.0
+            self.error_count = 0
+            attr.set_value(val)
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+            return val
+        else:
+            return self.set_error_attribute_value(attr)
 
     def read_general(self, attr: tango.Attribute):
-        with self.lock:
-            attr_name = attr.get_name()
-            # self.LOGGER.debug('entry %s %s', self.get_name(), attr_name)
-            if self.is_connected():
-                val = self._read_io(attr)
-            else:
-                val = None
-                msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
-                self.logger.debug(msg)
-            return self.set_attribute_value(attr, val)
+        # with self.lock:
+        attr_name = attr.get_name()
+        # self.LOGGER.debug('entry %s %s', self.get_name(), attr_name)
+        if self.is_connected():
+            val = self._read_io(attr)
+        else:
+            val = None
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr.get_name())
+            self.logger.debug(msg)
+        return self.set_attribute_value(attr, val)
 
     def write_general(self, attr: tango.WAttribute):
-        with self.lock:
-            attr_name = attr.get_name()
-            # self.logger.debug('entry %s %s', self.get_name(), attr_name)
-            if not self.is_connected():
-                self.set_error_attribute_value(attr)
-                attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-                self.logger.debug(msg)
-                # self.debug_stream(msg)
-                return
-            value = attr.get_write_value()
-            chan = int(attr_name[-2:])
-            ad = attr_name[:2]
-            mask = True
-            if ad == 'ao':
-                result = self.et.ao_write_channel(chan, value)
-                mask = self.et.ao_masks[chan]
-            elif ad == 'do':
-                result = self.et.do_write_channel(chan, value)
-            else:
-                msg = "%s Write to unknown attribute %s" % (self.get_name(), attr_name)
+        # with self.lock:
+        attr_name = attr.get_name()
+        # self.logger.debug('entry %s %s', self.get_name(), attr_name)
+        if not self.is_connected():
+            self.set_error_attribute_value(attr)
+            attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
+            self.logger.debug(msg)
+            # self.debug_stream(msg)
+            return
+        value = attr.get_write_value()
+        chan = int(attr_name[-2:])
+        ad = attr_name[:2]
+        mask = True
+        if ad == 'ao':
+            result = self.et.ao_write_channel(chan, value)
+            mask = self.et.ao_masks[chan]
+        elif ad == 'do':
+            result = self.et.do_write_channel(chan, value)
+        else:
+            msg = "%s Write to unknown attribute %s" % (self.get_name(), attr_name)
+            self.logger.error(msg)
+            # self.error_stream(msg)
+            self.set_error_attribute_value(attr)
+            # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
+            return
+        if result:
+            self.error_time = 0.0
+            self.error_count = 0
+            attr.set_quality(tango.AttrQuality.ATTR_VALID)
+        else:
+            if mask:
+                self.error_time = time.time()
+                self.error_count += 1
+                msg = "%s Error writing %s" % (self.get_name(), attr_name)
                 self.logger.error(msg)
                 # self.error_stream(msg)
                 self.set_error_attribute_value(attr)
                 # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
-                return
-            if result:
-                self.error_time = 0.0
-                self.error_count = 0
-                attr.set_quality(tango.AttrQuality.ATTR_VALID)
-            else:
-                if mask:
-                    self.error_time = time.time()
-                    self.error_count += 1
-                    msg = "%s Error writing %s" % (self.get_name(), attr_name)
-                    self.logger.error(msg)
-                    # self.error_stream(msg)
-                    self.set_error_attribute_value(attr)
-                    # attr.set_quality(tango.AttrQuality.ATTR_INVALID)
 
     def _read_io(self, attr: tango.Attribute):
         attr_name = attr.get_name()
@@ -306,232 +306,229 @@ class ET7000_Server(TangoServerPrototype):
 
     # ******** additional helper functions ***********
     def add_io(self):
-        with self.lock:
+        # with self.lock:
+        nai = 0
+        nao = 0
+        ndi = 0
+        ndo = 0
+        try:
+            if self.et is None or self.et.type == 0:
+                self.error_time = time.time()
+                self.error_count += 1
+                msg = '%s No IO attributes added for unknown device' % self.get_name()
+                self.logger.warning(msg)
+                self.set_state(DevState.FAULT, msg)
+                self.init_io = False
+                self.init_po = False
+                return
+            self.error_time = 0.0
+            self.error_count = 0
+            self.set_state(DevState.INIT, 'Attributes creation started')
+            attr_name = ''
+        # ai
             nai = 0
-            nao = 0
-            ndi = 0
-            ndo = 0
             try:
-                if self.et is None or self.et.type == 0:
-                    self.error_time = time.time()
-                    self.error_count += 1
-                    msg = '%s No IO attributes added for unknown device' % self.get_name()
-                    self.logger.warning(msg)
-                    self.set_state(DevState.FAULT, msg)
-                    self.init_io = False
-                    self.init_po = False
-                    return
-                self.error_time = 0.0
-                self.error_count = 0
-                self.set_state(DevState.INIT, 'Attributes creation started')
-                attr_name = ''
-            # ai
-                nai = 0
-                try:
-                    if self.et.ai_n > 0:
-                        for k in range(self.et.ai_n):
-                            attr_name = 'ai%02d' % k
-                            if self.et.ai_masks[k] or self.show_disabled_channels:
-                                attr = tango.server.attribute(name=attr_name, dtype=float,
-                                                              dformat=tango.AttrDataFormat.SCALAR,
-                                                              access=tango.AttrWriteType.READ,
-                                                              max_dim_x=1, max_dim_y=0,
-                                                              fget=self.read_general,
-                                                              label=attr_name,
-                                                              doc='Analog input %s' % k,
-                                                              unit=self.et.ai_units[k],
-                                                              display_unit=1.0,
-                                                              format='%f',
-                                                              min_value=self.et.ai_min[k],
-                                                              max_value=self.et.ai_max[k])
-                                # add attr to device
-                                self.add_attribute(attr)
-                                self.created_attributes[attr_name] = attr
-                                nai += 1
-                            else:
-                                self.logger.info('%s is disabled', attr_name)
-                        # all_ai
-                        attr = tango.server.attribute(name='all_ai', dtype=float,
-                                                      dformat=tango.AttrDataFormat.SPECTRUM,
-                                                      access=tango.AttrWriteType.READ,
-                                                      max_dim_x=self.et.ai_n, max_dim_y=0,
-                                                      fget=self.read_all,
-                                                      label=attr_name,
-                                                      doc='All analog inputs',
-                                                      unit='',
-                                                      display_unit=1.0,
-                                                      format='%f')
-                        self.add_attribute(attr)
-                        self.created_attributes[attr_name] = attr
-                        msg = '%s %d of %d analog inputs initialized' % (self.get_name(), nai, self.et.ai_n)
-                        self.logger.info(msg)
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    msg = '%s Exception adding AI %s' % (self.get_name(), attr_name)
-                    self.log_exception(self.logger, msg)
-            # ao
-                nao = 0
-                try:
-                    if self.et.ao_n > 0:
-                        for k in range(self.et.ao_n):
-                            attr_name = 'ao%02d' % k
-                            if self.et.ao_masks[k] or self.show_disabled_channels:
-                                attr = tango.server.attribute(name=attr_name, dtype=float,
-                                                              dformat=tango.AttrDataFormat.SCALAR,
-                                                              access=tango.AttrWriteType.READ_WRITE,
-                                                              max_dim_x=1, max_dim_y=0,
-                                                              fget=self.read_general,
-                                                              fset=self.write_general,
-                                                              label=attr_name,
-                                                              doc='Analog output %s' % k,
-                                                              unit=self.et.ao_units[k],
-                                                              display_unit=1.0,
-                                                              format='%f',
-                                                              min_value=self.et.ao_min[k],
-                                                              max_value=self.et.ao_max[k])
-                                self.add_attribute(attr)
-                                self.created_attributes[attr_name] = attr
-                                v = self.et.ao_read(k)
-                                attr.get_attribute(self).set_write_value(v)
-                                nao += 1
-                            else:
-                                self.logger.debug('%s is disabled', attr_name)
-                        # all_ao
-                        attr = tango.server.attribute(name='all_ao', dtype=float,
-                                                      dformat=tango.AttrDataFormat.SPECTRUM,
-                                                      access=tango.AttrWriteType.READ,
-                                                      max_dim_x=self.et.ao_n, max_dim_y=0,
-                                                      fget=self.read_all,
-                                                      label=attr_name,
-                                                      doc='All analog outputs. ONLY FOR READ',
-                                                      unit='',
-                                                      display_unit=1.0,
-                                                      format='%f')
-                        self.add_attribute(attr)
-                        self.created_attributes[attr_name] = attr
-                        msg = '%s %d of %d analog outputs initialized' % (self.get_name(), nao, self.et.ao_n)
-                        self.logger.info(msg)
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    msg = '%s Exception adding AO %s' % (self.get_name(), attr_name)
-                    log_exception(self.logger, msg)
-            # di
-                ndi = 0
-                try:
-                    if self.et.di_n > 0:
-                        for k in range(self.et.di_n):
-                            attr_name = 'di%02d' % k
-                            attr = tango.server.attribute(name=attr_name, dtype=tango.DevBoolean,
+                if self.et.ai_n > 0:
+                    for k in range(self.et.ai_n):
+                        attr_name = 'ai%02d' % k
+                        if self.et.ai_masks[k] or self.show_disabled_channels:
+                            attr = tango.server.attribute(name=attr_name, dtype=float,
                                                           dformat=tango.AttrDataFormat.SCALAR,
                                                           access=tango.AttrWriteType.READ,
                                                           max_dim_x=1, max_dim_y=0,
                                                           fget=self.read_general,
                                                           label=attr_name,
-                                                          doc='Digital input %s' % k,
-                                                          unit='',
+                                                          doc='Analog input %s' % k,
+                                                          unit=self.et.ai_units[k],
                                                           display_unit=1.0,
-                                                          format='')
+                                                          format='%f',
+                                                          min_value=self.et.ai_min[k],
+                                                          max_value=self.et.ai_max[k])
+                            # add attr to device
                             self.add_attribute(attr)
                             self.created_attributes[attr_name] = attr
-                            ndi += 1
-                        # all_di
-                        attr = tango.server.attribute(name='all_di', dtype=bool,
-                                                      dformat=tango.AttrDataFormat.SPECTRUM,
-                                                      access=tango.AttrWriteType.READ,
-                                                      max_dim_x=self.et.di_n, max_dim_y=0,
-                                                      fget=self.read_all,
-                                                      label=attr_name,
-                                                      doc='All digital inputs. READ ONLY',
-                                                      unit='',
-                                                      display_unit=1.0,
-                                                      format='%s')
-                        self.add_attribute(attr)
-                        self.created_attributes[attr_name] = attr
-                        msg = '%s %d digital inputs initialized' % (self.get_name(), ndi)
-                        self.logger.info(msg)
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    msg = '%s Exception adding DI %s' % (self.get_name(), attr_name)
-                    log_exception(self.logger, msg)
-            # do
-                ndo = 0
-                try:
-                    if self.et.do_n > 0:
-                        for k in range(self.et.do_n):
-                            attr_name = 'do%02d' % k
-                            attr = tango.server.attribute(name=attr_name, dtype=tango.DevBoolean,
+                            nai += 1
+                        else:
+                            self.logger.info('%s is disabled', attr_name)
+                    # all_ai
+                    attr = tango.server.attribute(name='all_ai', dtype=float,
+                                                  dformat=tango.AttrDataFormat.SPECTRUM,
+                                                  access=tango.AttrWriteType.READ,
+                                                  max_dim_x=self.et.ai_n, max_dim_y=0,
+                                                  fget=self.read_all,
+                                                  label=attr_name,
+                                                  doc='All analog inputs',
+                                                  unit='',
+                                                  display_unit=1.0,
+                                                  format='%f')
+                    self.add_attribute(attr)
+                    self.created_attributes[attr_name] = attr
+                    msg = '%s %d of %d analog inputs initialized' % (self.get_name(), nai, self.et.ai_n)
+                    self.logger.info(msg)
+            except KeyboardInterrupt:
+                raise
+            except:
+                msg = '%s Exception adding AI %s' % (self.get_name(), attr_name)
+                self.log_exception(self.logger, msg)
+        # ao
+            nao = 0
+            try:
+                if self.et.ao_n > 0:
+                    for k in range(self.et.ao_n):
+                        attr_name = 'ao%02d' % k
+                        if self.et.ao_masks[k] or self.show_disabled_channels:
+                            attr = tango.server.attribute(name=attr_name, dtype=float,
                                                           dformat=tango.AttrDataFormat.SCALAR,
                                                           access=tango.AttrWriteType.READ_WRITE,
                                                           max_dim_x=1, max_dim_y=0,
                                                           fget=self.read_general,
                                                           fset=self.write_general,
                                                           label=attr_name,
-                                                          doc='Digital output %s' % k,
-                                                          unit='',
+                                                          doc='Analog output %s' % k,
+                                                          unit=self.et.ao_units[k],
                                                           display_unit=1.0,
-                                                          format='')
+                                                          format='%f',
+                                                          min_value=self.et.ao_min[k],
+                                                          max_value=self.et.ao_max[k])
                             self.add_attribute(attr)
                             self.created_attributes[attr_name] = attr
-                            v = self.et.do_read(k)
+                            v = self.et.ao_read(k)
                             attr.get_attribute(self).set_write_value(v)
-                            ndo += 1
-                        # all_do
-                        attr = tango.server.attribute(name='all_do', dtype=bool,
-                                                      dformat=tango.AttrDataFormat.SPECTRUM,
+                            nao += 1
+                        else:
+                            self.logger.debug('%s is disabled', attr_name)
+                    # all_ao
+                    attr = tango.server.attribute(name='all_ao', dtype=float,
+                                                  dformat=tango.AttrDataFormat.SPECTRUM,
+                                                  access=tango.AttrWriteType.READ,
+                                                  max_dim_x=self.et.ao_n, max_dim_y=0,
+                                                  fget=self.read_all,
+                                                  label=attr_name,
+                                                  doc='All analog outputs. ONLY FOR READ',
+                                                  unit='',
+                                                  display_unit=1.0,
+                                                  format='%f')
+                    self.add_attribute(attr)
+                    self.created_attributes[attr_name] = attr
+                    msg = '%s %d of %d analog outputs initialized' % (self.get_name(), nao, self.et.ao_n)
+                    self.logger.info(msg)
+            except KeyboardInterrupt:
+                raise
+            except:
+                msg = '%s Exception adding AO %s' % (self.get_name(), attr_name)
+                log_exception(self.logger, msg)
+        # di
+            ndi = 0
+            try:
+                if self.et.di_n > 0:
+                    for k in range(self.et.di_n):
+                        attr_name = 'di%02d' % k
+                        attr = tango.server.attribute(name=attr_name, dtype=tango.DevBoolean,
+                                                      dformat=tango.AttrDataFormat.SCALAR,
                                                       access=tango.AttrWriteType.READ,
-                                                      max_dim_x=self.et.do_n, max_dim_y=0,
-                                                      fget=self.read_all,
+                                                      max_dim_x=1, max_dim_y=0,
+                                                      fget=self.read_general,
                                                       label=attr_name,
-                                                      doc='All digital outputs. READ ONLY',
+                                                      doc='Digital input %s' % k,
                                                       unit='',
                                                       display_unit=1.0,
-                                                      format='%s')
+                                                      format='')
                         self.add_attribute(attr)
                         self.created_attributes[attr_name] = attr
-                        msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
-                        self.logger.info(msg)
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    msg = '%s Exception adding DO %s' % (self.get_name(), attr_name)
-                    log_exception(self.logger, msg)
-                self.set_state(DevState.RUNNING, 'Attributes creation finished')
+                        ndi += 1
+                    # all_di
+                    attr = tango.server.attribute(name='all_di', dtype=bool,
+                                                  dformat=tango.AttrDataFormat.SPECTRUM,
+                                                  access=tango.AttrWriteType.READ,
+                                                  max_dim_x=self.et.di_n, max_dim_y=0,
+                                                  fget=self.read_all,
+                                                  label=attr_name,
+                                                  doc='All digital inputs. READ ONLY',
+                                                  unit='',
+                                                  display_unit=1.0,
+                                                  format='%s')
+                    self.add_attribute(attr)
+                    self.created_attributes[attr_name] = attr
+                    msg = '%s %d digital inputs initialized' % (self.get_name(), ndi)
+                    self.logger.info(msg)
             except KeyboardInterrupt:
                 raise
             except:
-                self.error_time = time.time()
-                self.error_count += 1
-                msg = '%s Error adding IO attributes' % self.get_name()
+                msg = '%s Exception adding DI %s' % (self.get_name(), attr_name)
                 log_exception(self.logger, msg)
-                self.set_state(DevState.FAULT, msg)
-                return
-            self.init_io = False
-            self.init_po = True
-            return nai + nao + ndi + ndo
+        # do
+            ndo = 0
+            try:
+                if self.et.do_n > 0:
+                    for k in range(self.et.do_n):
+                        attr_name = 'do%02d' % k
+                        attr = tango.server.attribute(name=attr_name, dtype=tango.DevBoolean,
+                                                      dformat=tango.AttrDataFormat.SCALAR,
+                                                      access=tango.AttrWriteType.READ_WRITE,
+                                                      max_dim_x=1, max_dim_y=0,
+                                                      fget=self.read_general,
+                                                      fset=self.write_general,
+                                                      label=attr_name,
+                                                      doc='Digital output %s' % k,
+                                                      unit='',
+                                                      display_unit=1.0,
+                                                      format='')
+                        self.add_attribute(attr)
+                        self.created_attributes[attr_name] = attr
+                        v = self.et.do_read(k)
+                        attr.get_attribute(self).set_write_value(v)
+                        ndo += 1
+                    # all_do
+                    attr = tango.server.attribute(name='all_do', dtype=bool,
+                                                  dformat=tango.AttrDataFormat.SPECTRUM,
+                                                  access=tango.AttrWriteType.READ,
+                                                  max_dim_x=self.et.do_n, max_dim_y=0,
+                                                  fget=self.read_all,
+                                                  label=attr_name,
+                                                  doc='All digital outputs. READ ONLY',
+                                                  unit='',
+                                                  display_unit=1.0,
+                                                  format='%s')
+                    self.add_attribute(attr)
+                    self.created_attributes[attr_name] = attr
+                    msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
+                    self.logger.info(msg)
+            except KeyboardInterrupt:
+                raise
+            except:
+                msg = '%s Exception adding DO %s' % (self.get_name(), attr_name)
+                log_exception(self.logger, msg)
+            self.set_state(DevState.RUNNING, 'Attributes creation finished')
+        except KeyboardInterrupt:
+            raise
+        except:
+            self.error_time = time.time()
+            self.error_count += 1
+            msg = '%s Error adding IO attributes' % self.get_name()
+            log_exception(self.logger, msg)
+            self.set_state(DevState.FAULT, msg)
+            return
+        self.init_io = False
+        self.init_po = True
+        return nai + nao + ndi + ndo
 
     def remove_io(self):
-        self.logger.debug('%s ********', self.get_name())
-        with self.lock:
-            self.logger.debug('%s ********', self.get_name())
-            try:
-                removed = []
-                for attr_name in self.created_attributes:
-                    self.remove_attribute(attr_name)
-                    self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
-                    removed.append(attr_name)
-                for attr_name in removed:
-                    self.created_attributes.pop(attr_name, None)
-                self.set_state(DevState.UNKNOWN)
-                self.init_io = True
-                self.init_po = False
-            except KeyboardInterrupt:
-                raise
-            except:
-                log_exception(self.logger, '%s Error deleting IO channels' % self.get_name())
-        self.logger.debug('%s ********', self.get_name())
+        # with self.lock:
+        try:
+            removed = []
+            for attr_name in self.created_attributes:
+                self.remove_attribute(attr_name)
+                self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
+                removed.append(attr_name)
+            for attr_name in removed:
+                self.created_attributes.pop(attr_name, None)
+            self.set_state(DevState.UNKNOWN)
+            self.init_io = True
+            self.init_po = False
+        except KeyboardInterrupt:
+            raise
+        except:
+            log_exception(self.logger, '%s Error deleting ttribute' % self.get_name())
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:

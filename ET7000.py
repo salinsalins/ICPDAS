@@ -433,6 +433,8 @@ class ET7000:
             v_max = ET7000.ranges[r]['max']
             c_min = ET7000.ranges[r]['min_code']
             c_max = ET7000.ranges[r]['max_code']
+        except KeyboardInterrupt:
+            raise
         except:
             pass
         # print(hex(r), v_min, v_max, c_min, c_max)
