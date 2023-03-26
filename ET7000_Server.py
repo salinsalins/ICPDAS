@@ -40,9 +40,9 @@ class ET7000_Server(TangoServerPrototype):
 
     # ******** init_device ***********
     def init_device(self):
-        self.io_request = None
-        self.io_async = False
-        self.lock = RLock()
+        # self.io_request = None
+        # self.io_async = False
+        # self.lock = RLock()
         # with self.lock:
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
@@ -53,7 +53,9 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_config(self):
         super().set_config()
-        self.set_state(DevState.INIT, 'ET7000_Server Initialization')
+        msg = f'{self.get_name()} ET7000_Server Initialization'
+        self.logger.debug(msg)
+        self.set_state(DevState.INIT, msg)
         self.init_io = True
         self.init_po = False
         self.et = None
@@ -119,11 +121,11 @@ class ET7000_Server(TangoServerPrototype):
         # with self.lock:
         self.save_polling_state()
         self.stop_polling()
-        self.remove_io()
-        del self.et
-        self.init_io = True
-        self.et = None
-        self.ip = None
+        # self.remove_io()
+        # del self.et
+        # self.init_io = True
+        # self.et = None
+        # self.ip = None
         super().delete_device()
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
