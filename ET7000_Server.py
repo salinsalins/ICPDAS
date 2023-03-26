@@ -44,10 +44,13 @@ class ET7000_Server(TangoServerPrototype):
         # self.io_async = False
         # self.lock = RLock()
         # with self.lock:
+        print('3', self in ET7000_Server.device_list)
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
+            print('=======')
             self.delete_device()
         # call init_device from super, which makes call to self.set_config()
+        print('4', self in ET7000_Server.device_list)
         super().init_device()
         # self.configure_tango_logging()
 
@@ -121,14 +124,16 @@ class ET7000_Server(TangoServerPrototype):
         # with self.lock:
         self.save_polling_state()
         self.stop_polling()
-        # self.remove_io()
-        # del self.et
-        # self.init_io = True
-        # self.et = None
-        # self.ip = None
+        self.remove_io()
+        del self.et
+        self.init_io = True
+        self.et = None
+        self.ip = None
         super().delete_device()
+        print('1', self in ET7000_Server.device_list)
         if self in ET7000_Server.device_list:
             ET7000_Server.device_list.remove(self)
+        print('2', self in ET7000_Server.device_list)
         tango.Database().delete_device_property(self.get_name(), 'polled_attr')
         msg = '%s Device has been deleted' % self.get_name()
         self.logger.info(msg)
@@ -293,6 +298,8 @@ class ET7000_Server(TangoServerPrototype):
         self.delete_device()
         self.init_device()
         self.add_io()
+        self.restore_polling()
+        self.init_po = False
         msg = '%s Reconnected' % self.get_name()
         self.logger.info(msg)
 
@@ -585,6 +592,6 @@ def post_init_callback():
 
 
 if __name__ == "__main__":
-    # ET7000_Server.run_server(post_init_callback=post_init_callback)
-    ET7000_Server.run_server(event_loop=looping, post_init_callback=post_init_callback)
+    ET7000_Server.run_server(post_init_callback=post_init_callback)
+    # ET7000_Server.run_server(event_loop=looping, post_init_callback=post_init_callback)
     # ET7000_Server.run_server()
