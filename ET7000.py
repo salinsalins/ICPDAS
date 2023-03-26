@@ -399,54 +399,6 @@ class ET7000:
         }
     }
 
-    @staticmethod
-    def ai_convert_function(r):
-        v_min = 0
-        v_max = 0xffff
-        c_min = 0
-        c_max = 0xffff
-        try:
-            v_min = ET7000.ranges[r]['min']
-            v_max = ET7000.ranges[r]['max']
-            c_min = ET7000.ranges[r]['min_code']
-            c_max = ET7000.ranges[r]['max_code']
-        except KeyboardInterrupt:
-            raise
-        except:
-            pass
-        if c_min < c_max:
-            k = float(v_max - v_min) / (c_max - c_min)
-            b = v_min - k * c_min
-            return lambda x: k * x + b
-        k_max = v_max / c_max
-        k_min = v_min / (0x10000 - c_min)
-        return lambda x: k_max * x if x < 0x8000 else k_min * (0x10000 - x)
-
-    @staticmethod
-    def ao_convert_function(r):
-        v_min = 0
-        v_max = 0xffff
-        c_min = 0
-        c_max = 0xffff
-        try:
-            v_min = ET7000.ranges[r]['min']
-            v_max = ET7000.ranges[r]['max']
-            c_min = ET7000.ranges[r]['min_code']
-            c_max = ET7000.ranges[r]['max_code']
-        except KeyboardInterrupt:
-            raise
-        except:
-            pass
-        # print(hex(r), v_min, v_max, c_min, c_max)
-        if c_min < c_max:
-            k = (c_max - c_min) / (v_max - v_min)
-            b = c_min - k * v_min
-            return lambda x: int(k * x + b)
-        k_max = c_max / v_max
-        k_min = (0xffff - c_min) / v_min
-        # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
-        return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
-
     def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=None, **kwargs):
         self.host = host
         self.port = port
@@ -527,6 +479,54 @@ class ET7000:
         # do
         self.do_n = self.do_read_n()
         self.logger.debug('ET-%s at %s has been created' % (self.type_str, host))
+
+    @staticmethod
+    def ai_convert_function(r):
+        v_min = 0
+        v_max = 0xffff
+        c_min = 0
+        c_max = 0xffff
+        try:
+            v_min = ET7000.ranges[r]['min']
+            v_max = ET7000.ranges[r]['max']
+            c_min = ET7000.ranges[r]['min_code']
+            c_max = ET7000.ranges[r]['max_code']
+        except KeyboardInterrupt:
+            raise
+        except:
+            pass
+        if c_min < c_max:
+            k = float(v_max - v_min) / (c_max - c_min)
+            b = v_min - k * c_min
+            return lambda x: k * x + b
+        k_max = v_max / c_max
+        k_min = v_min / (0x10000 - c_min)
+        return lambda x: k_max * x if x < 0x8000 else k_min * (0x10000 - x)
+
+    @staticmethod
+    def ao_convert_function(r):
+        v_min = 0
+        v_max = 0xffff
+        c_min = 0
+        c_max = 0xffff
+        try:
+            v_min = ET7000.ranges[r]['min']
+            v_max = ET7000.ranges[r]['max']
+            c_min = ET7000.ranges[r]['min_code']
+            c_max = ET7000.ranges[r]['max_code']
+        except KeyboardInterrupt:
+            raise
+        except:
+            pass
+        # print(hex(r), v_min, v_max, c_min, c_max)
+        if c_min < c_max:
+            k = (c_max - c_min) / (v_max - v_min)
+            b = c_min - k * v_min
+            return lambda x: int(k * x + b)
+        k_max = c_max / v_max
+        k_min = (0xffff - c_min) / v_min
+        # return lambda x: int((x >= 0) * k_max * x + (x < 0) * (0xffff - k_min * x))
+        return lambda x: int(k_max * x + 0.5) if (x >= 0) else int(0xffff - k_min * x + 0.5)
 
     def read_module_type(self):
         if not self.is_open:

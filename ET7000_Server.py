@@ -120,6 +120,7 @@ class ET7000_Server(TangoServerPrototype):
         self.save_polling_state()
         self.stop_polling()
         self.remove_io()
+        self.init_io = True
         try:
             self.et.client.close()
         except KeyboardInterrupt:
@@ -562,15 +563,16 @@ class ET7000_Server(TangoServerPrototype):
             return self.set_error_attribute_value(attr)
 
 
-# def looping():
-#     # ET7000_Server.LOGGER.debug('loop entry')
-#     for dev in ET7000_Server.device_list:
-#         if dev.init_io:
-#             dev.add_io()
-#         # if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
-#         #     dev.reconnect()
-#     time.sleep(1.0)
-#     # ET7000_Server.LOGGER.debug('loop exit')
+def looping():
+    # ET7000_Server.LOGGER.debug('loop entry')
+    post_init_callback()
+    # for dev in ET7000_Server.device_list:
+    #     if dev.init_io:
+    #         dev.add_io()
+    #     if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
+    #         dev.reconnect()
+    time.sleep(1.0)
+    # ET7000_Server.LOGGER.debug('loop exit')
 
 
 def post_init_callback():
