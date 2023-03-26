@@ -5,14 +5,19 @@ from math import sin
 
 from pyModbusTCP.client import ModbusClient
 
+from config_logger import config_logger
+from log_exception import log_exception
+
 NaN = float('nan')
 
 
 class ModifiedModbusClient(ModbusClient):
     def _send_mbus(self, arg):
         result = super()._send_mbus(arg)
-        # after sending request sleep for 5 ms (average time to get response from device is 20 ms)
-        # for thread scheduler has an opportunity to switch to another thread in multithread application
+        # after sending request sleep for 5 ms
+        # (average time to get response from device is 20 ms)
+        # for thread scheduler has an opportunity
+        # to switch to another thread in multithread application
         time.sleep(0.005)
         return result
 
@@ -399,14 +404,13 @@ class ET7000:
         }
     }
 
-    def __init__(self, host: str, port=502, timeout=0.5, logger=None, client=None, **kwargs):
+    def __init__(self, host: str, port=502, timeout=0.5, client=None, **kwargs):
         self.host = host
         self.port = port
         self.timeout = timeout
+        self.ao_correct_output = kwargs.pop('ao_correct_output', True)
         # LOGGER config
-        if logger is None:
-            logger = logging.getLogger(__name__)
-        self.logger = logger
+        self.logger = kwargs.pop('logger', config_logger())
         # defaults
         self.type = 0
         self.type_str = '0000'
@@ -424,6 +428,7 @@ class ET7000:
         self.ao_min = []
         self.ao_max = []
         self.ao_units = []
+        self.ao_last_written_values = []
         # default di
         self.di_n = 0
         # default do
@@ -435,7 +440,7 @@ class ET7000:
             self.client = client
         self.is_open = self.client.open()
         if not self.is_open:
-            self.logger.error('ET-7xxx device at %s is offline' % host)
+            self.logger.warning('ET-7xxx device at %s is offline' % host)
             return
         # read module type
         self.type = self.read_module_type()
@@ -473,12 +478,19 @@ class ET7000:
             self.ao_convert_write[i] = ET7000.ao_convert_function(r)  # !!! ao_convert for writing
             self.ao_quanta[i] = abs(self.ao_convert[i](1) - self.ao_convert[i](0))
         self.ao_last_written_values = [0.0] * self.ao_n
-        self.ao_correct_output = True
         # di
         self.di_n = self.di_read_n()
         # do
         self.do_n = self.do_read_n()
         self.logger.debug('ET-%s at %s has been created' % (self.type_str, host))
+
+    def __del__(self):
+        try:
+            self.client.close()
+        except KeyboardInterrupt:
+            raise
+        except:
+            log_exception(f'ET-{self.type_str} {self.host} client closing error')
 
     @staticmethod
     def ai_convert_function(r):
@@ -553,7 +565,7 @@ class ET7000:
 
     def ai_read_masks(self):
         if self.ai_n <= 0:
-            return None
+            return []
         coils = self.client.read_coils(595, self.ai_n)
         if coils and len(coils) == self.ai_n:
             return coils
@@ -561,7 +573,7 @@ class ET7000:
 
     def ai_read_ranges(self):
         if self.ai_n <= 0:
-            return None
+            return []
         regs = self.client.read_holding_registers(427, self.ai_n)
         if regs and len(regs) == self.ai_n:
             return regs
@@ -808,7 +820,7 @@ class ET7000:
             print('PET70xx not found at %s' % self.host)
             return False
         else:
-            print('PET%s at %s' % (self.type_str, self.host))
+            print('PET%s %s is connected' % (self.type_str, self.host))
             return True
 
 
@@ -867,6 +879,9 @@ class FakeET7000(ET7000):
             self.sin = 0.0
             if 'sin' in kwargs:
                 self.sin = kwargs['sin']
+
+        def __del__(self):
+            return
 
         def new_count(self):
             self.count += 1
