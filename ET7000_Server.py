@@ -44,13 +44,13 @@ class ET7000_Server(TangoServerPrototype):
         # self.io_async = False
         # self.lock = RLock()
         # with self.lock:
-        print('3', self in ET7000_Server.device_list)
-        if self in ET7000_Server.device_list:
-            ET7000_Server.device_list.remove(self)
-            print('=======')
+        print("1 ************")
+        if self.get_name() in ET7000_Server.device_list:
+            ET7000_Server.device_list.remove(self.get_name())
+            self.logger.warning("************")
             self.delete_device()
         # call init_device from super, which makes call to self.set_config()
-        print('4', self in ET7000_Server.device_list)
+        print("2 ************")
         super().init_device()
         # self.configure_tango_logging()
 
@@ -73,7 +73,8 @@ class ET7000_Server(TangoServerPrototype):
         ip = self.config.get('IP', DEFAULT_IP)
         # check if ip is in use
         for d in ET7000_Server.device_list:
-            if not d.emulate and d.ip == ip:
+            v = ET7000_Server.device_list[d]
+            if not v.emulate and v.ip == ip:
                 msg = '%s IP address %s is in use' % (self.get_name(), ip)
                 self.logger.error(msg)
                 self.set_state(DevState.FAULT)
@@ -98,7 +99,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.error_time = time.time()
                     return
             # add device to list
-            ET7000_Server.device_list.append(self)
+            ET7000_Server.device_list[self.get_name()] = self
             # check if device type is recognized
             if self.et and self.et.type != 0:
                 # device is recognized
@@ -121,19 +122,25 @@ class ET7000_Server(TangoServerPrototype):
             self.set_state(DevState.FAULT, msg)
 
     def delete_device(self):
+        self.logger.warning("************")
         # with self.lock:
         self.save_polling_state()
         self.stop_polling()
         self.remove_io()
+        self.logger.warning("************")
         del self.et
         self.init_io = True
         self.et = None
         self.ip = None
+        self.logger.warning("************")
         super().delete_device()
-        print('1', self in ET7000_Server.device_list)
-        if self in ET7000_Server.device_list:
-            ET7000_Server.device_list.remove(self)
-        print('2', self in ET7000_Server.device_list)
+        self.logger.warning("************")
+        print('1', ET7000_Server.device_list, self)
+        if self.get_name() in ET7000_Server.device_list:
+            ET7000_Server.device_list.remove(self.get_name())
+            self.logger.warning("************")
+            print('1', ET7000_Server.device_list, self)
+        self.logger.warning("************")
         tango.Database().delete_device_property(self.get_name(), 'polled_attr')
         msg = '%s Device has been deleted' % self.get_name()
         self.logger.info(msg)
@@ -583,12 +590,14 @@ def looping():
 def post_init_callback():
     # called once at server initiation
     for dev in ET7000_Server.device_list:
-        if dev.init_io:
-            dev.add_io()
+        v = ET7000_Server.device_list[dev]
+        if v.init_io:
+            v.add_io()
     for dev in ET7000_Server.device_list:
-        if dev.init_po:
-            dev.restore_polling()
-            dev.init_po = False
+        v = ET7000_Server.device_list[dev]
+        if v.init_po:
+            v.restore_polling()
+            v.init_po = False
 
 
 if __name__ == "__main__":
