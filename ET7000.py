@@ -1,6 +1,8 @@
 # Используемые библиотеки
+import sys
+if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
+
 import time
-import logging
 from math import sin
 
 from pyModbusTCP.client import ModbusClient
