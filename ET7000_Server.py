@@ -54,7 +54,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_config(self):
         super().set_config()
-        msg = f'{self.get_name()} ET7000_Server Initialization'
+        self.pre = f'{self.get_name()} ET7000'
+        msg = f'{self.pre} Server Initialization'
         self.logger.debug(msg)
         self.set_state(DevState.INIT, msg)
         self.init_io = True
@@ -80,6 +81,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.error_time = time.time()
                 return
         self.ip = ip
+        self.pre = f'{self.get_name()} ET7000 at {self.ip}'
         try:
             # create ICP DAS device
             if self.emulate:
@@ -96,6 +98,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.error_count += 1
                     self.error_time = time.time()
                     return
+            self.pre = f'{self.get_name()} PET-{self.et.type_str} at {self.ip}'
             # add device to list
             ET7000_Server.devices[self.get_name()] = self
             # check if device type is recognized
@@ -104,10 +107,11 @@ class ET7000_Server(TangoServerPrototype):
                 msg = '%s PET-%s at %s has been created' % (self.get_name(), self.et.type_str, ip)
                 self.set_state(DevState.RUNNING, msg)
                 self.logger.info(msg)
+                # if it is not first time init
                 if hasattr(self, 'deleted') and self.deleted:
                     self.add_io()
-                    self.restore_polling()
                     self.init_io = False
+                    self.restore_polling()
                     self.init_po = False
                     self.deleted = False
             else:
@@ -124,6 +128,7 @@ class ET7000_Server(TangoServerPrototype):
             msg = '%s init exception' % self.get_name()
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
+        self.pre = f'{self.get_name()} PET-{self.et.type_str} at {self.ip}'
 
     def delete_device(self):
         # with self.lock:
@@ -508,7 +513,17 @@ class ET7000_Server(TangoServerPrototype):
             except:
                 msg = '%s Exception adding DO %s' % (self.get_name(), attr_name)
                 log_exception(self.logger, msg)
-            self.set_state(DevState.RUNNING, 'Attributes creation finished')
+            # successful report
+            msg = f'PET-{self.et.type_str} at {self.ip} '
+            if self.et.ai_n > 0:
+                msg += f'{nai} analog inputs '
+            if self.et.ao_n > 0:
+                msg += f'{nao} analog outputs '
+            if self.et.di_n > 0:
+                msg += f'{ndi} digital inputs '
+            if self.et.do_n > 0:
+                msg += f'{ndo} digital outputs'
+            self.set_state(DevState.RUNNING, f'{msg} created')
         except KeyboardInterrupt:
             raise
         except:
