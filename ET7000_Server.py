@@ -17,14 +17,13 @@ from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
 from log_exception import log_exception
 
-NaN = float('nan')
 DEFAULT_IP = '192.168.1.122'
-DEFAULT_RECONNECT_TIMEOUT = 10000.0
+DEFAULT_RECONNECT_TIMEOUT = 5.0
 
 
 class ET7000_Server(TangoServerPrototype):
     init_io = True
-    server_version_value = '5.1'
+    server_version_value = '6.0'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -67,7 +66,7 @@ class ET7000_Server(TangoServerPrototype):
         self.emulate = self.config.get('emulate', False)
         self.reconnect_timeout = self.config.get('reconnect_timeout', DEFAULT_RECONNECT_TIMEOUT)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
-        self.io_async = self.config.get('io_async', False)
+        # self.io_async = self.config.get('io_async', False)
         # get ip from property
         ip = self.config.get('IP', DEFAULT_IP)
         # check if ip is in use
