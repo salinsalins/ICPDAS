@@ -23,6 +23,7 @@ DEFAULT_RECONNECT_TIMEOUT = 10000.0
 
 
 class ET7000_Server(TangoServerPrototype):
+    init_io = True
     server_version_value = '5.1'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
@@ -44,11 +45,11 @@ class ET7000_Server(TangoServerPrototype):
         # self.io_async = False
         # self.lock = RLock()
         # with self.lock:
-        if self.get_name() in ET7000_Server.device_list:
-            ET7000_Server.device_list.pop(self.get_name(), None)
+        if self.get_name() in ET7000_Server.devices:
+            ET7000_Server.devices.pop(self.get_name(), None)
             self.delete_device()
-        # call init_device from super, which makes call to self.set_config()
         super().init_device()
+        # self.set_config()
         # self.configure_tango_logging()
 
     def set_config(self):
@@ -69,8 +70,8 @@ class ET7000_Server(TangoServerPrototype):
         # get ip from property
         ip = self.config.get('IP', DEFAULT_IP)
         # check if ip is in use
-        for d in ET7000_Server.device_list:
-            v = ET7000_Server.device_list[d]
+        for d in ET7000_Server.devices:
+            v = ET7000_Server.devices[d]
             if not v.emulate and v.ip == ip:
                 msg = '%s IP address %s is in use' % (self.get_name(), ip)
                 self.logger.error(msg)
@@ -96,7 +97,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.error_time = time.time()
                     return
             # add device to list
-            ET7000_Server.device_list[self.get_name()] = self
+            ET7000_Server.devices[self.get_name()] = self
             # check if device type is recognized
             if self.et and self.et.type != 0:
                 # device is recognized
@@ -134,7 +135,7 @@ class ET7000_Server(TangoServerPrototype):
         self.et = None
         self.ip = None
         super().delete_device()
-        ET7000_Server.device_list.pop(self.get_name(), None)
+        ET7000_Server.devices.pop(self.get_name(), None)
         tango.Database().delete_device_property(self.get_name(), 'polled_attr')
         self.deleted = True
         msg = '%s Device has been deleted' % self.get_name()
@@ -573,7 +574,7 @@ class ET7000_Server(TangoServerPrototype):
 def looping():
     # ET7000_Server.LOGGER.debug('loop entry')
     post_init_callback()
-    # for dev in ET7000_Server.device_list:
+    # for dev in ET7000_Server.devices:
     #     if dev.init_io:
     #         dev.add_io()
     #     if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
@@ -584,12 +585,12 @@ def looping():
 
 def post_init_callback():
     # called once at server initiation
-    for dev in ET7000_Server.device_list:
-        v = ET7000_Server.device_list[dev]
+    for dev in ET7000_Server.devices:
+        v = ET7000_Server.devices[dev]
         if v.init_io:
             v.add_io()
-    for dev in ET7000_Server.device_list:
-        v = ET7000_Server.device_list[dev]
+    for dev in ET7000_Server.devices:
+        v = ET7000_Server.devices[dev]
         if v.init_po:
             v.restore_polling()
             v.init_po = False
