@@ -44,7 +44,7 @@ class ET7000_Server(TangoServerPrototype):
         # self.delete_device()
         super().init_device()
         # self.set_config()
-        # self.configure_tango_logging()
+        self.configure_tango_logging()
 
     def set_config(self):
         super().set_config()
@@ -464,19 +464,6 @@ class ET7000_Server(TangoServerPrototype):
                         v = self.et.do_read(k)
                         attr.get_attribute(self).set_write_value(v)
                         ndo += 1
-                    # # all_do
-                    # attr = tango.server.attribute(name='all_do', dtype=bool,
-                    #                               dformat=tango.AttrDataFormat.SPECTRUM,
-                    #                               access=tango.AttrWriteType.READ,
-                    #                               max_dim_x=self.et.do_n, max_dim_y=0,
-                    #                               fget=self.read_all,
-                    #                               label=attr_name,
-                    #                               doc='All digital outputs. READ ONLY',
-                    #                               unit='',
-                    #                               display_unit=1.0,
-                    #                               format='%s')
-                    # self.add_attribute(attr)
-                    # self.created_attributes[attr_name] = attr
                     msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
                     self.logger.info(msg)
             except KeyboardInterrupt:
