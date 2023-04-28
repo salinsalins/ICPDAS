@@ -118,7 +118,7 @@ class ET7000_Server(TangoServerPrototype):
     def delete_device(self):
         # with self.lock:
         super().delete_device()
-        del self.et
+        self.et.__del__()
         self.et = None
         self.ip = None
         self.deleted = True
