@@ -53,7 +53,7 @@ class ET7000_Server(TangoServerPrototype):
         self.logger.debug(msg)
         self.set_state(DevState.INIT, msg)
         self.init_io = True
-        self.init_po = False
+        self.init_po = True
         self.et = None
         self.ip = None
         # parameters from config
@@ -280,14 +280,13 @@ class ET7000_Server(TangoServerPrototype):
         self.init_device()
         self.add_io()
         self.restore_polling()
-        self.init_po = False
-        msg = '%s Reconnected' % self.get_name()
+        msg = '%s Reconnected' % self.name
         self.logger.info(msg)
 
     # ******** additional helper functions ***********
     def add_io(self):
         # with self.lock:
-        if not (hasattr(self, 'init_io') and self.init_io):
+        if not hasattr(self, 'init_io') or not self.init_io:
             return
         nai = 0
         nao = 0
@@ -295,7 +294,7 @@ class ET7000_Server(TangoServerPrototype):
         ndo = 0
         try:
             if self.et is None or self.et.type == 0:
-                msg = '%s No IO attributes added for unknown device' % self.get_name()
+                msg = f'{self.pre} No attributes added for unknown device'
                 self.logger.warning(msg)
                 self.set_state(DevState.FAULT, msg)
                 self.init_io = False
@@ -329,28 +328,17 @@ class ET7000_Server(TangoServerPrototype):
                             self.created_attributes[attr_name] = attr
                             nai += 1
                         else:
-                            self.logger.info('%s is disabled', attr_name)
-                    # # all_ai
-                    # attr = tango.server.attribute(name='all_ai', dtype=float,
-                    #                               dformat=tango.AttrDataFormat.SPECTRUM,
-                    #                               access=tango.AttrWriteType.READ,
-                    #                               max_dim_x=self.et.ai_n, max_dim_y=0,
-                    #                               fget=self.read_all,
-                    #                               label=attr_name,
-                    #                               doc='All analog inputs',
-                    #                               unit='',
-                    #                               display_unit=1.0,
-                    #                               format='%f')
-                    # self.add_attribute(attr)
-                    # self.created_attributes[attr_name] = attr
-                    msg = '%s %d of %d analog inputs initialized' % (self.get_name(), nai, self.et.ai_n)
-                    self.logger.info(msg)
+                            self.log_debug('Disabled attribute %s skipped', attr_name)
             except KeyboardInterrupt:
                 raise
             except:
-                msg = '%s Exception adding AI %s' % (self.get_name(), attr_name)
-                self.log_exception(self.logger, msg)
-        # ao
+                self.log_exception(self.logger, 'Exception adding %s', attr_name)
+            msg = ' %d of %d analog inputs initialized' % (nai, self.et.ai_n)
+            if nai != self.et.ai_n:
+                self.log_info(msg)
+            else:
+                self.log_debug(msg)
+            # ao
             nao = 0
             try:
                 if self.et.ao_n > 0:
@@ -379,27 +367,16 @@ class ET7000_Server(TangoServerPrototype):
                             nao += 1
                         else:
                             self.logger.debug('%s is disabled', attr_name)
-                    # # all_ao
-                    # attr = tango.server.attribute(name='all_ao', dtype=float,
-                    #                               dformat=tango.AttrDataFormat.SPECTRUM,
-                    #                               access=tango.AttrWriteType.READ,
-                    #                               max_dim_x=self.et.ao_n, max_dim_y=0,
-                    #                               fget=self.read_all,
-                    #                               label=attr_name,
-                    #                               doc='All analog outputs. ONLY FOR READ',
-                    #                               unit='',
-                    #                               display_unit=1.0,
-                    #                               format='%f')
-                    # self.add_attribute(attr)
-                    # self.created_attributes[attr_name] = attr
-                    msg = '%s %d of %d analog outputs initialized' % (self.get_name(), nao, self.et.ao_n)
-                    self.logger.info(msg)
             except KeyboardInterrupt:
                 raise
             except:
-                msg = '%s Exception adding AO %s' % (self.get_name(), attr_name)
-                log_exception(self.logger, msg)
-        # di
+                self.log_exception(self.logger, 'Exception adding %s', attr_name)
+            msg = ' %d of %d analog outputs initialized' % (nao, self.et.ao_n)
+            if nao != self.et.ao_n:
+                self.log_info(msg)
+            else:
+                self.log_debug(msg)
+            # di
             ndi = 0
             try:
                 if self.et.di_n > 0:
@@ -420,27 +397,16 @@ class ET7000_Server(TangoServerPrototype):
                         self.add_attribute(attr)
                         self.created_attributes[attr_name] = attr
                         ndi += 1
-                    # # all_di
-                    # attr = tango.server.attribute(name='all_di', dtype=bool,
-                    #                               dformat=tango.AttrDataFormat.SPECTRUM,
-                    #                               access=tango.AttrWriteType.READ,
-                    #                               max_dim_x=self.et.di_n, max_dim_y=0,
-                    #                               fget=self.read_all,
-                    #                               label=attr_name,
-                    #                               doc='All digital inputs. READ ONLY',
-                    #                               unit='',
-                    #                               display_unit=1.0,
-                    #                               format='%s')
-                    # self.add_attribute(attr)
-                    # self.created_attributes[attr_name] = attr
-                    msg = '%s %d digital inputs initialized' % (self.get_name(), ndi)
-                    self.logger.info(msg)
             except KeyboardInterrupt:
                 raise
             except:
-                msg = '%s Exception adding DI %s' % (self.get_name(), attr_name)
-                log_exception(self.logger, msg)
-        # do
+                self.log_exception(self.logger, 'Exception adding %s', attr_name)
+            msg = ' %d of %d digital inputs initialized' % (ndi, self.et.di_n)
+            if ndi != self.et.di_n:
+                self.log_info(msg)
+            else:
+                self.log_debug(msg)
+            # do
             ndo = 0
             try:
                 if self.et.do_n > 0:
@@ -464,13 +430,15 @@ class ET7000_Server(TangoServerPrototype):
                         v = self.et.do_read(k)
                         attr.get_attribute(self).set_write_value(v)
                         ndo += 1
-                    msg = '%s %d digital outputs initialized' % (self.get_name(), ndo)
-                    self.logger.info(msg)
             except KeyboardInterrupt:
                 raise
             except:
-                msg = '%s Exception adding DO %s' % (self.get_name(), attr_name)
-                log_exception(self.logger, msg)
+                self.log_exception(self.logger, 'Exception adding %s', attr_name)
+            msg = ' %d of %d digital outputs initialized' % (ndo, self.et.do_n)
+            if ndo != self.et.do_n:
+                self.log_info(msg)
+            else:
+                self.log_debug(msg)
             # successful report
             msg = f'PET-{self.et.type_str} at {self.ip} '
             if self.et.ai_n > 0:
@@ -482,12 +450,13 @@ class ET7000_Server(TangoServerPrototype):
             if self.et.do_n > 0:
                 msg += f'{ndo} digital outputs'
             self.set_state(DevState.RUNNING, f'{msg} created')
+            self.log_info(f'{msg} created')
         except KeyboardInterrupt:
             raise
         except:
-            msg = '%s Error adding IO attributes' % self.get_name()
-            log_exception(self.logger, msg)
-            self.set_state(DevState.FAULT, msg)
+            msg = 'Error adding IO attributes'
+            self.log_exception(msg)
+            self.set_fault(msg)
             return
         self.init_io = False
         return nai + nao + ndi + ndo
@@ -498,7 +467,7 @@ class ET7000_Server(TangoServerPrototype):
         for attr_name in self.created_attributes:
             try:
                 self.remove_attribute(attr_name)
-                self.logger.debug('%s attribute %s removed' % (self.get_name(), attr_name))
+                self.logger.debug('%s attribute %s removed' % (self.name, attr_name))
                 removed.append(attr_name)
             except KeyboardInterrupt:
                 raise
@@ -509,7 +478,6 @@ class ET7000_Server(TangoServerPrototype):
         self.created_attributes = {}
         self.set_state(DevState.UNKNOWN)
         self.init_io = True
-        self.init_po = False
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
@@ -555,12 +523,10 @@ def post_init_callback():
     # called once at server initiation
     for dev in ET7000_Server.devices:
         v = ET7000_Server.devices[dev]
-        if v.init_io:
-            v.add_io()
+        v.add_io()
     for dev in ET7000_Server.devices:
         v = ET7000_Server.devices[dev]
-        if v.init_po:
-            v.restore_polling()
+        v.restore_polling()
 
 
 if __name__ == "__main__":
