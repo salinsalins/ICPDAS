@@ -50,7 +50,7 @@ class ET7000_Server(TangoServerPrototype):
         super().set_config()
         self.pre = f'{self.get_name()} ET7000'
         msg = f'{self.pre} Server Initialization'
-        self.logger.debug(msg)
+        self.log_ger.debug(msg)
         self.set_state(DevState.INIT, msg)
         self.init_io = True
         self.init_po = True
@@ -82,8 +82,8 @@ class ET7000_Server(TangoServerPrototype):
             t0 = time.time()
             while self.et.read_module_type() == 0:
                 if time.time() - t0 > 5.0:
-                    msg = f'{self.pre} Device is not ready'
-                    self.logger.error(msg)
+                    msg = 'Device is not ready'
+                    self.log_error(msg)
                     self.set_state(DevState.FAULT, msg)
                     return
             self.pre = f'{self.get_name()} PET-{self.et.type_str} at {self.ip}'
@@ -102,7 +102,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.deleted = False
             else:
                 # unknown device
-                msg = f'{self.pre} PET device creation error'
+                msg = 'PET creation error'
                 self.set_state(DevState.FAULT, msg)
                 self.logger.error(msg)
         except KeyboardInterrupt:
@@ -110,10 +110,11 @@ class ET7000_Server(TangoServerPrototype):
         except:
             self.et = None
             self.ip = None
-            msg = f'{self.pre} init exception' % self.get_name()
+            msg = 'init_device exception'
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
-        self.pre = f'{self.get_name()} PET-{self.et.type_str} at {self.ip}'
+        self.pre = f'{self.get_name()} ET{self.et.type_str} at {self.ip}'
+        self.set_state(DevState.RUNNING, f'{self.pre} Initialization finished')
 
     def delete_device(self):
         # with self.lock:
