@@ -50,7 +50,7 @@ class ET7000_Server(TangoServerPrototype):
         super().set_config()
         self.pre = f'{self.get_name()} ET7000'
         msg = f'{self.pre} Server Initialization'
-        self.log_ger.debug(msg)
+        self.log_debug(msg)
         self.set_state(DevState.INIT, msg)
         self.init_io = True
         self.init_po = True
@@ -117,16 +117,14 @@ class ET7000_Server(TangoServerPrototype):
         self.set_state(DevState.RUNNING, f'{self.pre} Initialization finished')
 
     def delete_device(self):
-        # with self.lock:
-        super().delete_device()
         self.et.__del__()
         self.et = None
         self.ip = None
         self.deleted = True
-        # ET7000_Server.devices.pop(self.get_name(), None)
-        # tango.Database().delete_device_property(self.get_name(), 'polled_attr')
-        msg = f'{self.pre} Device has been deleted'
-        self.logger.info(msg)
+        msg = 'Device has been deleted'
+        self.log_info(msg)
+        self.set_state(DevState.DISABLE, msg)
+        super().delete_device()
 
     # ************* Attribute R/W routines *****************
     def read_device_type(self):
