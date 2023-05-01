@@ -23,7 +23,7 @@ DEFAULT_RECONNECT_TIMEOUT = 5.0
 
 class ET7000_Server(TangoServerPrototype):
     init_io = True
-    server_version_value = '6.0'
+    server_version_value = '6.2'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -49,7 +49,7 @@ class ET7000_Server(TangoServerPrototype):
     def set_config(self):
         super().set_config()
         self.pre = f'{self.get_name()} ET7000'
-        msg = f'{self.pre} Server Initialization'
+        msg = 'Server Initialization'
         self.log_debug(msg)
         self.set_state(DevState.INIT, msg)
         self.init_io = True
@@ -92,9 +92,9 @@ class ET7000_Server(TangoServerPrototype):
             # check if device type is recognized
             if self.et and self.et.type != 0:
                 # device is recognized
-                msg = f'{self.pre} has been created'
+                msg = 'has been created'
                 self.set_state(DevState.RUNNING, msg)
-                self.logger.info(msg)
+                self.log_info(msg)
                 # if it is not first time init
                 if hasattr(self, 'deleted') and self.deleted:
                     self.add_io()
@@ -104,7 +104,7 @@ class ET7000_Server(TangoServerPrototype):
                 # unknown device
                 msg = 'PET creation error'
                 self.set_state(DevState.FAULT, msg)
-                self.logger.error(msg)
+                self.log_error(msg)
         except KeyboardInterrupt:
             raise
         except:
@@ -114,7 +114,7 @@ class ET7000_Server(TangoServerPrototype):
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
         self.pre = f'{self.get_name()} ET{self.et.type_str} at {self.ip}'
-        self.set_state(DevState.RUNNING, f'{self.pre} Initialization finished')
+        self.set_state(DevState.RUNNING, 'Initialization finished')
 
     def delete_device(self):
         self.et.__del__()
@@ -293,8 +293,8 @@ class ET7000_Server(TangoServerPrototype):
         ndo = 0
         try:
             if self.et is None or self.et.type == 0:
-                msg = f'{self.pre} No attributes added for unknown device'
-                self.logger.warning(msg)
+                msg = 'No attributes added for unknown device'
+                self.log_warning(msg)
                 self.set_state(DevState.FAULT, msg)
                 self.init_io = False
                 self.init_po = False
