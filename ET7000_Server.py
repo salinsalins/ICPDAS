@@ -22,8 +22,8 @@ DEFAULT_RECONNECT_TIMEOUT = 5.0
 
 
 class ET7000_Server(TangoServerPrototype):
-    init_io = True
-    server_version_value = '6.2'
+    init_da = True
+    server_version_value = '6.3'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -52,7 +52,7 @@ class ET7000_Server(TangoServerPrototype):
         msg = 'Server Initialization'
         self.log_debug(msg)
         self.set_state(DevState.INIT, msg)
-        self.init_io = True
+        self.init_da = True
         self.init_po = True
         self.et = None
         self.ip = None
@@ -97,7 +97,7 @@ class ET7000_Server(TangoServerPrototype):
                 self.log_info(msg)
                 # if it is not first time init
                 if hasattr(self, 'deleted') and self.deleted:
-                    self.add_io()
+                    self.initialize_dynamic_attributes()
                     self.restore_polling()
                     self.deleted = False
             else:
@@ -285,7 +285,7 @@ class ET7000_Server(TangoServerPrototype):
     # ******** additional helper functions ***********
     def initialize_dynamic_attributes(self):
         # with self.lock:
-        if not hasattr(self, 'init_io') or not self.init_io:
+        if not hasattr(self, 'init_da') or not self.init_da:
             return
         nai = 0
         nao = 0
@@ -296,7 +296,7 @@ class ET7000_Server(TangoServerPrototype):
                 msg = 'No attributes added for unknown device'
                 self.log_warning(msg)
                 self.set_state(DevState.FAULT, msg)
-                self.init_io = False
+                self.init_da = False
                 self.init_po = False
                 return
             self.set_state(DevState.INIT, 'Attributes creation started')
@@ -457,26 +457,25 @@ class ET7000_Server(TangoServerPrototype):
             self.log_exception(msg)
             self.set_fault(msg)
             return
-        self.init_io = False
+        self.init_da = False
         return nai + nao + ndi + ndo
 
     def remove_dynamic_attributes(self):
-        # with self.lock:
-        removed = []
+        # removed = []
         for attr_name in self.dynamic_attributes:
             try:
                 self.remove_attribute(attr_name)
                 self.log_debug('attribute %s removed', attr_name)
-                removed.append(attr_name)
             except KeyboardInterrupt:
                 raise
             except:
                 log_exception(self.logger, '%s Error deleting attribute' % self.get_name())
+            # removed.append(attr_name)
         # for attr_name in removed:
         #     self.dynamic_attributes.pop(attr_name, None)
         self.dynamic_attributes = {}
         self.set_state(DevState.UNKNOWN)
-        self.init_io = True
+        self.init_da = True
 
     def is_connected(self):
         if self.et is None or self.et.type == 0:
@@ -510,7 +509,7 @@ def looping():
     # ET7000_Server.LOGGER.debug('loop entry')
     post_init_callback()
     # for dev in ET7000_Server.devices:
-    #     if dev.init_io:
+    #     if dev.init_da:
     #         dev.add_io()
     #     if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
     #         dev.reconnect()
