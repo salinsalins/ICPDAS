@@ -466,7 +466,7 @@ class ET7000_Server(TangoServerPrototype):
         for attr_name in self.dynamic_attributes:
             try:
                 self.remove_attribute(attr_name)
-                self.logger.debug('%s attribute %s removed' % (self.name, attr_name))
+                self.log_debug('attribute %s removed', attr_name)
                 removed.append(attr_name)
             except KeyboardInterrupt:
                 raise
