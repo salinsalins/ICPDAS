@@ -277,7 +277,7 @@ class ET7000_Server(TangoServerPrototype):
     def reconnect(self):
         self.delete_device()
         self.init_device()
-        self.add_io()
+        self.initialize_dynamic_attributes()
         self.restore_polling()
         msg = '%s Reconnected' % self.name
         self.logger.info(msg)
@@ -510,7 +510,7 @@ def looping():
     post_init_callback()
     # for dev in ET7000_Server.devices:
     #     if dev.init_da:
-    #         dev.add_io()
+    #         dev.initialize_dynamic_attributes()
     #     if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
     #         dev.reconnect()
     time.sleep(1.0)
