@@ -283,7 +283,7 @@ class ET7000_Server(TangoServerPrototype):
         self.logger.info(msg)
 
     # ******** additional helper functions ***********
-    def add_io(self):
+    def initialize_dynamic_attributes(self):
         # with self.lock:
         if not hasattr(self, 'init_io') or not self.init_io:
             return
@@ -324,19 +324,19 @@ class ET7000_Server(TangoServerPrototype):
                                                           max_value=self.et.ai_max[k])
                             # add attr to device
                             self.add_attribute(attr)
-                            self.created_attributes[attr_name] = attr
+                            self.dynamic_attributes[attr_name] = attr
                             nai += 1
                         else:
                             self.log_debug('Disabled attribute %s skipped', attr_name)
+                    msg = ' %d of %d analog inputs initialized' % (nai, self.et.ai_n)
+                    if nai != self.et.ai_n:
+                        self.log_info(msg)
+                    else:
+                        self.log_debug(msg)
             except KeyboardInterrupt:
                 raise
             except:
                 self.log_exception(self.logger, 'Exception adding %s', attr_name)
-            msg = ' %d of %d analog inputs initialized' % (nai, self.et.ai_n)
-            if nai != self.et.ai_n:
-                self.log_info(msg)
-            else:
-                self.log_debug(msg)
             # ao
             nao = 0
             try:
@@ -360,21 +360,21 @@ class ET7000_Server(TangoServerPrototype):
                                                           min_value=self.et.ao_min[k],
                                                           max_value=self.et.ao_max[k])
                             self.add_attribute(attr)
-                            self.created_attributes[attr_name] = attr
+                            self.dynamic_attributes[attr_name] = attr
                             v = self.et.ao_read(k)
                             attr.get_attribute(self).set_write_value(v)
                             nao += 1
                         else:
                             self.logger.debug('%s is disabled', attr_name)
+                    msg = ' %d of %d analog outputs initialized' % (nao, self.et.ao_n)
+                    if nao != self.et.ao_n:
+                        self.log_info(msg)
+                    else:
+                        self.log_debug(msg)
             except KeyboardInterrupt:
                 raise
             except:
                 self.log_exception(self.logger, 'Exception adding %s', attr_name)
-            msg = ' %d of %d analog outputs initialized' % (nao, self.et.ao_n)
-            if nao != self.et.ao_n:
-                self.log_info(msg)
-            else:
-                self.log_debug(msg)
             # di
             ndi = 0
             try:
@@ -394,17 +394,17 @@ class ET7000_Server(TangoServerPrototype):
                                                       display_unit=1.0,
                                                       format='')
                         self.add_attribute(attr)
-                        self.created_attributes[attr_name] = attr
+                        self.dynamic_attributes[attr_name] = attr
                         ndi += 1
+                    msg = ' %d of %d digital inputs initialized' % (ndi, self.et.di_n)
+                    if ndi != self.et.di_n:
+                        self.log_info(msg)
+                    else:
+                        self.log_debug(msg)
             except KeyboardInterrupt:
                 raise
             except:
                 self.log_exception(self.logger, 'Exception adding %s', attr_name)
-            msg = ' %d of %d digital inputs initialized' % (ndi, self.et.di_n)
-            if ndi != self.et.di_n:
-                self.log_info(msg)
-            else:
-                self.log_debug(msg)
             # do
             ndo = 0
             try:
@@ -425,21 +425,21 @@ class ET7000_Server(TangoServerPrototype):
                                                       display_unit=1.0,
                                                       format='')
                         self.add_attribute(attr)
-                        self.created_attributes[attr_name] = attr
+                        self.dynamic_attributes[attr_name] = attr
                         v = self.et.do_read(k)
                         attr.get_attribute(self).set_write_value(v)
                         ndo += 1
+                    msg = ' %d of %d digital outputs initialized' % (ndo, self.et.do_n)
+                    if ndo != self.et.do_n:
+                        self.log_info(msg)
+                    else:
+                        self.log_debug(msg)
             except KeyboardInterrupt:
                 raise
             except:
                 self.log_exception(self.logger, 'Exception adding %s', attr_name)
-            msg = ' %d of %d digital outputs initialized' % (ndo, self.et.do_n)
-            if ndo != self.et.do_n:
-                self.log_info(msg)
-            else:
-                self.log_debug(msg)
             # successful report
-            msg = f'PET-{self.et.type_str} at {self.ip} '
+            msg = ''
             if self.et.ai_n > 0:
                 msg += f'{nai} analog inputs '
             if self.et.ao_n > 0:
@@ -460,10 +460,10 @@ class ET7000_Server(TangoServerPrototype):
         self.init_io = False
         return nai + nao + ndi + ndo
 
-    def remove_io(self):
+    def remove_dynamic_attributes(self):
         # with self.lock:
         removed = []
-        for attr_name in self.created_attributes:
+        for attr_name in self.dynamic_attributes:
             try:
                 self.remove_attribute(attr_name)
                 self.logger.debug('%s attribute %s removed' % (self.name, attr_name))
@@ -473,8 +473,8 @@ class ET7000_Server(TangoServerPrototype):
             except:
                 log_exception(self.logger, '%s Error deleting attribute' % self.get_name())
         # for attr_name in removed:
-        #     self.created_attributes.pop(attr_name, None)
-        self.created_attributes = {}
+        #     self.dynamic_attributes.pop(attr_name, None)
+        self.dynamic_attributes = {}
         self.set_state(DevState.UNKNOWN)
         self.init_io = True
 
@@ -522,7 +522,7 @@ def post_init_callback():
     # called once at server initiation
     for dev in ET7000_Server.devices:
         v = ET7000_Server.devices[dev]
-        v.add_io()
+        v.initialize_dynamic_attributes()
     for dev in ET7000_Server.devices:
         v = ET7000_Server.devices[dev]
         v.restore_polling()
