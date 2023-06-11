@@ -140,8 +140,7 @@ class ET7000_Server(TangoServerPrototype):
         # with self.lock:
         attr_name = attr.get_name()
         if not self.is_connected():
-            msg = '%s %s Waiting for reconnect' % (self.get_name(), attr_name)
-            self.logger.debug(msg)
+            self.log_debug('Waiting for reconnect')
             return self.set_error_attribute_value(attr)
         ad = attr_name[-2:]
         if ad == 'ai':
@@ -153,8 +152,8 @@ class ET7000_Server(TangoServerPrototype):
         elif ad == 'ao':
             val = self.et.ao_read()
         else:
-            msg = "%s Read for unknown attribute %s" % (self.get_name(), attr_name)
-            self.logger.error(msg)
+            msg = "Read for unknown attribute %s" % attr_name
+            self.log_error(msg)
             return self.set_error_attribute_value(attr)
         if val is not None:
             attr.set_value(val)
