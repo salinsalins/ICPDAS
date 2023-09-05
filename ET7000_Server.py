@@ -100,6 +100,8 @@ class ET7000_Server(TangoServerPrototype):
                     self.initialize_dynamic_attributes()
                     self.restore_polling()
                     self.deleted = False
+                self.pre = f'{self.get_name()} ET{self.et.type_str} at {self.ip}'
+                self.set_state(DevState.RUNNING, 'Initialization finished')
             else:
                 # unknown device
                 msg = 'PET creation error'
@@ -113,8 +115,6 @@ class ET7000_Server(TangoServerPrototype):
             msg = 'init_device exception'
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
-        self.pre = f'{self.get_name()} ET{self.et.type_str} at {self.ip}'
-        self.set_state(DevState.RUNNING, 'Initialization finished')
 
     def delete_device(self):
         self.et.__del__()
