@@ -361,7 +361,7 @@ class ET7000_Server(TangoServerPrototype):
                             self.add_attribute(attr)
                             self.dynamic_attributes[attr_name] = attr
                             v = self.et.ao_read(k)
-                            # attr.get_attribute(self).set_write_value(v)
+                            attr.get_attribute(self).set_write_value(v)
                             nao += 1
                         else:
                             self.logger.debug('%s is disabled', attr_name)
@@ -426,7 +426,7 @@ class ET7000_Server(TangoServerPrototype):
                         self.add_attribute(attr)
                         self.dynamic_attributes[attr_name] = attr
                         v = self.et.do_read(k)
-                        # attr.get_attribute(self).set_write_value(v)
+                        attr.get_attribute(self).set_write_value(v)
                         ndo += 1
                     msg = ' %d of %d digital outputs initialized' % (ndo, self.et.do_n)
                     if ndo != self.et.do_n:
