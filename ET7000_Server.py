@@ -72,7 +72,7 @@ class ET7000_Server(TangoServerPrototype):
         #         self.set_state(DevState.FAULT)
         #         return
         # self.ip = ip
-        self.pre = f'{self.get_name()} ET7000 at {self.ip}'
+        self.pre = f'{self.get_name()} ET7*** at {self.ip}'
         try:
             # create ICP DAS device
             if self.emulate:
