@@ -60,7 +60,9 @@ class ET7000_Server(TangoServerPrototype):
         self.emulate = self.config.get('emulate', False)
         self.reconnect_timeout = self.config.get('reconnect_timeout', DEFAULT_RECONNECT_TIMEOUT)
         self.show_disabled_channels = self.config.get('show_disabled_channels', False)
-        self.ip = self.config.get('IP', DEFAULT_IP)
+        self.ip = self.config.get('ip', None)
+        if self.ip is None:
+            self.ip = self.config.get('IP', DEFAULT_IP)
         # check if ip is in use
         # for d in ET7000_Server.devices:
         #     v = ET7000_Server.devices[d]
