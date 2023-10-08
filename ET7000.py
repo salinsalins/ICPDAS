@@ -945,7 +945,7 @@ class FakeET7000(ET7000):
     def __init__(self, host, port=502, timeout=0.15, logger=None, **kwargs):
         client = FakeET7000._client(**kwargs)
         super().__init__(host, port=port, timeout=timeout, logger=logger, client=client)
-        self.type_str = 'Emulated ' + self.type_str
+        self.type_str = '-Emulated-' + self.type_str[:4]
         self.logger.debug('%s at %s has been created' % (self.type_str, host))
 
     def ai_read(self, channel=None):

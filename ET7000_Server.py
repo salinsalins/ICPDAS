@@ -48,7 +48,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_config(self):
         super().set_config()
-        self.pre = f'{self.get_name()} ET7000'
+        self.pre = f'{self.get_name()} ET7XXX'
         msg = 'Server Initialization'
         self.log_debug(msg)
         self.set_state(DevState.INIT, msg)
@@ -72,7 +72,7 @@ class ET7000_Server(TangoServerPrototype):
         #         self.set_state(DevState.FAULT)
         #         return
         # self.ip = ip
-        self.pre = f'{self.get_name()} ET7*** at {self.ip}'
+        self.pre = f'{self.get_name()} ET7XXX at {self.ip}'
         try:
             # create ICP DAS device
             if self.emulate:
@@ -88,7 +88,9 @@ class ET7000_Server(TangoServerPrototype):
                     self.log_error(msg)
                     self.set_state(DevState.FAULT, msg)
                     return
-            self.pre = f'{self.get_name()} PET-{self.et.type_str} at {self.ip}'
+            self.pre = f'{self.get_name()} ET{self.et.type_str}'
+            if not self.emulate:
+                self.pre = f'{self.pre} at {self.ip}'
             # add device to list
             ET7000_Server.devices[self.get_name()] = self
             # check if device type is recognized
@@ -102,7 +104,6 @@ class ET7000_Server(TangoServerPrototype):
                     self.initialize_dynamic_attributes()
                     self.restore_polling()
                     self.deleted = False
-                self.pre = f'{self.get_name()} ET{self.et.type_str} at {self.ip}'
                 self.set_state(DevState.RUNNING, 'Initialization finished')
             else:
                 # unknown device
@@ -119,6 +120,7 @@ class ET7000_Server(TangoServerPrototype):
             self.set_state(DevState.FAULT, msg)
 
     def delete_device(self):
+        super().delete_device()
         self.et.__del__()
         self.et = None
         self.ip = None
@@ -126,7 +128,6 @@ class ET7000_Server(TangoServerPrototype):
         msg = 'Device has been deleted'
         self.log_info(msg)
         self.set_state(DevState.DISABLE, msg)
-        super().delete_device()
 
     # ************* Attribute R/W routines *****************
     def read_device_type(self):
