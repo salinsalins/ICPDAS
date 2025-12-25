@@ -3,7 +3,8 @@
 """
 ICP DAS ET7000 tango device server"""
 # noinspection PyTrailingSemicolon
-import sys; sys.path.append('../TangoUtils')
+import os, sys
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
 import math
@@ -19,11 +20,12 @@ from log_exception import log_exception
 
 DEFAULT_IP = '192.168.1.122'
 DEFAULT_RECONNECT_TIMEOUT = 5.0
+LOOP_TIMEOUT = 10.0
 
 
 class ET7000_Server(TangoServerPrototype):
     init_da = True
-    server_version_value = '6.4'
+    server_version_value = '7.0'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -87,6 +89,7 @@ class ET7000_Server(TangoServerPrototype):
                     msg = 'Device is not ready'
                     self.log_error(msg)
                     self.set_state(DevState.FAULT, msg)
+                    self.error_time = time.time()
                     return
             self.pre = f'{self.get_name()} ET{self.et.type_str}'
             if not self.emulate:
@@ -105,16 +108,19 @@ class ET7000_Server(TangoServerPrototype):
                     self.restore_polling()
                     self.deleted = False
                 self.set_state(DevState.RUNNING, 'Initialization finished')
+                self.error_time = 0.0
             else:
                 # unknown device
                 msg = 'PET creation error'
                 self.set_state(DevState.FAULT, msg)
                 self.log_error(msg)
+                self.error_time = time.time()
         except KeyboardInterrupt:
             raise
         except:
             self.et = None
             self.ip = None
+            self.error_time = time.time()
             msg = 'init_device exception'
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
@@ -168,7 +174,6 @@ class ET7000_Server(TangoServerPrototype):
     def read_general(self, attr: tango.Attribute):
         # with self.lock:
         attr_name = attr.get_name()
-        # self.LOGGER.debug('entry %s %s', self.get_name(), attr_name)
         if self.is_connected():
             val = self._read_io(attr)
         else:
@@ -277,7 +282,8 @@ class ET7000_Server(TangoServerPrototype):
 
     @command
     def reconnect(self):
-        self.delete_device()
+        self.logger.debug('reconnecting')
+        # self.delete_device()
         self.init_device()
         self.initialize_dynamic_attributes()
         self.restore_polling()
@@ -480,8 +486,10 @@ class ET7000_Server(TangoServerPrototype):
         self.init_da = True
 
     def is_connected(self):
+        # self.logger.debug('%s %s', self.et, self.et.type)
+        # self.logger.debug('%s %s %s', self.error_time, self.reconnect_timeout, self.error_time - time.time())
         if self.et is None or self.et.type == 0:
-            if self.error_time > 0.0 and self.error_time - time.time() > self.reconnect_timeout:
+            if self.error_time > 0.0 and time.time() - self.error_time > self.reconnect_timeout:
                 self.reconnect()
             return False
         return True
@@ -509,13 +517,10 @@ class ET7000_Server(TangoServerPrototype):
 
 def looping():
     # ET7000_Server.LOGGER.debug('loop entry')
-    post_init_callback()
-    # for dev in ET7000_Server.devices:
-    #     if dev.init_da:
-    #         dev.initialize_dynamic_attributes()
-    #     if dev.error_time > 0.0 and dev.error_time - time.time() > dev.reconnect_timeout:
-    #         dev.reconnect()
-    time.sleep(1.0)
+    # post_init_callback()
+    for dev in ET7000_Server.devices:
+        ET7000_Server.devices[dev].is_connected()
+    time.sleep(LOOP_TIMEOUT)
     # ET7000_Server.LOGGER.debug('loop exit')
 
 
@@ -530,6 +535,6 @@ def post_init_callback():
 
 
 if __name__ == "__main__":
-    ET7000_Server.run_server(post_init_callback=post_init_callback)
-    # ET7000_Server.run_server(event_loop=looping, post_init_callback=post_init_callback)
+    # ET7000_Server.run_server(post_init_callback=post_init_callback)
+    ET7000_Server.run_server(event_loop=looping, post_init_callback=post_init_callback)
     # ET7000_Server.run_server()
