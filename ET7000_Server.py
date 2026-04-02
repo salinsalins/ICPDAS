@@ -143,7 +143,7 @@ class ET7000_Server(TangoServerPrototype):
             return 'OFFLINE'
 
     def read_IP(self):
-        return self.ip
+        return str(self.ip)
 
     def read_all(self, attr: tango.Attribute):
         # with self.lock:
