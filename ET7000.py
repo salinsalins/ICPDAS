@@ -966,7 +966,7 @@ if __name__ == "__main__":
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=',
                   ET7000.ranges[r]['max'])
     # test ET70xx device for operation
-    ip = '192.168.1.133'
+    ip = '192.168.1.108'
     et = ET7000(ip)
     if et.type == 0:
         print('ET7000 not found at %s' % ip)
