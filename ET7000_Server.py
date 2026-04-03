@@ -3,13 +3,9 @@
 """
 ICP DAS ET7000 tango device server"""
 # noinspection PyTrailingSemicolon
-import sys;
+import os, sys
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
-from config_logger import config_logger
-
-sys.path.append('../TangoUtils')
-# print('Python %s on %s' % (sys.version, sys.platform))
-# print(sys.path)
 import time
 import math
 from threading import Lock, RLock
@@ -24,11 +20,12 @@ from log_exception import log_exception
 
 DEFAULT_IP = '192.168.1.122'
 DEFAULT_RECONNECT_TIMEOUT = 5.0
+LOOP_TIMEOUT = 10.0
 
 
 class ET7000_Server(TangoServerPrototype):
     init_da = True
-    server_version_value = '6.5'
+    server_version_value = '7.0'
     server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
 
     device_type = attribute(label="device_type", dtype=str,
@@ -113,16 +110,19 @@ class ET7000_Server(TangoServerPrototype):
                     self.restore_polling()
                     self.deleted = False
                 self.set_state(DevState.RUNNING, 'Initialization finished')
+                self.error_time = 0.0
             else:
                 # unknown device
                 msg = 'PET creation error'
                 self.set_state(DevState.FAULT, msg)
                 self.log_error(msg)
+                self.error_time = time.time()
         except KeyboardInterrupt:
             raise
         except:
             self.et = None
             self.ip = None
+            self.error_time = time.time()
             msg = 'init_device exception'
             self.log_exception(msg)
             self.set_state(DevState.FAULT, msg)
@@ -146,7 +146,7 @@ class ET7000_Server(TangoServerPrototype):
             return 'OFFLINE'
 
     def read_IP(self):
-        return self.ip
+        return str(self.ip)
 
     def read_all(self, attr: tango.Attribute):
         # with self.lock:
@@ -497,7 +497,6 @@ class ET7000_Server(TangoServerPrototype):
         self.init_da = True
 
     def is_connected(self):
-        # self.logger.debug('entry')
         if self.et is None or self.et.type == 0:
             self.reconnect()
         if self.et is None or self.et.type == 0:

@@ -1,6 +1,6 @@
 # Используемые библиотеки
-import sys
-if '../TangoUtils' not in sys.path: sys.path.append('../TangoUtils')
+import os, sys
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
 from math import sin
@@ -508,7 +508,7 @@ class ET7000:
         except KeyboardInterrupt:
             raise
         except:
-            pass
+            log_exception()
         if c_min < c_max:
             k = float(v_max - v_min) / (c_max - c_min)
             b = v_min - k * c_min
@@ -531,7 +531,7 @@ class ET7000:
         except KeyboardInterrupt:
             raise
         except:
-            pass
+            log_exception()
         # print(hex(r), v_min, v_max, c_min, c_max)
         if c_min < c_max:
             k = (c_max - c_min) / (v_max - v_min)
@@ -567,24 +567,29 @@ class ET7000:
 
     def ai_read_masks(self):
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return []
         coils = self.client.read_coils(595, self.ai_n)
         if coils and len(coils) == self.ai_n:
             return coils
+        self.logger.info('Error reading masks')
         return [False] * self.ai_n
 
     def ai_read_ranges(self):
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return []
         regs = self.client.read_holding_registers(427, self.ai_n)
         if regs and len(regs) == self.ai_n:
             return regs
+        self.logger.info('Error reading ranges')
         return [0xff] * self.ai_n
 
     def ai_read(self, channel=None):
         if channel is not None:
             return self.ai_read_channel(channel)
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return None
         result = self.client.read_input_registers(0, self.ai_n)
         if result and len(result) == self.ai_n:
@@ -592,13 +597,16 @@ class ET7000:
                 if self.ai_masks[i]:
                     result[i] = self.ai_convert[i](result[i])
                 else:
+                    self.logger.info('Read for masked ai channel %s ignored' % i)
                     result[i] = NaN
             return result
         else:
+            self.logger.info('Error reading channels')
             return [NaN] * self.ai_n
 
     def ai_read_channel(self, channel: int):
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return None
         try:
             if self.ai_masks[channel]:
@@ -606,21 +614,26 @@ class ET7000:
                 if regs:
                     return self.ai_convert[channel](regs[0])
                 else:
+                    self.logger.info('Error reading channel')
                     return None
             else:
+                self.logger.info('Read for masked ai channel %s ignored' % channel)
                 return NaN
         except KeyboardInterrupt:
             raise
         except:
+            log_exception()
             return None
 
     def ai_write_masks(self, masks):
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return None
         return self.client.write_multiple_coils(595, [bool(m) for m in masks])
 
     def ai_write_ranges(self, data):
         if self.ai_n <= 0:
+            self.logger.info('Device has no ai channels')
             return None
         return self.client.write_multiple_registers(427, [int(m) for m in data])
 
@@ -651,6 +664,7 @@ class ET7000:
         if channel is not None:
             return self.ao_read_channel(channel)
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return None
         regs = self.client.read_holding_registers(0, self.ao_n)
         if regs and len(regs) == self.ao_n:
@@ -662,6 +676,7 @@ class ET7000:
 
     def ao_read_channel(self, k: int):
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return None
         v = None
         try:
@@ -680,6 +695,7 @@ class ET7000:
 
     def ao_write(self, values):
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return False
         n = len(values)
         if n != self.ao_n:
@@ -697,6 +713,7 @@ class ET7000:
 
     def ao_write_channel(self, k: int, value):
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return False
         value = float(value)
         raw = self.ao_convert_write[k](value)
@@ -708,6 +725,7 @@ class ET7000:
 
     def ao_write_ranges(self, data):
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return False
         return self.client.write_multiple_registers(459, [int(m) for m in data])
 
@@ -725,6 +743,7 @@ class ET7000:
 
     def di_read(self, channel=None):
         if self.di_n <= 0:
+            self.logger.info('Device has no di channels')
             return None
         if channel is not None:
             return self.di_read_channel(channel)
@@ -735,6 +754,7 @@ class ET7000:
 
     def di_read_channel(self, k: int):
         if self.di_n <= 0:
+            self.logger.info('Device has no di channels')
             return None
         reg = self.client.read_discrete_inputs(k, 1)
         if reg:
@@ -755,6 +775,7 @@ class ET7000:
 
     def do_read(self, channel=None):
         if self.do_n <= 0:
+            self.logger.info('Device has no do channels')
             return None
         if channel is not None:
             return self.do_read_channel(channel)
@@ -765,6 +786,7 @@ class ET7000:
 
     def do_read_channel(self, k: int):
         if self.do_n <= 0:
+            self.logger.info('Device has no do channels')
             return None
         reg = self.client.read_coils(0 + k, 1)
         if reg:
@@ -773,6 +795,7 @@ class ET7000:
 
     def do_write(self, values):
         if self.do_n <= 0:
+            self.logger.info('Device has no do channels')
             return False
         result = self.client.write_multiple_coils(0, values)
         if result:
@@ -781,6 +804,7 @@ class ET7000:
 
     def do_write_channel(self, k: int, value: bool):
         if self.do_n <= 0:
+            self.logger.info('Device has no do channels')
             return False
         result = self.client.write_single_coil(0 + k, value)
         if result:
@@ -795,6 +819,7 @@ class ET7000:
         if addr >= 30000:
             return self.client.read_input_registers(addr - 30000, n)
         if addr >= 20000:
+            self.logger.debug('ModBus address out of range')
             return None
         if addr >= 10000:
             return self.client.read_discrete_inputs(addr - 10000, n)
@@ -808,10 +833,13 @@ class ET7000:
         if addr >= 40000:
             return self.client.write_multiple_registers(addr - 40000, v)
         if addr >= 30000:
+            self.logger.debug('ModBus address out of range')
             return False
         if addr >= 20000:
+            self.logger.debug('ModBus address out of range')
             return False
         if addr >= 10000:
+            self.logger.debug('ModBus address out of range')
             return False
         if addr >= 0:
             return self.client.write_multiple_coils(addr, v)
@@ -965,11 +993,13 @@ if __name__ == "__main__":
         if f(ET7000.ranges[r]['max_code']) != ET7000.ranges[r]['max']:
             print(hex(r), hex(ET7000.ranges[r]['max_code']), f(ET7000.ranges[r]['max_code']), '!=',
                   ET7000.ranges[r]['max'])
+
     # test ET70xx device for operation
     ip = '192.168.1.108'
     et = ET7000(ip)
     if et.type == 0:
         print('ET7000 not found at %s' % ip)
+        exit(-1)
     else:
         print('PET%s at %s' % (et.type_str, ip))
         print('----------------------------------------')
@@ -999,7 +1029,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     import numpy as np
 
-    N = 20000
+    N = 5000
     y = np.zeros(N)
     n = 1
     t = 0.0
