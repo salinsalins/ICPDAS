@@ -664,6 +664,7 @@ class ET7000:
         if channel is not None:
             return self.ao_read_channel(channel)
         if self.ao_n <= 0:
+            self.logger.info('Device has no ao channels')
             return None
         regs = self.client.read_holding_registers(0, self.ao_n)
         if regs and len(regs) == self.ao_n:
@@ -1028,7 +1029,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     import numpy as np
 
-    N = 20000
+    N = 5000
     y = np.zeros(N)
     n = 1
     t = 0.0
