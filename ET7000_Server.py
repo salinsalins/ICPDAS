@@ -2,8 +2,10 @@
 
 """
 ICP DAS ET7000 tango device server"""
-# noinspection PyTrailingSemicolon
-import sys; sys.path.append('../TangoUtils')
+
+import os
+import sys
+if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
 import math
@@ -129,7 +131,7 @@ class ET7000_Server(TangoServerPrototype):
         self.log_info(msg)
         self.set_state(DevState.DISABLE, msg)
 
-    # ************* Attribute R/W routines *****************
+    # region ************* Attribute R/W routines *****************
     def read_device_type(self):
         if self.et:
             return self.et.type_str
@@ -237,8 +239,9 @@ class ET7000_Server(TangoServerPrototype):
             msg = "%s Error reading %s %s" % (self.get_name(), attr_name, val)
             self.logger.error(msg)
         return float('nan')
+    # endregion
 
-    # *************   Commands   *****************
+    # region *************   Commands   *****************
     @command(dtype_in=(float,), dtype_out=(float,))
     def read_modbus(self, data):
         n = 1
@@ -283,6 +286,7 @@ class ET7000_Server(TangoServerPrototype):
         self.restore_polling()
         msg = '%s Reconnected' % self.name
         self.logger.info(msg)
+    # endregion
 
     # ******** additional helper functions ***********
     def initialize_dynamic_attributes(self):
