@@ -1,11 +1,15 @@
 # Используемые библиотеки
 import os, sys
+
+from tcpping import tcpping
+
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
 from math import sin
 
 from pyModbusTCP.client import ModbusClient
+from pyModbusTCP import constants as const
 
 from config_logger import config_logger
 from log_exception import log_exception
@@ -14,6 +18,34 @@ NaN = float('nan')
 
 
 class ModifiedModbusClient(ModbusClient):
+    def __init__(self, host, port, *args, **kwargs):
+        # object vars
+        self._ModbusClient__hostname = host
+        self._ModbusClient__port = port
+        self._ModbusClient__unit_id = 1
+        self._ModbusClient__timeout = 10.0  # socket timeout
+        self._ModbusClient__debug = False  # debug trace on/off
+        self._ModbusClient__auto_open = False  # auto TCP connect
+        self._ModbusClient__auto_close = False  # auto TCP close
+        self._ModbusClient__mode = const.MODBUS_TCP  # default is Modbus/TCP
+        self._ModbusClient__sock = None  # socket handle
+        self._ModbusClient__hd_tr_id = 0  # store transaction ID
+        self._ModbusClient__version = const.VERSION  # version number
+        self._ModbusClient__last_error = const.MB_NO_ERR  # last error code
+        self._ModbusClient__last_except = const.EXP_NONE  # last expect code
+        self.ping = tcpping(host, port, 1.0)
+        if self.ping:
+            super().__init__(host, port, *args, **kwargs)
+
+    # def ping(self, host=None, port=None, timeout=1.0):
+    #     self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)
+    #     return self.ping
+
+    def open(self):
+        self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)
+        if self.ping:
+            super().open()
+
     def _send_mbus(self, arg):
         result = super()._send_mbus(arg)
         # after sending request sleep for 5 ms
@@ -440,7 +472,9 @@ class ET7000:
             self.client = ModifiedModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
         else:
             self.client = client
+        self.logger.debug('Mark')
         self.is_open = self.client.open()
+        self.logger.debug('Mark')
         if not self.is_open:
             self.logger.warning('ET-7xxx device at %s is offline' % host)
             return
