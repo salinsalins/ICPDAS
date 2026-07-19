@@ -94,6 +94,7 @@ class ET7000_Server(TangoServerPrototype):
                     self.log_error(msg)
                     self.set_state(DevState.FAULT, msg)
                     return
+                time.sleep(0.5)
             self.pre = f'{self.get_name()} ET{self.et.type_str}'
             if not self.emulate:
                 self.pre = f'{self.pre} at {self.ip}'
@@ -140,7 +141,7 @@ class ET7000_Server(TangoServerPrototype):
 
     # ************* Attribute R/W routines *****************
     def read_device_type(self):
-        self.is_connected()
+        # self.is_connected()
         if self.et:
             return self.et.type_str
         else:
@@ -301,7 +302,6 @@ class ET7000_Server(TangoServerPrototype):
         self.restore_polling()
         msg = '%s Reconnected' % self.name
         self.logger.info(msg)
-    # endregion
         self.reconnection_time = time.time() + self.reconnect_timeout
 
     # ******** additional helper functions ***********
@@ -500,6 +500,7 @@ class ET7000_Server(TangoServerPrototype):
         self.init_da = True
 
     def is_connected(self):
+        # return False
         if self.et is None or self.et.type == 0:
             self.reconnect()
         if self.et is None or self.et.type == 0:
