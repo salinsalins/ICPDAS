@@ -44,7 +44,8 @@ class ModifiedModbusClient(ModbusClient):
     def open(self):
         self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)
         if self.ping:
-            super().open()
+            return super().open()
+        return False
 
     def _send_mbus(self, arg):
         result = super()._send_mbus(arg)
@@ -472,9 +473,7 @@ class ET7000:
             self.client = ModifiedModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
         else:
             self.client = client
-        self.logger.debug('Mark')
         self.is_open = self.client.open()
-        self.logger.debug('Mark')
         if not self.is_open:
             self.logger.warning('ET-7xxx device at %s is offline' % host)
             return
@@ -601,7 +600,7 @@ class ET7000:
 
     def ai_read_masks(self):
         if self.ai_n <= 0:
-            self.logger.info('Device has no ai channels')
+            # self.logger.info('Device has no ai channels')
             return []
         coils = self.client.read_coils(595, self.ai_n)
         if coils and len(coils) == self.ai_n:
@@ -611,7 +610,7 @@ class ET7000:
 
     def ai_read_ranges(self):
         if self.ai_n <= 0:
-            self.logger.info('Device has no ai channels')
+            # self.logger.info('Device has no ai channels')
             return []
         regs = self.client.read_holding_registers(427, self.ai_n)
         if regs and len(regs) == self.ai_n:
