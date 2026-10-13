@@ -296,9 +296,9 @@ class ET7000_Server(TangoServerPrototype):
             self.logger.debug('Reconnection timeout')
             return
         self.delete_device()
-        self.init_device()
-        #self.initialize_dynamic_attributes()
-        #self.restore_polling()
+        #self.init_device()
+        self.initialize_dynamic_attributes()
+        self.restore_polling()
         #msg = '%s Reconnected' % self.name
         if self.is_connected(): 
             self.logger.info('Reconnected')
