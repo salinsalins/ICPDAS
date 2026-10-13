@@ -27,15 +27,16 @@ class ModifiedModbusClient(ModbusClient):
         self._ModbusClient__debug = False  # debug trace on/off
         self._ModbusClient__auto_open = False  # auto TCP connect
         self._ModbusClient__auto_close = False  # auto TCP close
-        self._ModbusClient__mode = const.MODBUS_TCP  # default is Modbus/TCP
+        #self._ModbusClient__mode = const.MODBUS_TCP  # default is Modbus/TCP
         self._ModbusClient__sock = None  # socket handle
         self._ModbusClient__hd_tr_id = 0  # store transaction ID
         self._ModbusClient__version = const.VERSION  # version number
         self._ModbusClient__last_error = const.MB_NO_ERR  # last error code
         self._ModbusClient__last_except = const.EXP_NONE  # last expect code
         self.ping = tcpping(host, port, 1.0)
-        if self.ping:
-            super().__init__(host, port, *args, **kwargs)
+        # if self.ping:
+            # super().__init__(host, port, *args, **kwargs)
+        super().__init__(host, port, *args, **kwargs)
 
     # def ping(self, host=None, port=None, timeout=1.0):
     #     self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)

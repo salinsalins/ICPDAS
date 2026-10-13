@@ -2,3 +2,6 @@
 /logs/
 *.json
 /data/
+__pycache__/
+*.pyc
+.*/

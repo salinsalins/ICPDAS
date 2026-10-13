@@ -9,7 +9,7 @@ if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.re
 
 import time
 import math
-from threading import Lock, RLock
+from threading import Lock, RLock, Thread
 
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx, Attr
@@ -131,7 +131,7 @@ class ET7000_Server(TangoServerPrototype):
 
     def delete_device(self):
         super().delete_device()
-        self.et.__del__()
+        if self.et: self.et.__del__()
         self.et = None
         self.ip = None
         self.deleted = True
@@ -295,13 +295,15 @@ class ET7000_Server(TangoServerPrototype):
         if time.time() < self.reconnect_time:
             self.logger.debug('Reconnection timeout')
             return
-        # self.delete_device()
-        # self.logger.debug('mark')
+        self.delete_device()
         self.init_device()
-        self.initialize_dynamic_attributes()
-        self.restore_polling()
-        msg = '%s Reconnected' % self.name
-        self.logger.info(msg)
+        #self.initialize_dynamic_attributes()
+        #self.restore_polling()
+        #msg = '%s Reconnected' % self.name
+        if self.is_connected(): 
+            self.logger.info('Reconnected')
+        else:
+            self.logger.warning('Reconnection failed')
         self.reconnection_time = time.time() + self.reconnect_timeout
 
     # ******** additional helper functions ***********
