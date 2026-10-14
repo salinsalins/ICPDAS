@@ -295,12 +295,12 @@ class ET7000_Server(TangoServerPrototype):
         if time.time() < self.reconnect_time:
             self.logger.debug('Reconnection timeout')
             return
-        self.delete_device()
-        #self.init_device()
-        self.initialize_dynamic_attributes()
-        self.restore_polling()
+        #self.delete_device()
+        self.init_device()
+        #self.initialize_dynamic_attributes()
+        #self.restore_polling()
         #msg = '%s Reconnected' % self.name
-        if self.is_connected(): 
+        if self._connected(): 
             self.logger.info('Reconnected')
         else:
             self.logger.warning('Reconnection failed')
@@ -505,6 +505,9 @@ class ET7000_Server(TangoServerPrototype):
         # return False
         if self.et is None or self.et.type == 0:
             self.reconnect()
+        return self._connected()
+
+    def _connected(self):
         if self.et is None or self.et.type == 0:
             self.error_time = time.time()
             return False
