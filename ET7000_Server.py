@@ -541,8 +541,10 @@ class ET7000_Server(TangoServerPrototype):
 def looping():
     # logger.debug('loop entry')
     time.sleep(5.0)
-    for dev in ET7000_Server.devices:
-            ET7000_Server.devices[dev].is_connected()
+    for name in ET7000_Server.devices:
+            if name in ET7000_Server.devices:
+                dev = ET7000_Server.devices[name]
+                dev.is_connected()
 
 
 def post_init_callback():
