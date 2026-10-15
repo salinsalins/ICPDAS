@@ -26,8 +26,8 @@ LOOP_TIMEOUT = 10.0
 
 class ET7000_Server(TangoServerPrototype):
     init_da = True
-    server_version_value = '7.0'
-    server_name_value = 'Tango Server for ICP DAS ET-7000 Series Devices'
+    server_version_value = '7.1'
+    server_name_value = 'Tango Device Server for ICP DAS ET-7000 Series'
 
     device_type = attribute(label="device_type", dtype=str,
                             display_level=DispLevel.OPERATOR,
@@ -295,7 +295,7 @@ class ET7000_Server(TangoServerPrototype):
         if time.time() < self.reconnect_time:
             self.logger.debug('Reconnection timeout')
             return
-        #self.delete_device()
+        self.delete_device()
         self.init_device()
         #self.initialize_dynamic_attributes()
         #self.restore_polling()
@@ -540,7 +540,7 @@ class ET7000_Server(TangoServerPrototype):
 
 def looping():
     # logger.debug('loop entry')
-    time.sleep(2.0)
+    time.sleep(5.0)
     for dev in ET7000_Server.devices:
             ET7000_Server.devices[dev].is_connected()
 

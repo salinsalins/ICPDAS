@@ -2,6 +2,7 @@
 /logs/
 *.json
 /data/
-__pycache__/
+__pycache__
 *.pyc
 .*/
+*.code-workspace
