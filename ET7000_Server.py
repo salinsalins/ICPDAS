@@ -542,9 +542,13 @@ def looping():
     # logger.debug('loop entry')
     time.sleep(5.0)
     for name in ET7000_Server.devices:
-            if name in ET7000_Server.devices:
-                dev = ET7000_Server.devices[name]
-                dev.is_connected()
+        try:
+            dev = ET7000_Server.devices[name]
+            dev.is_connected()
+        except KeyboardInterrupt:
+            raise
+        except:
+            pass
 
 
 def post_init_callback():
