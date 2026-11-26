@@ -6,8 +6,6 @@ ICP DAS ET7000 tango device server"""
 import os
 import sys
 
-from ThreadSafeDict import ThreadSafeDict
-
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
@@ -21,6 +19,8 @@ from ET7000 import FakeET7000
 from ET7000 import ET7000
 from TangoServerPrototype import TangoServerPrototype
 from log_exception import log_exception
+from ThreadSafeDict import ThreadSafeDict
+
 
 DEFAULT_IP = '192.168.1.122'
 DEFAULT_RECONNECT_TIMEOUT = 5.0
