@@ -5,6 +5,9 @@ ICP DAS ET7000 tango device server"""
 
 import os
 import sys
+
+from ThreadSafeDict import ThreadSafeDict
+
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
@@ -301,9 +304,9 @@ class ET7000_Server(TangoServerPrototype):
         #self.restore_polling()
         #msg = '%s Reconnected' % self.name
         if self._connected(): 
-            self.logger.info('Reconnected')
+            self.log_info('Reconnected')
         else:
-            self.logger.warning('Reconnection failed')
+            self.log_warning('Reconnection failed')
         self.reconnection_time = time.time() + self.reconnect_timeout
 
     # ******** additional helper functions ***********
@@ -352,11 +355,12 @@ class ET7000_Server(TangoServerPrototype):
                             nai += 1
                         else:
                             self.log_debug('Disabled attribute %s skipped', attr_name)
-                    msg = ' %d of %d analog inputs initialized' % (nai, self.et.ai_n)
                     if nai != self.et.ai_n:
-                        self.log_info(msg)
+                        msg = ' %d of %d analog inputs initialized' % (nai, self.et.ai_n)
+                        self.log_warning(msg)
                     else:
-                        self.log_debug(msg)
+                        msg = ' %d analog inputs initialized' % nai
+                        self.log_info(msg)
             except KeyboardInterrupt:
                 raise
             except:
@@ -390,11 +394,12 @@ class ET7000_Server(TangoServerPrototype):
                             nao += 1
                         else:
                             self.logger.debug('%s is disabled', attr_name)
-                    msg = ' %d of %d analog outputs initialized' % (nao, self.et.ao_n)
                     if nao != self.et.ao_n:
-                        self.log_info(msg)
+                        msg = ' %d of %d analog outputs initialized' % (nao, self.et.ao_n)
+                        self.log_warning(msg)
                     else:
-                        self.log_debug(msg)
+                        msg = ' %d analog outputs initialized' % nao
+                        self.log_info(msg)
             except KeyboardInterrupt:
                 raise
             except:
@@ -422,9 +427,9 @@ class ET7000_Server(TangoServerPrototype):
                         ndi += 1
                     msg = ' %d of %d digital inputs initialized' % (ndi, self.et.di_n)
                     if ndi != self.et.di_n:
-                        self.log_info(msg)
+                        self.log_warning(msg)
                     else:
-                        self.log_debug(msg)
+                        self.log_info(msg)
             except KeyboardInterrupt:
                 raise
             except:
@@ -455,9 +460,9 @@ class ET7000_Server(TangoServerPrototype):
                         ndo += 1
                     msg = ' %d of %d digital outputs initialized' % (ndo, self.et.do_n)
                     if ndo != self.et.do_n:
-                        self.log_info(msg)
+                        self.log_warning(msg)
                     else:
-                        self.log_debug(msg)
+                        self.log_info(msg)
             except KeyboardInterrupt:
                 raise
             except:
@@ -473,7 +478,7 @@ class ET7000_Server(TangoServerPrototype):
             if self.et.do_n > 0:
                 msg += f'{ndo} digital outputs'
             self.set_state(DevState.RUNNING, f'{msg} created')
-            self.log_info(f'{msg} created')
+            self.log_info(f'Total {msg} created')
         except KeyboardInterrupt:
             raise
         except:
@@ -497,7 +502,7 @@ class ET7000_Server(TangoServerPrototype):
             # removed.append(attr_name)
         # for attr_name in removed:
         #     self.dynamic_attributes.pop(attr_name, None)
-        self.dynamic_attributes = {}
+        self.dynamic_attributes = ThreadSafeDict({})
         self.set_state(DevState.UNKNOWN)
         self.init_da = True
 
