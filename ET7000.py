@@ -1,13 +1,11 @@
 # Используемые библиотеки
 import os, sys
-
-from tcpping import tcpping
-
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
 
 import time
 from math import sin
 
+from tcpping import tcpping
 from pyModbusTCP.client import ModbusClient
 from pyModbusTCP import constants as const
 
