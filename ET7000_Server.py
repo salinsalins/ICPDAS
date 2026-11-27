@@ -2,24 +2,21 @@
 
 """
 ICP DAS ET7000 tango device server"""
-
 import os
 import sys
-
-from config_logger import config_logger
-
 if os.path.realpath('../TangoUtils') not in sys.path: sys.path.append(os.path.realpath('../TangoUtils'))
-
+import logging
 import time
 import math
 from threading import Lock, RLock, Thread
 
+from config_logger import config_logger
 import tango
 from tango import AttrQuality, AttrWriteType, DispLevel, DevState, DebugIt, AttributeInfoEx, Attr
 from tango.server import Device, attribute, command
 from ET7000 import FakeET7000
 from ET7000 import ET7000
-from TangoServerPrototype import TangoServerPrototype, IpFilter
+from TangoServerPrototype import TangoServerPrototype
 from log_exception import log_exception
 from ThreadSafeDict import ThreadSafeDict
 
@@ -27,6 +24,18 @@ from ThreadSafeDict import ThreadSafeDict
 DEFAULT_IP = '192.168.1.122'
 DEFAULT_RECONNECT_TIMEOUT = 5.0
 LOOP_TIMEOUT = 10.0
+
+class IdFilter(logging.Filter):
+    def __init__(self, self_id: int):
+        super().__init__()
+        self.self_id = self_id
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # 1. Проверяем, передан ли user_id через параметр extra
+        self_id = getattr(record, "self_id", None)
+        result = self_id is not None and self_id == self.self_id
+        return result
+
 
 
 class ET7000_Server(TangoServerPrototype):
@@ -56,6 +65,8 @@ class ET7000_Server(TangoServerPrototype):
 
     def set_config(self):
         super().set_config()
+        self.dlh.filters.clear()
+        self.dlh.addFilter(IdFilter(id(self)))
         self.pre = f'{self.get_name()} ET7XXX'
         msg = 'Device Initialization'
         self.debug(msg)
@@ -82,12 +93,8 @@ class ET7000_Server(TangoServerPrototype):
                 self.ip = ''
                 self.error(msg)
                 self.set_fault(msg)
-                # self.dlh.filters.clear()
-                # self.dlh.addFilter(IpFilter(self.ip))
                 return
         self.pre = f'{self.get_name()} ET7XXX at {self.ip}'
-        # self.dlh.filters.clear()
-        # self.dlh.addFilter(IpFilter(self.ip))
         try:
             # create ICP DAS device
             if self.emulate:
