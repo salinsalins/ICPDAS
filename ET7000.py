@@ -16,6 +16,7 @@ from log_exception import log_exception
 
 NaN = float('nan')
 
+PING_TIMEOUT = 1.0
 
 class ModifiedModbusClient(ModbusClient):
     def __init__(self, host, port, *args, **kwargs):
@@ -33,17 +34,19 @@ class ModifiedModbusClient(ModbusClient):
         self._ModbusClient__version = const.VERSION  # version number
         self._ModbusClient__last_error = const.MB_NO_ERR  # last error code
         self._ModbusClient__last_except = const.EXP_NONE  # last expect code
-        self.ping = tcpping(host, port, 1.0)
+        self._ping = True
+        # self._ping = tcpping(host, port, PING_TIMEOUT)
         # if self.ping:
             # super().__init__(host, port, *args, **kwargs)
         super().__init__(host, port, *args, **kwargs)
 
-    # def ping(self, host=None, port=None, timeout=1.0):
-    #     self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)
-    #     return self.ping
+    @property
+    def ping(self, host=None, port=None, timeout=1.0):
+        self._ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, PING_TIMEOUT)
+        return self._ping
 
     def open(self):
-        self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, 1.0)
+        # self.ping = tcpping(self._ModbusClient__hostname, self._ModbusClient__port, PING_TIMEOUT)
         if self.ping:
             return super().open()
         return False
@@ -475,6 +478,7 @@ class ET7000:
             self.client = ModifiedModbusClient(host, port, auto_open=True, auto_close=False, timeout=timeout)
         else:
             self.client = client
+        self.logger.debug('Opening PET at %s' % host)
         self.is_open = self.client.open()
         if not self.is_open:
             self.logger.warning('PET device at %s is offline' % host)
